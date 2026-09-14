@@ -13,8 +13,15 @@ contract MockCelestialDexConnector is ICelestialDexConnector {
 
     mapping(address => uint256) public priceNumerator;
     mapping(address => uint256) public priceDenominator;
+    mapping(address => address) public outputToken;
 
-    function setRate(address tokenIn, uint256 numerator, uint256 denominator) external {
+    function setRate(
+        address tokenIn,
+        address tokenOut,
+        uint256 numerator,
+        uint256 denominator
+    ) external {
+        outputToken[tokenIn] = tokenOut;
         priceNumerator[tokenIn] = numerator;
         priceDenominator[tokenIn] = denominator;
     }
@@ -51,8 +58,6 @@ contract MockCelestialDexConnector is ICelestialDexConnector {
         amountOut = quoteExactInput(address(0), tokenIn, amountIn);
         require(amountOut >= minAmountOut, "slippage");
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        // The mock caller pre-funds the output asset and selects it through the reciprocal rate.
-        // Tests transfer output directly after configuring known token pairs.
-        recipient;
+        IERC20(outputToken[tokenIn]).safeTransfer(recipient, amountOut);
     }
 }
