@@ -3,13 +3,14 @@ pragma solidity ^0.8.26;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ArcToken} from "./ArcToken.sol";
 import {ArcBondingCurve} from "./ArcBondingCurve.sol";
 import {ArcFeeEscrow} from "./ArcFeeEscrow.sol";
 import {ArcLiquidityLocker} from "./ArcLiquidityLocker.sol";
 import {IGraduationAdapter} from "./interfaces/IGraduationAdapter.sol";
 
-contract ArcLaunchFactory {
+contract ArcLaunchFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     uint256 public constant TOTAL_SUPPLY = 1_000_000_000 ether;
@@ -112,6 +113,7 @@ contract ArcLaunchFactory {
 
     function createToken(string calldata name, string calldata symbol)
         external
+        nonReentrant
         returns (address token, address curve)
     {
         if (
@@ -149,7 +151,7 @@ contract ArcLaunchFactory {
         emit TokenCreated(token, curve, msg.sender, name, symbol);
     }
 
-    function beginGraduation(address token) external {
+    function beginGraduation(address token) external nonReentrant {
         address curveAddr = curveOf[token];
         if (curveAddr == address(0)) revert UnknownToken();
 
@@ -174,6 +176,7 @@ contract ArcLaunchFactory {
 
     function createGraduatedPool(address token)
         external
+        nonReentrant
         returns (address pool, uint256 positionId)
     {
         Graduation storage g = graduations[token];
