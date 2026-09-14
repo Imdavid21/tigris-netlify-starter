@@ -39,7 +39,9 @@ app.get("/stats", async () => {
       "(select coalesce(sum(quote_spent),0)::text from buybacks) as buyback_quote, " +
       "(select coalesce(sum(tokens_burned),0)::text from buybacks) as tokens_burned, " +
       "(select count(*)::int from limit_orders where status='OPEN') as open_orders, " +
-      "(select count(*)::int from buybacks) as buyback_count"
+      "(select count(*)::int from buybacks) as buyback_count, " +
+      "(select count(*)::int from trades where venue='UNISWAP_V4') as post_graduation_trades, " +
+      "(select count(distinct token)::int from trades where venue='UNISWAP_V4') as post_graduation_markets"
   );
   return result.rows[0];
 });
@@ -65,7 +67,30 @@ app.get("/analytics/daily", async () => {
      group by 1 order by 1 asc`
   );
 
-  return { volume: volume.rows, launches: launches.rows };
+  const venues = await db.query(
+    `select date_trunc('day', block_time) as day,
+            venue,
+            count(*)::int as trades,
+            count(distinct trader)::int as traders
+     from trades
+     where block_time > now() - interval '30 days'
+     group by 1,2 order by 1 asc,2 asc`
+  );
+
+  return { volume: volume.rows, launches: launches.rows, venues: venues.rows };
+});
+
+app.get("/analytics/venues", async () => {
+  const result = await db.query(
+    `select venue,
+            count(*)::int as trades,
+            count(distinct trader)::int as traders,
+            count(distinct token)::int as markets
+     from trades
+     group by venue
+     order by trades desc`
+  );
+  return { items: result.rows };
 });
 
 app.get("/tokens", async (request) => {
@@ -108,6 +133,9 @@ app.get("/tokens", async (request) => {
        twitter,
        telegram,
        case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address,
+       graduation_sqrt_price,
+       case when dex_pool_id is null then null else '0x' || encode(dex_pool_id,'hex') end as dex_pool_id,
+       dex_position_id,
        coalesce((
          select sum(tr.quote_amount)::text
          from trades tr
@@ -156,7 +184,10 @@ app.get("/tokens/:address", async (request, reply) => {
        website,
        twitter,
        telegram,
-       case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address
+       case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address,
+       graduation_sqrt_price,
+       case when dex_pool_id is null then null else '0x' || encode(dex_pool_id,'hex') end as dex_pool_id,
+       dex_position_id
      from tokens where address=decode($1,'hex') limit 1`,
     [address.slice(2)]
   );
@@ -168,7 +199,7 @@ app.get("/tokens/:address", async (request, reply) => {
        '0x' || encode(tx_hash,'hex') as tx_hash,
        log_index, block_number, block_time,
        '0x' || encode(trader,'hex') as trader,
-       side, token_amount, quote_amount, fee_amount
+       side, token_amount, quote_amount, fee_amount, venue
      from trades where token=decode($1,'hex')
      order by block_time desc limit 100`,
     [address.slice(2)]
@@ -316,7 +347,7 @@ app.get("/wallet/:address/activity", async (request, reply) => {
     `select
        '0x' || encode(tx_hash,'hex') as tx_hash,
        '0x' || encode(token,'hex') as token,
-       side, token_amount, quote_amount, fee_amount, block_time
+       side, token_amount, quote_amount, fee_amount, venue, block_time
      from trades where trader=decode($1,'hex')
      order by block_time desc limit 200`,
     [address.slice(2)]
