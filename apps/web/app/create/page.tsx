@@ -6,8 +6,8 @@ export default function CreatePage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <h1>Put a market in orbit.</h1>
-        <p>Define the market, review the terms, and launch onchain.</p>
+        <h1>Launch a token.</h1>
+        <p>Review every economic term before you sign.</p>
       </section>
       <CreateTokenForm />
     </main>
