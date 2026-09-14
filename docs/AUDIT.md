@@ -175,6 +175,34 @@ Previously actionable reentrancy findings were addressed with guards, state lock
 
 Slither output must be reviewed again for the final production DEX connector.
 
+## Uniswap v4 graduation review
+
+Celestial now contains a price-aware Uniswap v4 connector and adapter path. It is not enabled on the deployed Arc Testnet factory.
+
+Implemented protections:
+
+- terminal bonding-curve price is locked before reserve sweep
+- graduation adapter is factory-controlled
+- v4 dependencies are immutable connector addresses
+- deployment script rejects dependency addresses with no bytecode
+- LP NFT recipient is the permanent liquidity locker
+- no LP withdrawal method exists
+- ERC20 and Permit2 approvals are bounded and revoked
+- exact-input swaps require full input consumption
+- output slippage is enforced
+- unexpected surplus launch-token inventory is burned
+- unexpected quote surplus is permanently locked
+- post-graduation trades remain routed through the same Celestial market page
+
+Known v4-specific risks that remain mainnet gates:
+
+- permissionless v4 pool initialization can allow pre-initialization/griefing of an unguarded PoolKey before Celestial graduates; this needs a verified mitigation before production
+- the local minimal ABI layer must be checked against the exact Uniswap release deployed on Arc
+- Universal Router and Permit2 behavior must be fork-tested against Arc's actual deployment
+- full-range liquidity calculations and decimal combinations require fork tests for USDC, EURC, and cirBTC
+- the connector has not received an independent external audit
+- no custom fee/buyback hook should be enabled until the vanilla path has been audited and proven in staging
+
 ## Remaining external gates
 
 These are not code TODOs that should be filled with guessed values:
