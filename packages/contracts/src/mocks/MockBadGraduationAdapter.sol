@@ -9,6 +9,7 @@ contract MockBadGraduationAdapter is IGraduationAdapter {
         address,
         uint256,
         uint256,
+        uint160,
         address
     ) external pure returns (address pool, uint256 positionId) {
         return (address(0x1234), 1);
