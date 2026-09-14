@@ -16,10 +16,14 @@ const graduationSwept = parseAbiItem(
 const tokenGraduated = parseAbiItem(
   "event TokenGraduated(address indexed token,address indexed pool,uint256 positionId)"
 );
+const transfer = parseAbiItem(
+  "event Transfer(address indexed from,address indexed to,uint256 value)"
+);
 
 const factory = process.env.FACTORY_ADDRESS as Address | undefined;
 const startBlock = BigInt(process.env.FACTORY_START_BLOCK ?? "0");
 const watched = new Set<string>();
+const watchedTokens = new Set<string>();
 
 function hexToBuffer(value: string) {
   return Buffer.from(value.slice(2), "hex");
@@ -87,8 +91,12 @@ async function storeLaunch(log: any) {
     ]
   );
 
-  await backfillCurve(getAddress(curve), getAddress(token), log.blockNumber);
+  await Promise.all([
+    backfillCurve(getAddress(curve), getAddress(token), log.blockNumber),
+    backfillToken(getAddress(token), log.blockNumber)
+  ]);
   watchCurve(getAddress(curve), getAddress(token));
+  watchToken(getAddress(token));
 }
 
 async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
@@ -114,6 +122,40 @@ async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
       args.fee.toString()
     ]
   );
+}
+
+async function storeTransfer(token: Address, log: any) {
+  const { from, to, value } = log.args;
+  if (!from || !to || value === undefined) return;
+
+  await db.query(
+    `insert into transfers
+     (tx_hash, log_index, block_number, block_time, token, from_addr, to_addr, amount)
+     values ($1,$2,$3,$4,$5,$6,$7,$8)
+     on conflict (tx_hash,log_index) do nothing`,
+    [
+      hexToBuffer(log.transactionHash),
+      log.logIndex,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber),
+      hexToBuffer(token),
+      hexToBuffer(from),
+      hexToBuffer(to),
+      value.toString()
+    ]
+  );
+}
+
+async function backfillToken(token: Address, fromBlock: bigint) {
+  const toBlock = await client.getBlockNumber();
+  const transfers = await chunkedLogs({
+    address: token,
+    event: transfer,
+    fromBlock,
+    toBlock
+  });
+
+  for (const log of transfers) await storeTransfer(token, log);
 }
 
 async function backfillCurve(curve: Address, token: Address, fromBlock: bigint) {
@@ -162,6 +204,21 @@ async function backfillFactory() {
       );
     }
   }
+}
+
+function watchToken(token: Address) {
+  const key = token.toLowerCase();
+  if (watchedTokens.has(key)) return;
+  watchedTokens.add(key);
+
+  client.watchEvent({
+    address: token,
+    event: transfer,
+    onLogs: async (logs) => {
+      for (const log of logs) await storeTransfer(token, log);
+    },
+    onError: console.error
+  });
 }
 
 function watchCurve(curve: Address, token: Address) {
