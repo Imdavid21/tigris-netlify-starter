@@ -196,7 +196,7 @@ Implemented protections:
 
 Known v4-specific risks that remain mainnet gates:
 
-- permissionless v4 pool initialization can allow pre-initialization/griefing of an unguarded PoolKey before Celestial graduates; this needs a verified mitigation before production
+- the initialization-only guard hook mitigates PoolKey pre-initialization griefing, but its CREATE2-mined permission bits and sealed initializer must be independently verified on the actual deployment
 - the local minimal ABI layer must be checked against the exact Uniswap release deployed on Arc
 - Universal Router and Permit2 behavior must be fork-tested against Arc's actual deployment
 - full-range liquidity calculations and decimal combinations require fork tests for USDC, EURC, and cirBTC
