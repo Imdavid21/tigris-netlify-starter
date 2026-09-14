@@ -7,6 +7,8 @@ import {CelestialLaunchFactory} from "../src/CelestialLaunchFactory.sol";
 import {CelestialBondingCurve} from "../src/CelestialBondingCurve.sol";
 import {CelestialToken} from "../src/CelestialToken.sol";
 import {CelestialLimitOrderBook} from "../src/CelestialLimitOrderBook.sol";
+import {CelestialBuybackVault} from "../src/CelestialBuybackVault.sol";
+import {CelestialFeeEscrow} from "../src/CelestialFeeEscrow.sol";
 
 contract CelestialProtocolTest is Test {
     MockUSDC usdc;
@@ -135,4 +137,89 @@ contract CelestialProtocolTest is Test {
         (, , , , , bool active) = orderBook.orders(id);
         assertFalse(active);
     }
+
+    function testCreatorTaxAccruesAndClaims() public {
+        vm.prank(creator);
+        (, address curve) = factory.createToken(_params(address(usdc)));
+
+        vm.warp(block.timestamp + 6);
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        CelestialBondingCurve(curve).buy(1_000e6, 1);
+        vm.stopPrank();
+
+        CelestialFeeEscrow escrow = factory.feeEscrow();
+        uint256 claimable = escrow.claimable(address(usdc), creator);
+        assertGt(claimable, 0);
+
+        uint256 beforeBalance = usdc.balanceOf(creator);
+        vm.prank(creator);
+        escrow.claim(address(usdc));
+        assertEq(usdc.balanceOf(creator), beforeBalance + claimable);
+        assertEq(escrow.claimable(address(usdc), creator), 0);
+    }
+
+    function testLimitSellOrderExecutesAndBuyCancelRefunds() public {
+        vm.prank(creator);
+        (address token, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        uint256 bought = CelestialBondingCurve(curve).buy(1_000e6, 1);
+
+        uint256 sellAmount = bought / 4;
+        uint256 expectedQuote = CelestialBondingCurve(curve).quoteSell(sellAmount);
+        CelestialToken(token).approve(address(orderBook), sellAmount);
+        uint256 sellId = orderBook.placeSellOrder(curve, sellAmount, expectedQuote);
+        vm.stopPrank();
+
+        assertTrue(orderBook.canExecute(sellId));
+        orderBook.execute(sellId);
+        (, , , , , bool sellActive) = orderBook.orders(sellId);
+        assertFalse(sellActive);
+
+        uint256 buyAmount = 250e6;
+        uint256 before = usdc.balanceOf(trader);
+        vm.startPrank(trader);
+        usdc.approve(address(orderBook), buyAmount);
+        uint256 buyId = orderBook.placeBuyOrder(curve, buyAmount, type(uint256).max);
+        assertEq(usdc.balanceOf(trader), before - buyAmount);
+        orderBook.cancel(buyId);
+        vm.stopPrank();
+        assertEq(usdc.balanceOf(trader), before);
+    }
+
+    function testBuybackVaultBuysAndBurnsOnCurve() public {
+        vm.prank(creator);
+        (address token, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        CelestialBondingCurve(curve).buy(5_000e6, 1);
+        vm.stopPrank();
+
+        CelestialBuybackVault vault = factory.buybackVault();
+        uint256 available = usdc.balanceOf(address(vault));
+        assertGt(available, 0);
+
+        uint256 deadBefore = CelestialToken(token).balanceOf(CelestialToken(token).DEAD());
+        uint256 burned = vault.executeCurveBuyback(curve, available, 1);
+        assertGt(burned, 0);
+        assertEq(CelestialToken(token).balanceOf(CelestialToken(token).DEAD()), deadBefore + burned);
+        assertEq(usdc.allowance(address(vault), curve), 0);
+    }
+
+    function testExplicitSnipeExemption() public {
+        CelestialLaunchFactory.LaunchParams memory p = _params(address(usdc));
+        p.snipeExemptions = new address[](1);
+        p.snipeExemptions[0] = trader;
+
+        vm.prank(creator);
+        (, address curve) = factory.createToken(p);
+
+        assertEq(CelestialBondingCurve(curve).currentSnipeBps(trader), 0);
+    }
+
 }
