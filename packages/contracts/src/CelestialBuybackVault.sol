@@ -6,6 +6,16 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {CelestialToken} from "./CelestialToken.sol";
 
+interface ICelestialPostGraduationSwap {
+    function swapExactInput(
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient
+    ) external returns (uint256 amountOut);
+}
+
 interface ICelestialCurveBuyback {
     function quoteAsset() external view returns (IERC20);
     function token() external view returns (address);
@@ -24,11 +34,12 @@ contract CelestialBuybackVault is ReentrancyGuard {
 
     event KeeperUpdated(address indexed keeper);
     event BuybackExecuted(
-        address indexed curve,
+        address indexed venue,
         address indexed token,
         address indexed quoteAsset,
         uint256 quoteSpent,
-        uint256 tokensBurned
+        uint256 tokensBurned,
+        bool postGraduation
     );
 
     constructor(address owner_) {
@@ -63,6 +74,31 @@ contract CelestialBuybackVault is ReentrancyGuard {
         quote.forceApprove(curve, 0);
 
         IERC20(token).safeTransfer(CelestialToken(token).DEAD(), tokensBurned);
-        emit BuybackExecuted(curve, token, address(quote), quoteAmount, tokensBurned);
+        emit BuybackExecuted(curve, token, address(quote), quoteAmount, tokensBurned, false);
+    }
+
+    function executePostGraduationBuyback(
+        address adapter,
+        address pool,
+        address quoteAsset,
+        address token,
+        uint256 quoteAmount,
+        uint256 minTokensOut
+    ) external onlyAuthorized nonReentrant returns (uint256 tokensBurned) {
+        IERC20 quote = IERC20(quoteAsset);
+        quote.forceApprove(adapter, quoteAmount);
+
+        tokensBurned = ICelestialPostGraduationSwap(adapter).swapExactInput(
+            pool,
+            quoteAsset,
+            quoteAmount,
+            minTokensOut,
+            address(this)
+        );
+
+        quote.forceApprove(adapter, 0);
+        IERC20(token).safeTransfer(CelestialToken(token).DEAD(), tokensBurned);
+
+        emit BuybackExecuted(adapter, token, quoteAsset, quoteAmount, tokensBurned, true);
     }
 }
