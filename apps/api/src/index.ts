@@ -32,7 +32,10 @@ app.get("/stats", async () => {
       "(select coalesce(sum(quote_amount),0)::text from trades where block_time > now() - interval '24 hours') as quote_volume_24h, " +
       "(select count(*)::int from tokens where created_at > now() - interval '24 hours') as launches_24h, " +
       "(select count(distinct trader)::int from trades where block_time > now() - interval '24 hours') as traders_24h, " +
-      "(select count(*)::int from tokens where status='GRADUATED') as graduated"
+      "(select count(*)::int from tokens where status='GRADUATED') as graduated, " +
+      "(select coalesce(sum(quote_spent),0)::text from buybacks) as buyback_quote, " +
+      "(select coalesce(sum(tokens_burned),0)::text from buybacks) as tokens_burned, " +
+      "(select count(*)::int from limit_orders where status='OPEN') as open_orders"
   );
   return result.rows[0];
 });
@@ -92,6 +95,14 @@ app.get("/tokens", async (request) => {
        created_block,
        created_at,
        status,
+       generation,
+       case when quote_asset is null then null else '0x' || encode(quote_asset,'hex') end as quote_asset,
+       creator_tax_bps,
+       holder_fee_bps,
+       image,
+       website,
+       twitter,
+       telegram,
        case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address,
        coalesce((
          select sum(tr.quote_amount)::text
@@ -131,7 +142,16 @@ app.get("/tokens/:address", async (request, reply) => {
        '0x' || encode(address,'hex') as address,
        '0x' || encode(curve_address,'hex') as curve_address,
        '0x' || encode(creator,'hex') as creator,
-       name, symbol, created_block, created_at, status,
+       name, symbol, created_block, created_at, status, generation,
+       case when quote_asset is null then null else '0x' || encode(quote_asset,'hex') end as quote_asset,
+       case when creator_fee_recipient is null then null else '0x' || encode(creator_fee_recipient,'hex') end as creator_fee_recipient,
+       creator_tax_bps,
+       holder_fee_bps,
+       description,
+       image,
+       website,
+       twitter,
+       telegram,
        case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address
      from tokens where address=decode($1,'hex') limit 1`,
     [address.slice(2)]
@@ -231,6 +251,52 @@ app.get("/wallet/:address/positions", async (request, reply) => {
      limit 100`,
     [address.slice(2)]
   );
+  return { items: result.rows };
+});
+
+
+
+app.get("/buybacks", async () => {
+  const result = await db.query(
+    `select
+       '0x' || encode(tx_hash,'hex') as tx_hash,
+       block_time,
+       '0x' || encode(venue,'hex') as venue,
+       '0x' || encode(token,'hex') as token,
+       '0x' || encode(quote_asset,'hex') as quote_asset,
+       quote_spent,
+       tokens_burned,
+       post_graduation
+     from buybacks
+     order by block_time desc
+     limit 200`
+  );
+  return { items: result.rows };
+});
+
+app.get("/wallet/:address/orders", async (request, reply) => {
+  const { address } = request.params as { address: string };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return reply.code(400).send({ error: "invalid address" });
+  }
+
+  const result = await db.query(
+    `select
+       order_id,
+       '0x' || encode(curve,'hex') as curve,
+       side,
+       amount_in,
+       min_amount_out,
+       status,
+       created_at,
+       updated_at
+     from limit_orders
+     where owner=decode($1,'hex')
+     order by coalesce(updated_at,created_at) desc
+     limit 200`,
+    [address.slice(2)]
+  );
+
   return { items: result.rows };
 });
 
