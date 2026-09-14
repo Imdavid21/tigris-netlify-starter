@@ -288,6 +288,13 @@ export const celestialCurveAbi = [
   },
   {
     type: "function",
+    name: "currentSnipeBps",
+    stateMutability: "view",
+    inputs: [{ name: "buyer", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
     name: "feeBps",
     stateMutability: "view",
     inputs: [],
