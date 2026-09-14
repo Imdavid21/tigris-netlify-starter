@@ -54,9 +54,6 @@ function Metric({ label, value, note }: { label: string; value: string; note?: s
 
 export default async function AnalyticsPage() {
   const { stats, daily, buybacks, degraded } = await loadData();
-  const allVolume = stats ? Number(stats.quote_volume) / 1e6 : null;
-  const volume24h = stats ? Number(stats.quote_volume_24h) / 1e6 : null;
-  const fees = stats ? Number(stats.fees) / 1e6 : null;
 
   return (
     <main className="app-shell analytics-page">
@@ -82,7 +79,7 @@ export default async function AnalyticsPage() {
         </div>
 
         <div className="analytics-kpi-grid">
-          <Metric label="24h volume" value={volume24h === null ? "—" : "$" + compact(volume24h)} />
+          <Metric label="24h trades" value={String(daily?.volume?.at(-1)?.trades ?? stats?.traders_24h ?? "—")} />
           <Metric label="24h launches" value={String(stats?.launches_24h ?? "—")} />
           <Metric label="Unique creators" value={String(stats?.unique_creators ?? "—")} note="Lifetime indexed" />
         </div>
@@ -97,14 +94,13 @@ export default async function AnalyticsPage() {
           </div>
         </div>
         <div className="analytics-kpi-grid analytics-kpi-grid-four">
-          <Metric label="All-time volume" value={allVolume === null ? "—" : "$" + compact(allVolume)} />
+          <Metric label="Unique traders" value={String(stats?.unique_traders ?? "—")} />
           <Metric label="Launches" value={String(stats?.launches ?? "—")} />
           <Metric label="Graduated" value={String(stats?.graduated ?? "—")} />
           <Metric label="Trades" value={String(stats?.trades ?? "—")} />
-          <Metric label="Unique traders" value={String(stats?.unique_traders ?? "—")} />
           <Metric label="24h traders" value={String(stats?.traders_24h ?? "—")} />
           <Metric label="Open orders" value={String(stats?.open_orders ?? "—")} />
-          <Metric label="Indexed fees" value={fees === null ? "—" : "$" + compact(fees)} />
+          <Metric label="Buyback executions" value={String(stats?.buyback_count ?? "—")} />
         </div>
       </section>
 
@@ -138,10 +134,10 @@ export default async function AnalyticsPage() {
       <section className="analytics-chart-grid">
         <div className="analytics-panel chart-panel">
           <div className="analytics-panel-head">
-            <div><h2>Trading volume</h2><p>Recent daily indexed volume.</p></div>
-            <strong>{volume24h === null ? "—" : "$" + compact(volume24h)}</strong>
+            <div><h2>Trading activity</h2><p>Recent daily indexed trades.</p></div>
+            <strong>{String(daily?.volume?.at(-1)?.trades ?? "—")}</strong>
           </div>
-          <Bars rows={daily?.volume ?? []} keyName="volume" />
+          <Bars rows={daily?.volume ?? []} keyName="trades" />
         </div>
         <div className="analytics-panel chart-panel">
           <div className="analytics-panel-head">
