@@ -28,6 +28,15 @@ const graduationSwept = parseAbiItem(
 const tokenGraduated = parseAbiItem(
   "event TokenGraduated(address indexed token,address indexed pool,uint256 positionId)"
 );
+const graduationPriceLocked = parseAbiItem(
+  "event GraduationPriceLocked(address indexed token,uint160 sqrtPriceX96)"
+);
+const dexSwap = parseAbiItem(
+  "event Swap(address indexed trader,address indexed pool,address indexed tokenIn,uint256 amountIn,uint256 amountOut,address recipient)"
+);
+const v4PoolCreated = parseAbiItem(
+  "event V4PoolCreated(address indexed handle,bytes32 indexed poolId,address indexed token,address quoteAsset,uint160 sqrtPriceX96,uint128 liquidity,uint256 positionId)"
+);
 const transfer = parseAbiItem(
   "event Transfer(address indexed from,address indexed to,uint256 value)"
 );
@@ -44,6 +53,8 @@ const legacyFactory = process.env.FACTORY_ADDRESS as Address | undefined;
 const celestialFactory = process.env.CELESTIAL_FACTORY_ADDRESS as Address | undefined;
 const orderBook = process.env.ORDERBOOK_ADDRESS as Address | undefined;
 const buybackVault = process.env.BUYBACK_VAULT_ADDRESS as Address | undefined;
+const dexAdapter = process.env.CELESTIAL_DEX_ADAPTER_ADDRESS as Address | undefined;
+const dexConnector = process.env.CELESTIAL_DEX_CONNECTOR_ADDRESS as Address | undefined;
 
 const legacyStartBlock = BigInt(process.env.FACTORY_START_BLOCK ?? "0");
 const celestialStartBlock = BigInt(process.env.CELESTIAL_FACTORY_START_BLOCK ?? process.env.FACTORY_START_BLOCK ?? "0");
@@ -246,6 +257,61 @@ async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
   );
 }
 
+async function storeDexSwap(log: any) {
+  const { trader, pool, tokenIn, amountIn, amountOut } = log.args;
+  if (!trader || !pool || !tokenIn || amountIn === undefined || amountOut === undefined) return;
+
+  const market = await db.query(
+    `select address, quote_asset from tokens where pool_address=$1 limit 1`,
+    [hexToBuffer(pool)]
+  );
+  if (!market.rowCount || !market.rows[0].quote_asset) return;
+
+  const token = "0x" + Buffer.from(market.rows[0].address).toString("hex");
+  const quoteAsset = "0x" + Buffer.from(market.rows[0].quote_asset).toString("hex");
+  const isSell = tokenIn.toLowerCase() === token.toLowerCase();
+  const side = isSell ? "SELL" : "BUY";
+  const tokenAmount = isSell ? amountIn : amountOut;
+  const quoteAmount = isSell ? amountOut : amountIn;
+
+  if (!isSell && tokenIn.toLowerCase() !== quoteAsset.toLowerCase()) return;
+
+  await db.query(
+    `insert into trades
+     (tx_hash, log_index, block_number, block_time, token, trader, side, token_amount, quote_amount, fee_amount, venue)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'0','UNISWAP_V4')
+     on conflict (tx_hash,log_index) do nothing`,
+    [
+      hexToBuffer(log.transactionHash),
+      log.logIndex,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber),
+      market.rows[0].address,
+      hexToBuffer(trader),
+      side,
+      tokenAmount.toString(),
+      quoteAmount.toString()
+    ]
+  );
+}
+
+async function storeV4Pool(log: any) {
+  const { handle, poolId, token, sqrtPriceX96, positionId } = log.args;
+  if (!handle || !poolId || !token) return;
+  await db.query(
+    `update tokens
+     set pool_address=$2, dex_pool_id=$3, graduation_sqrt_price=$4, dex_position_id=$5
+     where address=$1`,
+    [
+      hexToBuffer(token),
+      hexToBuffer(handle),
+      Buffer.from(String(poolId).slice(2), "hex"),
+      sqrtPriceX96?.toString() ?? null,
+      positionId?.toString() ?? null
+    ]
+  );
+}
+
 async function storeTransfer(token: Address, log: any) {
   const { from, to, value } = log.args;
   if (!from || !to || value === undefined) return;
@@ -357,9 +423,10 @@ async function attachMarket(
 
 async function applyGraduationState(factory: Address, fromBlock: bigint) {
   const toBlock = await client.getBlockNumber();
-  const [swept, graduated] = await Promise.all([
+  const [swept, graduated, prices] = await Promise.all([
     chunkedLogs({ address: factory, event: graduationSwept, fromBlock, toBlock }),
-    chunkedLogs({ address: factory, event: tokenGraduated, fromBlock, toBlock })
+    chunkedLogs({ address: factory, event: tokenGraduated, fromBlock, toBlock }),
+    chunkedLogs({ address: factory, event: graduationPriceLocked, fromBlock, toBlock }).catch(() => [])
   ]);
 
   for (const log of swept) {
@@ -367,6 +434,15 @@ async function applyGraduationState(factory: Address, fromBlock: bigint) {
       await db.query("update tokens set status='GRADUATING' where address=$1", [
         hexToBuffer(log.args.token)
       ]);
+    }
+  }
+
+  for (const log of prices) {
+    if (log.args.token && log.args.sqrtPriceX96 !== undefined) {
+      await db.query(
+        "update tokens set graduation_sqrt_price=$2 where address=$1",
+        [hexToBuffer(log.args.token), log.args.sqrtPriceX96.toString()]
+      );
     }
   }
 
@@ -426,6 +502,26 @@ async function backfillAuxiliary() {
       toBlock
     });
     for (const log of logs) await storeBuyback(log);
+  }
+
+  if (dexAdapter) {
+    const logs = await chunkedLogs({
+      address: dexAdapter,
+      event: dexSwap,
+      fromBlock: celestialStartBlock,
+      toBlock
+    });
+    for (const log of logs) await storeDexSwap(log);
+  }
+
+  if (dexConnector) {
+    const logs = await chunkedLogs({
+      address: dexConnector,
+      event: v4PoolCreated,
+      fromBlock: celestialStartBlock,
+      toBlock
+    });
+    for (const log of logs) await storeV4Pool(log);
   }
 
   if (orderBook) {
@@ -519,6 +615,23 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
     onError: console.error
   });
 
+  if (generation === "CELESTIAL") {
+    client.watchEvent({
+      address: factory,
+      event: graduationPriceLocked,
+      onLogs: async (logs) => {
+        for (const log of logs) {
+          if (!log.args.token || log.args.sqrtPriceX96 === undefined) continue;
+          await db.query(
+            "update tokens set graduation_sqrt_price=$2 where address=$1",
+            [hexToBuffer(log.args.token), log.args.sqrtPriceX96.toString()]
+          );
+        }
+      },
+      onError: console.error
+    });
+  }
+
   client.watchEvent({
     address: factory,
     event: tokenGraduated,
@@ -536,6 +649,28 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
 }
 
 function watchAuxiliary() {
+  if (dexAdapter) {
+    client.watchEvent({
+      address: dexAdapter,
+      event: dexSwap,
+      onLogs: async (logs) => {
+        for (const log of logs) await storeDexSwap(log);
+      },
+      onError: console.error
+    });
+  }
+
+  if (dexConnector) {
+    client.watchEvent({
+      address: dexConnector,
+      event: v4PoolCreated,
+      onLogs: async (logs) => {
+        for (const log of logs) await storeV4Pool(log);
+      },
+      onError: console.error
+    });
+  }
+
   if (buybackVault) {
     client.watchEvent({
       address: buybackVault,
