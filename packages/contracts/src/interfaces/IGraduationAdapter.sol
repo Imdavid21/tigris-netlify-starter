@@ -7,7 +7,6 @@ interface IGraduationAdapter {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
-        uint160 sqrtPriceX96,
         address locker
     ) external returns (address pool, uint256 positionId);
 }
