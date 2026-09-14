@@ -15,6 +15,8 @@ jobs:
       - run: npm install
       - run: npm audit --omit=dev || true
       - run: npm run build
+      - run: docker build -f apps/api/Dockerfile -t arc-launchpad-api .
+      - run: docker build -f apps/indexer/Dockerfile -t arc-launchpad-indexer .
       - run: |
           docker run -d --name arc-postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=arc_launchpad -p 5432:5432 postgres:16
           for i in {1..30}; do
