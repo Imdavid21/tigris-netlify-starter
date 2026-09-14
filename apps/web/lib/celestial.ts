@@ -4,6 +4,8 @@ export const celestialAddresses = {
   factory: process.env.NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS as Address | undefined,
   orderBook: process.env.NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS as Address | undefined,
   dexAdapter: process.env.NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS as Address | undefined,
+  feeEscrow: process.env.NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS as Address | undefined,
+  buybackVault: process.env.NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS as Address | undefined,
   usdc: "0x3600000000000000000000000000000000000000" as Address,
   eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as Address,
   cirbtc: "0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF" as Address
@@ -214,5 +216,115 @@ export const dexAdapterAbi = [
       { name: "recipient", type: "address" }
     ],
     outputs: [{ name: "amountOut", type: "uint256" }]
+  }
+] as const;
+
+
+export const celestialCurveAbi = [
+  {
+    type: "function",
+    name: "quoteAsset",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }]
+  },
+  {
+    type: "function",
+    name: "quoteBuyFor",
+    stateMutability: "view",
+    inputs: [
+      { name: "buyer", type: "address" },
+      { name: "quoteIn", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "quoteSell",
+    stateMutability: "view",
+    inputs: [{ name: "tokenIn", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "buy",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "quoteIn", type: "uint256" },
+      { name: "minTokensOut", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "sell",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tokenIn", type: "uint256" },
+      { name: "minQuoteOut", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "trackedQuote",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "graduationThreshold",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "graduated",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }]
+  },
+  {
+    type: "function",
+    name: "feeBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "creatorTaxBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "holderFeeBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  }
+] as const;
+
+export const celestialFeeEscrowAbi = [
+  {
+    type: "function",
+    name: "claimable",
+    stateMutability: "view",
+    inputs: [
+      { name: "asset", type: "address" },
+      { name: "recipient", type: "address" }
+    ],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "asset", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }]
   }
 ] as const;
