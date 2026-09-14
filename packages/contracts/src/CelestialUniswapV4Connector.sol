@@ -56,6 +56,9 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
     error InvalidLiquidity();
     error AmountTooLarge();
     error SlippageExceeded();
+    error InputNotConsumed();
+
+    address internal constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
     event V4PoolCreated(
         address indexed handle,
@@ -65,6 +68,12 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         uint160 sqrtPriceX96,
         uint128 liquidity,
         uint256 positionId
+    );
+
+    event GraduationSurplus(
+        address indexed handle,
+        uint256 tokensBurned,
+        uint256 quoteLocked
     );
 
     event V4Swap(
@@ -122,6 +131,9 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
     ) external nonReentrant returns (address pool, uint256 positionId) {
         if (token == address(0) || quoteAsset == address(0) || locker == address(0)) revert ZeroAddress();
         if (token == quoteAsset || tokenAmount == 0 || quoteAmount == 0) revert InvalidLiquidity();
+
+        uint256 tokenBefore = IERC20(token).balanceOf(address(this));
+        uint256 quoteBefore = IERC20(quoteAsset).balanceOf(address(this));
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
         IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), quoteAmount);
@@ -188,9 +200,13 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
             exists: true
         });
 
-        _permanentlyLockDust(token, locker);
-        _permanentlyLockDust(quoteAsset, locker);
+        uint256 tokenResidual = IERC20(token).balanceOf(address(this)) - tokenBefore;
+        uint256 quoteResidual = IERC20(quoteAsset).balanceOf(address(this)) - quoteBefore;
 
+        if (tokenResidual > 0) IERC20(token).safeTransfer(DEAD, tokenResidual);
+        if (quoteResidual > 0) IERC20(quoteAsset).safeTransfer(locker, quoteResidual);
+
+        emit GraduationSurplus(pool, tokenResidual, quoteResidual);
         emit V4PoolCreated(pool, poolId, token, quoteAsset, sqrtPriceX96, liquidity, positionId);
     }
 
@@ -226,6 +242,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         if (amountIn > type(uint128).max || minAmountOut > type(uint128).max) revert AmountTooLarge();
 
         address tokenOut = tokenIn == cfg.key.currency0 ? cfg.key.currency1 : cfg.key.currency0;
+        uint256 beforeIn = IERC20(tokenIn).balanceOf(address(this));
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
 
         _authorize(tokenIn, address(universalRouter), amountIn);
@@ -261,6 +278,8 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         );
 
         _revoke(tokenIn, address(universalRouter));
+
+        if (IERC20(tokenIn).balanceOf(address(this)) != beforeIn) revert InputNotConsumed();
 
         amountOut = IERC20(tokenOut).balanceOf(address(this)) - beforeOut;
         if (amountOut < minAmountOut) revert SlippageExceeded();
@@ -318,8 +337,4 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         IERC20(token).forceApprove(address(permit2), 0);
     }
 
-    function _permanentlyLockDust(address asset, address locker) internal {
-        uint256 balance = IERC20(asset).balanceOf(address(this));
-        if (balance > 0) IERC20(asset).safeTransfer(locker, balance);
-    }
 }
