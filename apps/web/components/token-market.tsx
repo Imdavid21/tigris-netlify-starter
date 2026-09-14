@@ -6,7 +6,6 @@ import {
   createWalletClient,
   custom,
   formatUnits,
-  getAddress,
   http,
   parseUnits,
   type EIP1193Provider
@@ -14,6 +13,7 @@ import {
 import { addresses, arcTestnet } from "@/lib/arc";
 import { curveAbi, erc20Abi, factoryAbi } from "@/lib/abi";
 import { ensureArcChain } from "@/lib/wallet";
+import { useWalletSession } from "@/components/wallet-session";
 import { RecentTrades } from "@/components/recent-trades";
 import { PriceChart } from "@/components/price-chart";
 import { Holders } from "@/components/holders";
@@ -57,6 +57,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
   const [slippage, setSlippage] = useState("1");
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string>();
+  const [tokenBalance, setTokenBalance] = useState(0n);
+  const { address: walletAddress, connect } = useWalletSession();
 
   async function refresh() {
     if (!addresses.factory) throw new Error("Factory address is not configured.");
@@ -101,6 +103,19 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
   }, [token]);
 
   useEffect(() => {
+    if (!walletAddress) {
+      setTokenBalance(0n);
+      return;
+    }
+    client.readContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [walletAddress]
+    }).then((balance) => setTokenBalance(balance as bigint)).catch(() => setTokenBalance(0n));
+  }, [walletAddress, token, client]);
+
+  useEffect(() => {
     if (!curve || !amount || Number(amount) <= 0 || graduated || mode !== "market") {
       setQuote(undefined);
       return;
@@ -138,12 +153,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
       setStatus("Preparing");
       await ensureArcChain(provider);
 
-      const accounts = (await provider.request({
-        method: "eth_requestAccounts"
-      })) as string[];
-      if (!accounts[0]) throw new Error("No wallet account available.");
-
-      const account = getAddress(accounts[0]);
+      const account = walletAddress ?? await connect();
+      if (!account) throw new Error("No wallet account available.");
       const wallet = createWalletClient({
         account,
         chain: arcTestnet,
@@ -196,6 +207,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
       setAmount("");
       setQuote(undefined);
       await refresh();
+      const nextBalance = await client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [account] }) as bigint;
+      setTokenBalance(nextBalance);
     } catch (e) {
       setStatus("");
       setError(e instanceof Error ? e.message : "Trade failed.");
@@ -338,9 +351,16 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
               <div className="amount-box">
                 <div className="amount-label"><span>{side === "buy" ? "You pay" : "You sell"}</span><span>{side === "buy" ? "USDC" : symbol}</span></div>
                 <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
-                {side === "buy" && (
+                {side === "buy" ? (
                   <div className="quick-amounts">
-                    {["10","50","100","500"].map((v) => <button type="button" key={v} onClick={() => setAmount(v)}>${v}</button>)}
+                    {["10","50","100","500"].map((v) => <button type="button" key={v} onClick={() => setAmount(v)}>{"$" + v}</button>)}
+                  </div>
+                ) : (
+                  <div className="quick-amounts">
+                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 4n, 18))}>25%</button>
+                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 2n, 18))}>50%</button>
+                    <button type="button" onClick={() => setAmount(formatUnits((tokenBalance * 3n) / 4n, 18))}>75%</button>
+                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance, 18))} disabled={tokenBalance === 0n}>Sell all</button>
                   </div>
                 )}
               </div>
