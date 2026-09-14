@@ -114,11 +114,37 @@ export function CreateTokenForm() {
     <form onSubmit={submit} style={{ display: "grid", gap: 16, marginTop: 24 }}>
       <input name="name" maxLength={32} placeholder="Name" required />
       <input name="symbol" maxLength={10} placeholder="Ticker" required />
-      <input name="image" type="file" accept="image/*" disabled />
-      <textarea name="description" placeholder="Description (metadata phase)" disabled />
-      <input name="website" placeholder="Website (metadata phase)" disabled />
-      <input name="twitter" placeholder="X (metadata phase)" disabled />
-      <input name="telegram" placeholder="Telegram (metadata phase)" disabled />
+
+      <div className="launch-review">
+        <div>
+          <span>Supply</span>
+          <strong>1,000,000,000</strong>
+        </div>
+        <div>
+          <span>Pair</span>
+          <strong>USDC</strong>
+        </div>
+        <div>
+          <span>Trade fee</span>
+          <strong>1.00%</strong>
+        </div>
+        <div>
+          <span>Graduation</span>
+          <strong>$10,000</strong>
+        </div>
+        <div>
+          <span>Creator fee share</span>
+          <strong>25%</strong>
+        </div>
+        <div>
+          <span>Liquidity</span>
+          <strong>Locked</strong>
+        </div>
+      </div>
+
+      <p className="immutable-note">
+        These economics are fixed by the current Arc Testnet factory.
+      </p>
 
       <button type="submit" disabled={status === "wallet" || status === "submitted"}>
         {status === "wallet"
