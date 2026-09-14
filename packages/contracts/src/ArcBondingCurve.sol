@@ -42,6 +42,7 @@ contract ArcBondingCurve is ReentrancyGuard {
     error CurveClosed();
     error NotReady();
 
+    event Initialized(address indexed token, uint256 totalSupply);
     event Buy(address indexed trader, uint256 quoteIn, uint256 tokensOut, uint256 fee);
     event Sell(address indexed trader, uint256 tokensIn, uint256 quoteOut, uint256 fee);
     event FeesSwept(uint256 protocolAmount, uint256 creatorAmount);
@@ -95,6 +96,7 @@ contract ArcBondingCurve is ReentrancyGuard {
         token = token_;
         trackedTokens = totalSupply;
         initialized = true;
+        emit Initialized(token_, totalSupply);
     }
 
     function virtualQuoteReserve() public view returns (uint256) {
