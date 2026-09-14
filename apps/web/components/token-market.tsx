@@ -14,6 +14,7 @@ import {
 import { addresses, arcTestnet } from "@/lib/arc";
 import { curveAbi, erc20Abi, factoryAbi } from "@/lib/abi";
 import { ensureArcChain } from "@/lib/wallet";
+import { RecentTrades } from "@/components/recent-trades";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -251,9 +252,16 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
               minHeight: 240
             }}
           >
-            Trading history and chart require the indexer service. Core onchain
-            trading works without it.
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <strong>Price history</strong>
+              <span style={{ opacity: 0.5, fontSize: 13 }}>Arc Testnet</span>
+            </div>
+            <div style={{ marginTop: 70, textAlign: "center", opacity: 0.45 }}>
+              Candles activate once the indexer has enough trades to aggregate OHLC data.
+            </div>
           </div>
+
+          <RecentTrades token={token} />
         </section>
 
         <aside
