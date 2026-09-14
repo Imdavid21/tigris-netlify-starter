@@ -52,6 +52,7 @@ Important docs:
 
 - docs/PONS_REVERSE_ENGINEERING.md
 - docs/AUDIT.md
+- docs/QA_REPORT.md
 - AGENTS.md
 
 ## Arc Testnet
@@ -300,7 +301,8 @@ The product is branded Celestial in the UI.
 
 Current routes:
 
-- / Explore
+- / marketing homepage
+- /explore market discovery
 - /create
 - /token/[address]
 - /profile
@@ -414,17 +416,13 @@ apps/web/app/analytics/page.tsx
 
 Supports:
 
-- total volume
-- 24h volume
-- launches
-- graduated markets
-- trades
-- active traders
+- launches and graduated markets
+- trades and unique traders
 - open orders
-- buyback execution count
-- 30-day volume
-- 30-day launches
-- indexed buyback/burn history
+- buyback execution count/history
+- recent daily trading activity
+- recent daily launches
+- protocol/indexer degraded-state signaling
 
 Because Celestial uses multiple quote assets, do not naively sum raw quote amounts across assets and display them as USD.
 
@@ -483,9 +481,13 @@ Common env:
 
 ARC_CHAIN_ID=5042002
 ARC_RPC_URL=https://rpc.testnet.arc.network
+ARC_RPC_FALLBACKS
 ARC_WS_URL
+ARC_POLLING_INTERVAL_MS
 DATABASE_URL
 LOG_CHUNK_SIZE
+
+The public Arc RPC has produced -32005 throttling in real Render backfills. The indexer now keeps its health server alive, backs off, shrinks log ranges, and reports degraded ingestion instead of crashing. Configure a managed/private Arc RPC before production traffic.
 
 Indexed event families:
 
@@ -662,24 +664,26 @@ Do not deploy a commit whose current contracts/apps workflows are red.
 
 ## Immediate continuation checklist
 
-1. Confirm latest contracts workflow is green.
-2. Confirm latest apps workflow is green.
-3. Confirm Render indexer/API/web are live on the current main commit. Render is the deployment source of truth; Vercel is secondary.
-4. Harden RPC infrastructure: private Arc RPC for indexer/backend, fallback provider support, smaller/adaptive log ranges, and user-facing rate-limit recovery.
-5. Upgrade product UI/UX using the strongest structural lessons from the supplied PONS references without cloning PONS. Priorities: information hierarchy, discovery density, token-market layout, trade ergonomics, mobile behavior, loading states, transaction feedback, and graduation UX.
-6. Maintain the complete marketing homepage at / and the market discovery product at /explore.
-7. Launch one Celestial token with metadata and an atomic developer buy.
-8. Test second-wallet buy/sell and Sell all.
-9. Test creator tax claim.
-10. Test holder reward accrual/claim.
-11. Test limit order place/execute/cancel.
-12. Test USDC and EURC launches.
-13. Validate cirBTC decimals and launch math with small test amounts.
-14. Fund buyback vault, execute curve buyback, verify burn and analytics.
-15. When official Arc DEX addresses become available, implement/test connector, deploy adapter, configure factory, graduate a market, and test post-graduation trades.
-16. After feature work is complete, run a full protocol QA pass across contracts, frontend, API, indexer, database, Render services, wallet/session behavior, all routes, every supported transaction flow, failure/retry states, mobile/desktop, and dark/light modes.
-17. Validate every user journey end to end: connect/switch wallet, create, developer buy, discover/search, market buy, sell percentages/Sell all, limit place/execute/cancel, creator claims, holder claims, profile/activity, analytics, graduation readiness, buyback execution, and post-graduation routing when enabled.
-18. Re-check all Render deploys and runtime logs after the final commit and resolve any build, startup, database, RPC, or indexing failures before calling the protocol complete.
+Completed on 2026-09-14:
+
+1. Contracts workflow green with expanded Celestial lifecycle tests.
+2. Apps workflow green with production builds, Docker builds, PostgreSQL runtime smoke tests, Arc RPC checks, and frontend route smoke tests.
+3. Render web, API, and indexer live on the tested commit.
+4. RPC failure handling hardened across browser reads, wallet network setup, backend/indexer fallbacks, adaptive backfill, and degraded-service UI.
+5. PONS-reference product pass applied to Explore, Analytics, marketing homepage, token terminal, Create, and Profile without copying PONS branding.
+6. Full marketing homepage maintained at / and market discovery at /explore.
+7. Automated coverage now includes metadata, developer buy, creator tax claim, holder rewards, anti-snipe behavior, configurable quote pairs, limit buy/sell/cancel, and buyback/burn.
+8. Final internal audit and QA matrix are in docs/AUDIT.md and docs/QA_REPORT.md.
+
+External/staging gates only:
+
+1. Configure a managed/private Arc RPC and browser-safe fallback credentials.
+2. Rotate the PostgreSQL credential that was exposed outside the repository.
+3. Run a funded two-wallet staging lifecycle, including Sell all and claim flows.
+4. Run a real keeper buyback and reconcile its event against indexed analytics.
+5. Confirm full historical indexer catch-up after the managed RPC is configured.
+6. When official Arc DEX addresses are published, implement/test the real connector, deploy/configure the adapter, graduate a market, and test post-graduation trading.
+7. Transfer mainnet privileged roles to a multisig and complete an independent external audit.
 
 ## Mainnet gate
 
