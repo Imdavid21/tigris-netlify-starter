@@ -89,7 +89,7 @@ async function chunkedLogs(args: {
 }) {
   const logs: any[] = [];
   const configured = BigInt(process.env.LOG_CHUNK_SIZE ?? "500");
-  const minChunk = 25n;
+  const minChunk = 5n;
   let chunk = configured > 0n ? configured : 500n;
   let from = args.fromBlock;
 
@@ -116,8 +116,13 @@ async function chunkedLogs(args: {
           to = from + chunk - 1n > args.toBlock ? args.toBlock : from + chunk - 1n;
         }
 
-        if (attempt > 8) throw error;
-        await sleep(Math.min(5_000, 500 * 2 ** Math.min(attempt, 4)));
+        if (attempt > 8) {
+          console.warn(`Arc RPC still rate limited for blocks ${from}-${to}; cooling down before retry`);
+          attempt = 0;
+          await sleep(30_000);
+          continue;
+        }
+        await sleep(Math.min(8_000, 750 * 2 ** Math.min(attempt, 4)));
       }
     }
 
