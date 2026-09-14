@@ -239,7 +239,32 @@ Until then:
 - do not configure a fake graduation adapter
 - UI must state that post-graduation routing is unavailable if no adapter is configured
 
-## Celestial deployment
+## Celestial Arc Testnet deployment
+
+Celestial is deployed on Arc Testnet.
+
+Factory:
+0x418a062cEcB23d68a3e8dcEa19E89bAD98bBe826
+
+Fee escrow:
+0xab922E5F1Ff1071a00a339C8b5FcF7d2f6F2a4e0
+
+Buyback vault:
+0x9FbB1892885888e9a8c01d7A56652C4D76B23fC8
+
+Liquidity locker:
+0x3e535c6F3daE1594A1C9ebB55E49175abC03bf77
+
+Limit order book:
+0x93e6ada62d3E6a0153B00F9962c4B52eC7F45f62
+
+Indexer backfill start used:
+62084000
+
+Deployment workflow run:
+34870570480
+
+The factory currently has NO production DEX graduation adapter configured because an official Arc DEX connector is not available yet.
 
 Script:
 packages/contracts/script/DeployCelestial.s.sol
@@ -262,16 +287,9 @@ The deployment script creates:
 
 It configures USDC, EURC, and cirBTC as quote assets.
 
-After deployment, record:
+The deployment addresses above are already wired into the Render indexer and frontend environment.
 
-- Celestial factory address
-- fee escrow address
-- buyback vault address
-- liquidity locker address
-- limit order book address
-- deployment block
-
-Then update Render and frontend environment variables below.
+The one-time push trigger used for initial deployment was removed. Future contract deployments require an explicit manual run of the deployment workflow.
 
 ## Frontend
 
@@ -540,32 +558,28 @@ NEXT_PUBLIC_FACTORY_ADDRESS=legacy V1 factory
 NEXT_PUBLIC_FEE_ESCROW_ADDRESS=legacy V1 escrow
 NEXT_PUBLIC_API_URL=https://arc-launchpad-api.onrender.com
 
-After Celestial deployment add:
+Configured Celestial frontend env:
 
-NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS
-NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS
-NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS
-NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS
+NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS=0x418a062cEcB23d68a3e8dcEa19E89bAD98bBe826
+NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS=0x93e6ada62d3E6a0153B00F9962c4B52eC7F45f62
+NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS=0xab922E5F1Ff1071a00a339C8b5FcF7d2f6F2a4e0
+NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS=0x9FbB1892885888e9a8c01d7A56652C4D76B23fC8
 
 Only set:
 NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS
 
 after a real Arc DEX connector and adapter are deployed.
 
-## Render indexer migration after Celestial deployment
+## Render indexer Celestial configuration
 
-Add:
+Configured:
 
-CELESTIAL_FACTORY_ADDRESS=<deployed factory>
-CELESTIAL_FACTORY_START_BLOCK=<deployment block>
-ORDERBOOK_ADDRESS=<deployed orderbook>
-BUYBACK_VAULT_ADDRESS=<deployed vault>
+CELESTIAL_FACTORY_ADDRESS=0x418a062cEcB23d68a3e8dcEa19E89bAD98bBe826
+CELESTIAL_FACTORY_START_BLOCK=62084000
+ORDERBOOK_ADDRESS=0x93e6ada62d3E6a0153B00F9962c4B52eC7F45f62
+BUYBACK_VAULT_ADDRESS=0x9FbB1892885888e9a8c01d7A56652C4D76B23fC8
 
-Keep legacy FACTORY_ADDRESS and FACTORY_START_BLOCK in place.
-
-Trigger a fresh indexer deployment.
-
-Verify logs show both historical backfill and live event ingestion.
+Legacy FACTORY_ADDRESS and FACTORY_START_BLOCK remain configured so V1 and Celestial coexist.
 
 ## Current feature status
 
@@ -650,11 +664,8 @@ Do not deploy a commit whose current contracts/apps workflows are red.
 
 1. Confirm latest contracts workflow is green.
 2. Confirm latest apps workflow is green.
-3. Run Deploy Celestial Testnet workflow.
-4. Extract factory, escrow, buyback vault, locker, order book, and deployment block.
-5. Add Celestial env vars to Render indexer and web.
-6. Redeploy indexer/API/web.
-7. Launch one Celestial token with metadata and an atomic developer buy.
+3. Confirm Render indexer/API/web are live on the current main commit.
+4. Launch one Celestial token with metadata and an atomic developer buy.
 8. Test second-wallet buy/sell and Sell all.
 9. Test creator tax claim.
 10. Test holder reward accrual/claim.
