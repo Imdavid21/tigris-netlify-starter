@@ -175,9 +175,9 @@ contract CelestialUniswapV4ConnectorTest is Test {
         quote = new MockUSDC();
         permit2 = new MockPermit2();
         poolManager = new MockPoolManager();
-        positionManager = new MockPositionManager(permit2);
+        positionManager = new MockPositionManager(IMockPermit2Transfer(address(permit2)));
         quoter = new MockV4Quoter();
-        router = new MockUniversalRouter(permit2);
+        router = new MockUniversalRouter(IMockPermit2Transfer(address(permit2)));
 
         connector = new CelestialUniswapV4Connector(
             poolManager,
