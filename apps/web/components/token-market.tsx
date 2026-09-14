@@ -16,6 +16,7 @@ import { curveAbi, erc20Abi, factoryAbi } from "@/lib/abi";
 import { ensureArcChain } from "@/lib/wallet";
 import { RecentTrades } from "@/components/recent-trades";
 import { PriceChart } from "@/components/price-chart";
+import { Holders } from "@/components/holders";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -246,7 +247,10 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
 
           <PriceChart token={token} />
 
-          <RecentTrades token={token} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+            <RecentTrades token={token} />
+            <Holders token={token} />
+          </div>
         </section>
 
         <aside
