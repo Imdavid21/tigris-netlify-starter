@@ -1,57 +1,80 @@
+import { AppHeader } from "@/components/app-header";
 import { API_URL } from "@/lib/api";
 
-async function loadStats() {
+async function loadData() {
   try {
-    const res = await fetch(API_URL + "/stats", { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
+    const [statsRes, dailyRes] = await Promise.all([
+      fetch(API_URL + "/stats", { cache: "no-store" }),
+      fetch(API_URL + "/analytics/daily", { cache: "no-store" })
+    ]);
+    return {
+      stats: statsRes.ok ? await statsRes.json() : null,
+      daily: dailyRes.ok ? await dailyRes.json() : null
+    };
   } catch {
-    return null;
+    return { stats: null, daily: null };
   }
 }
 
+function Bars({ rows, keyName }: { rows: any[]; keyName: string }) {
+  const values = rows.map((x) => Number(x[keyName] ?? 0));
+  const max = Math.max(1, ...values);
+  return (
+    <div className="analytics-bars">
+      {rows.length ? rows.map((row, i) => (
+        <div key={String(row.day ?? i)} className="analytics-bar-col">
+          <div className="analytics-bar" style={{ height: Math.max(4, (Number(row[keyName] ?? 0) / max) * 100) + "%" }} />
+        </div>
+      )) : <div className="analytics-empty">No indexed history yet.</div>}
+    </div>
+  );
+}
+
 export default async function AnalyticsPage() {
-  const stats = await loadStats();
+  const { stats, daily } = await loadData();
+
+  const volume = stats ? Number(stats.quote_volume) / 1e6 : null;
+  const volume24h = stats ? Number(stats.quote_volume_24h) / 1e6 : null;
+  const fees = stats ? Number(stats.fees) / 1e6 : null;
 
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <a href="/" className="brand">Arc Launchpad</a>
-        <nav className="nav">
-          <a href="/">Explore</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/create">Create</a>
-        </nav>
-      </header>
-
-      <section className="page-heading">
-        <h1>Protocol analytics</h1>
-        <p>Indexed from Arc Testnet. Onchain contracts remain the source of truth.</p>
+      <AppHeader />
+      <section className="page-heading compact">
+        <span className="kicker">Protocol analytics</span>
+        <h1>What is happening on Arc.</h1>
+        <p>Indexed onchain activity. Execution and critical market state remain contract-native.</p>
       </section>
 
       <section className="metric-grid">
-        <div className="metric-card">
-          <span>Launches</span>
-          <strong>{stats?.launches ?? "—"}</strong>
+        <div className="metric-card"><span>All-time volume</span><strong>{volume === null ? "—" : "$" + volume.toLocaleString(undefined,{maximumFractionDigits:0})}</strong></div>
+        <div className="metric-card"><span>24h volume</span><strong>{volume24h === null ? "—" : "$" + volume24h.toLocaleString(undefined,{maximumFractionDigits:0})}</strong></div>
+        <div className="metric-card"><span>Launches</span><strong>{stats?.launches ?? "—"}</strong></div>
+        <div className="metric-card"><span>Graduated</span><strong>{stats?.graduated ?? "—"}</strong></div>
+        <div className="metric-card"><span>Trades</span><strong>{stats?.trades ?? "—"}</strong></div>
+        <div className="metric-card"><span>24h traders</span><strong>{stats?.traders_24h ?? "—"}</strong></div>
+        <div className="metric-card"><span>24h launches</span><strong>{stats?.launches_24h ?? "—"}</strong></div>
+        <div className="metric-card"><span>Indexed fees</span><strong>{fees === null ? "—" : "$" + fees.toLocaleString(undefined,{maximumFractionDigits:2})}</strong></div>
+      </section>
+
+      <section className="analytics-grid">
+        <div className="analytics-card">
+          <div className="section-title"><strong>Trading volume</strong><span>30 days</span></div>
+          <Bars rows={daily?.volume ?? []} keyName="volume" />
         </div>
-        <div className="metric-card">
-          <span>Trades</span>
-          <strong>{stats?.trades ?? "—"}</strong>
+        <div className="analytics-card">
+          <div className="section-title"><strong>Token launches</strong><span>30 days</span></div>
+          <Bars rows={daily?.launches ?? []} keyName="launches" />
         </div>
-        <div className="metric-card">
-          <span>Graduated</span>
-          <strong>{stats?.graduated ?? "—"}</strong>
+      </section>
+
+      <section className="analytics-card buyback-preview">
+        <div>
+          <span className="kicker">PONS parity · V2</span>
+          <h2>Buyback and burn</h2>
+          <p>PONS exposes protocol fee recycling as a separate analytics surface. We will add this when Arc V2 introduces an explicit buyback vault and policy rather than simulating it offchain.</p>
         </div>
-        <div className="metric-card">
-          <span>Indexed volume</span>
-          <strong>
-            {stats
-              ? "$" + (Number(stats.quote_volume) / 1e6).toLocaleString(undefined, {
-                  maximumFractionDigits: 0
-                })
-              : "—"}
-          </strong>
-        </div>
+        <span className="coming-chip">V2 protocol</span>
       </section>
     </main>
   );
