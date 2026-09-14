@@ -13,7 +13,7 @@ contract CelestialPoolGuardHook {
     address public immutable poolManager;
     address public immutable owner;
     address public initializer;
-    bool public sealed;
+    bool public initializerSealed;
 
     error NotPoolManager();
     error NotOwner();
@@ -35,10 +35,10 @@ contract CelestialPoolGuardHook {
 
     function sealInitializer(address initializer_) external {
         if (msg.sender != owner) revert NotOwner();
-        if (sealed) revert AlreadySealed();
+        if (initializerSealed) revert AlreadySealed();
         if (initializer_ == address(0)) revert ZeroAddress();
         initializer = initializer_;
-        sealed = true;
+        initializerSealed = true;
         emit InitializerSealed(initializer_);
     }
 
@@ -48,7 +48,7 @@ contract CelestialPoolGuardHook {
         uint160
     ) external view returns (bytes4) {
         if (msg.sender != poolManager) revert NotPoolManager();
-        if (!sealed || sender != initializer) revert UnauthorizedInitializer();
+        if (!initializerSealed || sender != initializer) revert UnauthorizedInitializer();
         return this.beforeInitialize.selector;
     }
 }
