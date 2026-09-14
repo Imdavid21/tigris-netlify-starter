@@ -21,5 +21,8 @@ export const addresses = {
     "0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423",
   usdc:
     (process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined) ??
-    "0x3600000000000000000000000000000000000000"
+    "0x3600000000000000000000000000000000000000",
+  feeEscrow:
+    (process.env.NEXT_PUBLIC_FEE_ESCROW_ADDRESS as `0x${string}` | undefined) ??
+    "0x6D1597932B93b9939f21E9A8D8C2908457F7925d"
 };
