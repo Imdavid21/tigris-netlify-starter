@@ -15,6 +15,7 @@ import { addresses, arcTestnet } from "@/lib/arc";
 import { curveAbi, erc20Abi, factoryAbi } from "@/lib/abi";
 import { ensureArcChain } from "@/lib/wallet";
 import { RecentTrades } from "@/components/recent-trades";
+import { PriceChart } from "@/components/price-chart";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -243,23 +244,7 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
             </div>
           </div>
 
-          <div
-            style={{
-              marginTop: 28,
-              border: "1px solid #29302c",
-              borderRadius: 12,
-              padding: 20,
-              minHeight: 240
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-              <strong>Price history</strong>
-              <span style={{ opacity: 0.5, fontSize: 13 }}>Arc Testnet</span>
-            </div>
-            <div style={{ marginTop: 70, textAlign: "center", opacity: 0.45 }}>
-              Candles activate once the indexer has enough trades to aggregate OHLC data.
-            </div>
-          </div>
+          <PriceChart token={token} />
 
           <RecentTrades token={token} />
         </section>
