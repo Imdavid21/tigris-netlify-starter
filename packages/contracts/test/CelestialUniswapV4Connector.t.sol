@@ -64,9 +64,14 @@ contract MockPositionManager is ICelestialV4PositionManager {
     address public lastRecipient;
     uint256 public lastAmount0;
     uint256 public lastAmount1;
+    uint256 public consumeBps = 10_000;
 
     constructor(IMockPermit2Transfer permit2_) {
         permit2 = permit2_;
+    }
+
+    function setConsumeBps(uint256 next) external {
+        consumeBps = next;
     }
 
     function nextTokenId() external view returns (uint256) {
@@ -94,12 +99,14 @@ contract MockPositionManager is ICelestialV4PositionManager {
         tickUpper;
         liquidity;
         hookData;
-        permit2.transferFrom(msg.sender, address(this), uint160(amount0), key.currency0);
-        permit2.transferFrom(msg.sender, address(this), uint160(amount1), key.currency1);
+        uint256 consumed0 = amount0 * consumeBps / 10_000;
+        uint256 consumed1 = amount1 * consumeBps / 10_000;
+        permit2.transferFrom(msg.sender, address(this), uint160(consumed0), key.currency0);
+        permit2.transferFrom(msg.sender, address(this), uint160(consumed1), key.currency1);
 
         lastRecipient = recipient;
-        lastAmount0 = amount0;
-        lastAmount1 = amount1;
+        lastAmount0 = consumed0;
+        lastAmount1 = consumed1;
         nextId++;
     }
 }
@@ -302,4 +309,41 @@ contract CelestialUniswapV4ConnectorTest is Test {
         vm.expectRevert(CelestialUniswapV4Connector.UnknownPool.selector);
         connector.quoteExactInput(address(0x1234), address(token), 1e6);
     }
+
+    function testBurnsUnusedTokenAndLocksUnusedQuote() public {
+        positionManager.setConsumeBps(8_000);
+
+        uint256 tokenAmount = 1_000_000e6;
+        uint256 quoteAmount = 500_000e6;
+        uint160 sqrtPrice = CelestialV4PriceMath.sqrtPriceX96(
+            address(token),
+            address(quote),
+            2_000_000e6,
+            1_000_000e6
+        );
+
+        token.approve(address(adapter), tokenAmount);
+        quote.approve(address(adapter), quoteAmount);
+
+        uint256 deadBefore = token.balanceOf(address(0x000000000000000000000000000000000000dEaD));
+        uint256 lockerQuoteBefore = quote.balanceOf(locker);
+
+        adapter.createPoolAndLock(
+            address(token),
+            address(quote),
+            tokenAmount,
+            quoteAmount,
+            sqrtPrice,
+            locker
+        );
+
+        assertEq(
+            token.balanceOf(address(0x000000000000000000000000000000000000dEaD)) - deadBefore,
+            tokenAmount / 5
+        );
+        assertEq(quote.balanceOf(locker) - lockerQuoteBefore, quoteAmount / 5);
+        assertEq(token.balanceOf(address(connector)), 0);
+        assertEq(quote.balanceOf(address(connector)), 0);
+    }
+
 }
