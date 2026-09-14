@@ -15,7 +15,7 @@ jobs:
       ARC_USDC_ADDRESS: "0x3600000000000000000000000000000000000000"
       PROTOCOL_TREASURY: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
       EXPECTED_DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
-      PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+      RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -29,9 +29,15 @@ jobs:
           forge install OpenZeppelin/openzeppelin-contracts --no-commit
           forge install foundry-rs/forge-std --no-commit
 
-      - name: Verify deployer secret
+      - name: Normalize and verify deployer secret
         run: |
-          test -n "$PRIVATE_KEY"
+          test -n "$RAW_PRIVATE_KEY"
+          case "$RAW_PRIVATE_KEY" in
+            0x*) PRIVATE_KEY="$RAW_PRIVATE_KEY" ;;
+            *) PRIVATE_KEY="0x$RAW_PRIVATE_KEY" ;;
+          esac
+          echo "PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+
           DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY")
           echo "Deployer: $DEPLOYER"
           test "${DEPLOYER,,}" = "${EXPECTED_DEPLOYER,,}"
