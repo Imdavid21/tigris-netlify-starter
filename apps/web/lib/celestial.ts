@@ -106,6 +106,20 @@ export const celestialFactoryAbi = [
   },
   {
     type: "function",
+    name: "curveOf",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "address" }]
+  },
+  {
+    type: "function",
+    name: "quoteAssetOf",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "address" }]
+  },
+  {
+    type: "function",
     name: "graduationAdapter",
     stateMutability: "view",
     inputs: [],
