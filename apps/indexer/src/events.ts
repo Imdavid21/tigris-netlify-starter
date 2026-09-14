@@ -1,14 +1,26 @@
 import { getAddress, parseAbiItem, type Address } from "viem";
 import { client, db } from "./context.js";
 
-const tokenCreated = parseAbiItem(
+const tokenCreatedV1 = parseAbiItem(
   "event TokenCreated(address indexed token,address indexed curve,address indexed creator,string name,string symbol)"
 );
-const buy = parseAbiItem(
+const tokenCreatedV2 = parseAbiItem(
+  "event TokenCreated(address indexed token,address indexed curve,address indexed creator,address quoteAsset,string name,string symbol,address creatorFeeRecipient,uint256 creatorTaxBps,uint256 holderFeeBps)"
+);
+const metadataSet = parseAbiItem(
+  "event MetadataSet(address indexed token,string image,string website,string twitter,string telegram)"
+);
+const buyV1 = parseAbiItem(
   "event Buy(address indexed trader,uint256 quoteIn,uint256 tokensOut,uint256 fee)"
 );
-const sell = parseAbiItem(
+const sellV1 = parseAbiItem(
   "event Sell(address indexed trader,uint256 tokensIn,uint256 quoteOut,uint256 fee)"
+);
+const buyV2 = parseAbiItem(
+  "event Buy(address indexed trader,address indexed recipient,uint256 quoteIn,uint256 tokensOut,uint256 fee)"
+);
+const sellV2 = parseAbiItem(
+  "event Sell(address indexed trader,address indexed recipient,uint256 tokensIn,uint256 quoteOut,uint256 fee)"
 );
 const graduationSwept = parseAbiItem(
   "event GraduationSwept(address indexed token,uint256 quoteAmount,uint256 tokenAmount)"
@@ -19,10 +31,24 @@ const tokenGraduated = parseAbiItem(
 const transfer = parseAbiItem(
   "event Transfer(address indexed from,address indexed to,uint256 value)"
 );
+const buybackExecuted = parseAbiItem(
+  "event BuybackExecuted(address indexed venue,address indexed token,address indexed quoteAsset,uint256 quoteSpent,uint256 tokensBurned,bool postGraduation)"
+);
+const orderPlaced = parseAbiItem(
+  "event OrderPlaced(uint256 indexed orderId,address indexed owner,address indexed curve,uint8 side,uint256 amountIn,uint256 minAmountOut)"
+);
+const orderCancelled = parseAbiItem("event OrderCancelled(uint256 indexed orderId)");
+const orderFilled = parseAbiItem("event OrderFilled(uint256 indexed orderId,uint256 amountOut)");
 
-const factory = process.env.FACTORY_ADDRESS as Address | undefined;
-const startBlock = BigInt(process.env.FACTORY_START_BLOCK ?? "0");
-const watched = new Set<string>();
+const legacyFactory = process.env.FACTORY_ADDRESS as Address | undefined;
+const celestialFactory = process.env.CELESTIAL_FACTORY_ADDRESS as Address | undefined;
+const orderBook = process.env.ORDERBOOK_ADDRESS as Address | undefined;
+const buybackVault = process.env.BUYBACK_VAULT_ADDRESS as Address | undefined;
+
+const legacyStartBlock = BigInt(process.env.FACTORY_START_BLOCK ?? "0");
+const celestialStartBlock = BigInt(process.env.CELESTIAL_FACTORY_START_BLOCK ?? process.env.FACTORY_START_BLOCK ?? "0");
+
+const watchedCurves = new Set<string>();
 const watchedTokens = new Set<string>();
 
 function hexToBuffer(value: string) {
@@ -67,14 +93,14 @@ async function chunkedLogs(args: {
   return logs;
 }
 
-async function storeLaunch(log: any) {
+async function storeLaunchV1(log: any) {
   const { token, curve, creator, name, symbol } = log.args;
   if (!token || !curve || !creator) return;
 
   await db.query(
     `insert into tokens
-      (address, curve_address, creator, name, symbol, created_block, created_at, status)
-     values ($1,$2,$3,$4,$5,$6,$7,'ACTIVE')
+      (address, curve_address, creator, name, symbol, created_block, created_at, status, generation)
+     values ($1,$2,$3,$4,$5,$6,$7,'ACTIVE','V1')
      on conflict (address) do update set
        curve_address=excluded.curve_address,
        creator=excluded.creator,
@@ -91,18 +117,74 @@ async function storeLaunch(log: any) {
     ]
   );
 
-  await Promise.all([
-    backfillCurve(getAddress(curve), getAddress(token), log.blockNumber),
-    backfillToken(getAddress(token), log.blockNumber)
-  ]);
-  watchCurve(getAddress(curve), getAddress(token));
-  watchToken(getAddress(token));
+  await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "V1");
+}
+
+async function storeLaunchV2(log: any) {
+  const {
+    token,
+    curve,
+    creator,
+    quoteAsset,
+    name,
+    symbol,
+    creatorFeeRecipient,
+    creatorTaxBps,
+    holderFeeBps
+  } = log.args;
+
+  if (!token || !curve || !creator || !quoteAsset) return;
+
+  await db.query(
+    `insert into tokens
+      (address, curve_address, creator, name, symbol, created_block, created_at, status,
+       generation, quote_asset, creator_fee_recipient, creator_tax_bps, holder_fee_bps)
+     values ($1,$2,$3,$4,$5,$6,$7,'ACTIVE','CELESTIAL',$8,$9,$10,$11)
+     on conflict (address) do update set
+       curve_address=excluded.curve_address,
+       creator=excluded.creator,
+       name=excluded.name,
+       symbol=excluded.symbol,
+       generation='CELESTIAL',
+       quote_asset=excluded.quote_asset,
+       creator_fee_recipient=excluded.creator_fee_recipient,
+       creator_tax_bps=excluded.creator_tax_bps,
+       holder_fee_bps=excluded.holder_fee_bps`,
+    [
+      hexToBuffer(token),
+      hexToBuffer(curve),
+      hexToBuffer(creator),
+      name,
+      symbol,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber),
+      hexToBuffer(quoteAsset),
+      hexToBuffer(creatorFeeRecipient ?? creator),
+      Number(creatorTaxBps ?? 0n),
+      Number(holderFeeBps ?? 0n)
+    ]
+  );
+
+  await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "CELESTIAL");
+}
+
+async function storeMetadata(log: any) {
+  const { token, image, website, twitter, telegram } = log.args;
+  if (!token) return;
+
+  await db.query(
+    `update tokens
+     set image=$2, website=$3, twitter=$4, telegram=$5
+     where address=$1`,
+    [hexToBuffer(token), image ?? "", website ?? "", twitter ?? "", telegram ?? ""]
+  );
 }
 
 async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
   const args = log.args;
   const tokenAmount = side === "BUY" ? args.tokensOut : args.tokensIn;
   const quoteAmount = side === "BUY" ? args.quoteIn : args.quoteOut;
+  if (!args.trader || tokenAmount === undefined || quoteAmount === undefined) return;
 
   await db.query(
     `insert into trades
@@ -119,7 +201,7 @@ async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
       side,
       tokenAmount.toString(),
       quoteAmount.toString(),
-      args.fee.toString()
+      (args.fee ?? 0n).toString()
     ]
   );
 }
@@ -146,46 +228,98 @@ async function storeTransfer(token: Address, log: any) {
   );
 }
 
+async function storeBuyback(log: any) {
+  const { venue, token, quoteAsset, quoteSpent, tokensBurned, postGraduation } = log.args;
+  if (!venue || !token || !quoteAsset) return;
+
+  await db.query(
+    `insert into buybacks
+      (tx_hash, log_index, block_number, block_time, venue, token, quote_asset, quote_spent, tokens_burned, post_graduation)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+     on conflict (tx_hash,log_index) do nothing`,
+    [
+      hexToBuffer(log.transactionHash),
+      log.logIndex,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber),
+      hexToBuffer(venue),
+      hexToBuffer(token),
+      hexToBuffer(quoteAsset),
+      quoteSpent.toString(),
+      tokensBurned.toString(),
+      Boolean(postGraduation)
+    ]
+  );
+}
+
+async function storeOrderPlaced(log: any) {
+  const { orderId, owner, curve, side, amountIn, minAmountOut } = log.args;
+  if (orderId === undefined || !owner || !curve) return;
+  await db.query(
+    `insert into limit_orders
+      (order_id, owner, curve, side, amount_in, min_amount_out, status, created_at, updated_at)
+     values ($1,$2,$3,$4,$5,$6,'OPEN',$7,$7)
+     on conflict (order_id) do update set status='OPEN', updated_at=excluded.updated_at`,
+    [
+      orderId.toString(),
+      hexToBuffer(owner),
+      hexToBuffer(curve),
+      Number(side) === 0 ? "BUY" : "SELL",
+      amountIn.toString(),
+      minAmountOut.toString(),
+      await blockTime(log.blockNumber)
+    ]
+  );
+}
+
+async function updateOrderStatus(log: any, status: "FILLED" | "CANCELLED") {
+  const { orderId } = log.args;
+  if (orderId === undefined) return;
+  await db.query(
+    "update limit_orders set status=$2, updated_at=$3 where order_id=$1",
+    [orderId.toString(), status, await blockTime(log.blockNumber)]
+  );
+}
+
 async function backfillToken(token: Address, fromBlock: bigint) {
   const toBlock = await client.getBlockNumber();
-  const transfers = await chunkedLogs({
-    address: token,
-    event: transfer,
-    fromBlock,
-    toBlock
-  });
-
+  const transfers = await chunkedLogs({ address: token, event: transfer, fromBlock, toBlock });
   for (const log of transfers) await storeTransfer(token, log);
 }
 
-async function backfillCurve(curve: Address, token: Address, fromBlock: bigint) {
+async function backfillCurve(curve: Address, token: Address, fromBlock: bigint, generation: "V1" | "CELESTIAL") {
   const toBlock = await client.getBlockNumber();
+  const buyEvent = generation === "CELESTIAL" ? buyV2 : buyV1;
+  const sellEvent = generation === "CELESTIAL" ? sellV2 : sellV1;
 
   const [buys, sells] = await Promise.all([
-    chunkedLogs({ address: curve, event: buy, fromBlock, toBlock }),
-    chunkedLogs({ address: curve, event: sell, fromBlock, toBlock })
+    chunkedLogs({ address: curve, event: buyEvent, fromBlock, toBlock }),
+    chunkedLogs({ address: curve, event: sellEvent, fromBlock, toBlock })
   ]);
 
   for (const log of buys) await storeTrade(token, "BUY", log);
   for (const log of sells) await storeTrade(token, "SELL", log);
 }
 
-async function backfillFactory() {
-  if (!factory) throw new Error("FACTORY_ADDRESS is required");
+async function attachMarket(
+  curve: Address,
+  token: Address,
+  fromBlock: bigint,
+  generation: "V1" | "CELESTIAL"
+) {
+  await Promise.all([
+    backfillCurve(curve, token, fromBlock, generation),
+    backfillToken(token, fromBlock)
+  ]);
+  watchCurve(curve, token, generation);
+  watchToken(token);
+}
 
+async function applyGraduationState(factory: Address, fromBlock: bigint) {
   const toBlock = await client.getBlockNumber();
-  const launches = await chunkedLogs({
-    address: factory,
-    event: tokenCreated,
-    fromBlock: startBlock,
-    toBlock
-  });
-
-  for (const log of launches) await storeLaunch(log);
-
   const [swept, graduated] = await Promise.all([
-    chunkedLogs({ address: factory, event: graduationSwept, fromBlock: startBlock, toBlock }),
-    chunkedLogs({ address: factory, event: tokenGraduated, fromBlock: startBlock, toBlock })
+    chunkedLogs({ address: factory, event: graduationSwept, fromBlock, toBlock }),
+    chunkedLogs({ address: factory, event: tokenGraduated, fromBlock, toBlock })
   ]);
 
   for (const log of swept) {
@@ -206,11 +340,70 @@ async function backfillFactory() {
   }
 }
 
+async function backfillLegacyFactory() {
+  if (!legacyFactory) return;
+  const toBlock = await client.getBlockNumber();
+  const launches = await chunkedLogs({
+    address: legacyFactory,
+    event: tokenCreatedV1,
+    fromBlock: legacyStartBlock,
+    toBlock
+  });
+  for (const log of launches) await storeLaunchV1(log);
+  await applyGraduationState(legacyFactory, legacyStartBlock);
+}
+
+async function backfillCelestialFactory() {
+  if (!celestialFactory) return;
+  const toBlock = await client.getBlockNumber();
+  const [launches, metadata] = await Promise.all([
+    chunkedLogs({
+      address: celestialFactory,
+      event: tokenCreatedV2,
+      fromBlock: celestialStartBlock,
+      toBlock
+    }),
+    chunkedLogs({
+      address: celestialFactory,
+      event: metadataSet,
+      fromBlock: celestialStartBlock,
+      toBlock
+    })
+  ]);
+  for (const log of launches) await storeLaunchV2(log);
+  for (const log of metadata) await storeMetadata(log);
+  await applyGraduationState(celestialFactory, celestialStartBlock);
+}
+
+async function backfillAuxiliary() {
+  const toBlock = await client.getBlockNumber();
+
+  if (buybackVault) {
+    const logs = await chunkedLogs({
+      address: buybackVault,
+      event: buybackExecuted,
+      fromBlock: celestialStartBlock,
+      toBlock
+    });
+    for (const log of logs) await storeBuyback(log);
+  }
+
+  if (orderBook) {
+    const [placed, cancelled, filled] = await Promise.all([
+      chunkedLogs({ address: orderBook, event: orderPlaced, fromBlock: celestialStartBlock, toBlock }),
+      chunkedLogs({ address: orderBook, event: orderCancelled, fromBlock: celestialStartBlock, toBlock }),
+      chunkedLogs({ address: orderBook, event: orderFilled, fromBlock: celestialStartBlock, toBlock })
+    ]);
+    for (const log of placed) await storeOrderPlaced(log);
+    for (const log of cancelled) await updateOrderStatus(log, "CANCELLED");
+    for (const log of filled) await updateOrderStatus(log, "FILLED");
+  }
+}
+
 function watchToken(token: Address) {
   const key = token.toLowerCase();
   if (watchedTokens.has(key)) return;
   watchedTokens.add(key);
-
   client.watchEvent({
     address: token,
     event: transfer,
@@ -221,14 +414,17 @@ function watchToken(token: Address) {
   });
 }
 
-function watchCurve(curve: Address, token: Address) {
+function watchCurve(curve: Address, token: Address, generation: "V1" | "CELESTIAL") {
   const key = curve.toLowerCase();
-  if (watched.has(key)) return;
-  watched.add(key);
+  if (watchedCurves.has(key)) return;
+  watchedCurves.add(key);
+
+  const buyEvent = generation === "CELESTIAL" ? buyV2 : buyV1;
+  const sellEvent = generation === "CELESTIAL" ? sellV2 : sellV1;
 
   client.watchEvent({
     address: curve,
-    event: buy,
+    event: buyEvent,
     onLogs: async (logs) => {
       for (const log of logs) await storeTrade(token, "BUY", log);
     },
@@ -237,7 +433,7 @@ function watchCurve(curve: Address, token: Address) {
 
   client.watchEvent({
     address: curve,
-    event: sell,
+    event: sellEvent,
     onLogs: async (logs) => {
       for (const log of logs) await storeTrade(token, "SELL", log);
     },
@@ -245,19 +441,29 @@ function watchCurve(curve: Address, token: Address) {
   });
 }
 
-export async function startEventIngestion() {
-  if (!factory) throw new Error("FACTORY_ADDRESS is required");
-
-  await backfillFactory();
-
+function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
   client.watchEvent({
     address: factory,
-    event: tokenCreated,
+    event: generation === "CELESTIAL" ? tokenCreatedV2 : tokenCreatedV1,
     onLogs: async (logs) => {
-      for (const log of logs) await storeLaunch(log);
+      for (const log of logs) {
+        if (generation === "CELESTIAL") await storeLaunchV2(log);
+        else await storeLaunchV1(log);
+      }
     },
     onError: console.error
   });
+
+  if (generation === "CELESTIAL") {
+    client.watchEvent({
+      address: factory,
+      event: metadataSet,
+      onLogs: async (logs) => {
+        for (const log of logs) await storeMetadata(log);
+      },
+      onError: console.error
+    });
+  }
 
   client.watchEvent({
     address: factory,
@@ -287,4 +493,57 @@ export async function startEventIngestion() {
     },
     onError: console.error
   });
+}
+
+function watchAuxiliary() {
+  if (buybackVault) {
+    client.watchEvent({
+      address: buybackVault,
+      event: buybackExecuted,
+      onLogs: async (logs) => {
+        for (const log of logs) await storeBuyback(log);
+      },
+      onError: console.error
+    });
+  }
+
+  if (orderBook) {
+    client.watchEvent({
+      address: orderBook,
+      event: orderPlaced,
+      onLogs: async (logs) => {
+        for (const log of logs) await storeOrderPlaced(log);
+      },
+      onError: console.error
+    });
+    client.watchEvent({
+      address: orderBook,
+      event: orderCancelled,
+      onLogs: async (logs) => {
+        for (const log of logs) await updateOrderStatus(log, "CANCELLED");
+      },
+      onError: console.error
+    });
+    client.watchEvent({
+      address: orderBook,
+      event: orderFilled,
+      onLogs: async (logs) => {
+        for (const log of logs) await updateOrderStatus(log, "FILLED");
+      },
+      onError: console.error
+    });
+  }
+}
+
+export async function startEventIngestion() {
+  if (!legacyFactory && !celestialFactory) {
+    throw new Error("FACTORY_ADDRESS or CELESTIAL_FACTORY_ADDRESS is required");
+  }
+
+  await Promise.all([backfillLegacyFactory(), backfillCelestialFactory()]);
+  await backfillAuxiliary();
+
+  if (legacyFactory) watchFactory(legacyFactory, "V1");
+  if (celestialFactory) watchFactory(celestialFactory, "CELESTIAL");
+  watchAuxiliary();
 }
