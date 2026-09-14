@@ -3,16 +3,18 @@ import { API_URL } from "@/lib/api";
 
 async function loadData() {
   try {
-    const [statsRes, dailyRes] = await Promise.all([
+    const [statsRes, dailyRes, buybacksRes] = await Promise.all([
       fetch(API_URL + "/stats", { cache: "no-store" }),
-      fetch(API_URL + "/analytics/daily", { cache: "no-store" })
+      fetch(API_URL + "/analytics/daily", { cache: "no-store" }),
+      fetch(API_URL + "/buybacks", { cache: "no-store" })
     ]);
     return {
       stats: statsRes.ok ? await statsRes.json() : null,
-      daily: dailyRes.ok ? await dailyRes.json() : null
+      daily: dailyRes.ok ? await dailyRes.json() : null,
+      buybacks: buybacksRes.ok ? (await buybacksRes.json()).items ?? [] : []
     };
   } catch {
-    return { stats: null, daily: null };
+    return { stats: null, daily: null, buybacks: [] };
   }
 }
 
@@ -31,8 +33,7 @@ function Bars({ rows, keyName }: { rows: any[]; keyName: string }) {
 }
 
 export default async function AnalyticsPage() {
-  const { stats, daily } = await loadData();
-
+  const { stats, daily, buybacks } = await loadData();
   const volume = stats ? Number(stats.quote_volume) / 1e6 : null;
   const volume24h = stats ? Number(stats.quote_volume_24h) / 1e6 : null;
   const fees = stats ? Number(stats.fees) / 1e6 : null;
@@ -52,8 +53,8 @@ export default async function AnalyticsPage() {
         <div className="metric-card"><span>Graduated</span><strong>{stats?.graduated ?? "—"}</strong></div>
         <div className="metric-card"><span>Trades</span><strong>{stats?.trades ?? "—"}</strong></div>
         <div className="metric-card"><span>24h traders</span><strong>{stats?.traders_24h ?? "—"}</strong></div>
-        <div className="metric-card"><span>24h launches</span><strong>{stats?.launches_24h ?? "—"}</strong></div>
-        <div className="metric-card"><span>Indexed fees</span><strong>{fees === null ? "—" : "$" + fees.toLocaleString(undefined,{maximumFractionDigits:2})}</strong></div>
+        <div className="metric-card"><span>Open orders</span><strong>{stats?.open_orders ?? "—"}</strong></div>
+        <div className="metric-card"><span>Buyback executions</span><strong>{stats?.buyback_count ?? "—"}</strong></div>
       </section>
 
       <section className="analytics-grid">
@@ -68,12 +69,32 @@ export default async function AnalyticsPage() {
       </section>
 
       <section className="analytics-card buyback-preview">
-        <div>
-          <h2>Buyback and burn</h2>
-          <p>Protocol fee recycling will appear here when an explicit buyback vault and policy are live.</p>
+        <div style={{width:"100%"}}>
+          <div className="section-title"><strong>Buyback and burn</strong><span>Protocol-funded executions</span></div>
+          {!buybacks.length ? (
+            <p>No buybacks have been indexed yet.</p>
+          ) : (
+            <div className="profile-table" style={{marginTop:12}}>
+              {buybacks.slice(0,20).map((item:any)=>(
+                <a href={"/token/"+item.token} className="profile-row" key={item.tx_hash}>
+                  <div>
+                    <strong>{item.post_graduation ? "DEX buyback" : "Curve buyback"}</strong>
+                    <span>{item.token.slice(0,8)}...{item.token.slice(-6)}</span>
+                  </div>
+                  <span>{item.quote_spent} quote units</span>
+                  <span>{item.tokens_burned} token units burned</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-        
       </section>
+
+      {fees !== null && (
+        <p className="terminal-footnote">
+          {"Indexed trade fees: $" + fees.toLocaleString(undefined,{maximumFractionDigits:2}) + ". Buyback amounts are displayed per execution because Celestial can use multiple quote assets."}
+        </p>
+      )}
     </main>
   );
 }
