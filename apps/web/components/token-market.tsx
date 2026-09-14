@@ -242,7 +242,7 @@ export function TokenMarket({ token }: { token: Address }) {
             setQuote(undefined);
             return;
           }
-          output = await client.readContract({
+          const simulation = await client.simulateContract({
             address: celestialAddresses.dexAdapter,
             abi: dexAdapterAbi,
             functionName: "quoteExactInput",
@@ -250,8 +250,10 @@ export function TokenMarket({ token }: { token: Address }) {
               indexed.pool_address,
               side === "buy" ? quoteAsset.address : token,
               input
-            ]
-          }) as bigint;
+            ],
+            account: walletAddress ?? zeroAddress
+          });
+          output = simulation.result as bigint;
         } else if (isCelestial) {
           output = side === "buy"
             ? await client.readContract({
@@ -612,7 +614,7 @@ export function TokenMarket({ token }: { token: Address }) {
           <div><span>Raised</span><strong>{Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString()} {quoteAsset.symbol}</strong></div>
           <div><span>Graduation</span><strong>{progress.toFixed(1)}%</strong></div>
           <div><span>Pair</span><strong>{quoteAsset.symbol}</strong></div>
-          <div><span>Market</span><strong>{graduated ? "Arc DEX" : "Bonding curve"}</strong></div>
+          <div><span>Market</span><strong>{graduated ? "Uniswap v4" : "Bonding curve"}</strong></div>
         </div>
       </section>
 
