@@ -4,7 +4,7 @@ import {
   type Address,
   type Log
 } from "viem";
-import { client, db } from "./index.js";
+import { client, db } from "./context.js";
 
 const tokenCreated = parseAbiItem(
   "event TokenCreated(address indexed token,address indexed curve,address indexed creator,string name,string symbol)"
