@@ -2,11 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  createPublicClient,
   createWalletClient,
   custom,
   formatUnits,
-  http,
   parseUnits,
   zeroAddress,
   type Address,
@@ -35,6 +33,16 @@ import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
+}
+
+function safeParseUnits(value: string, decimals: number): bigint | undefined {
+  const normalized = value.trim();
+  if (!normalized || !/^\d+(?:\.\d*)?$/.test(normalized)) return undefined;
+  try {
+    return parseUnits(normalized, decimals);
+  } catch {
+    return undefined;
+  }
 }
 
 type IndexedToken = {
@@ -66,17 +74,7 @@ type IndexedOrder = {
 };
 
 export function TokenMarket({ token }: { token: Address }) {
-  const client = useMemo(
-    () =>
-      createPublicClient({
-        chain: arcTestnet,
-        transport: http(
-          process.env.NEXT_PUBLIC_ARC_RPC_URL ??
-            "https://rpc.testnet.arc.network"
-        )
-      }),
-    []
-  );
+  const client = useMemo(() => createArcPublicClient(), []);
 
   const { address: walletAddress, connect } = useWalletSession();
 
@@ -86,6 +84,7 @@ export function TokenMarket({ token }: { token: Address }) {
   const [raised, setRaised] = useState(0n);
   const [threshold, setThreshold] = useState(0n);
   const [graduated, setGraduated] = useState(false);
+  const [readyToGraduate, setReadyToGraduate] = useState(false);
   const [indexed, setIndexed] = useState<IndexedToken>({});
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [mode, setMode] = useState<"market" | "limit" | "orders">("market");
@@ -96,6 +95,7 @@ export function TokenMarket({ token }: { token: Address }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string>();
   const [tokenBalance, setTokenBalance] = useState(0n);
+  const [quoteBalance, setQuoteBalance] = useState(0n);
   const [holderRewards, setHolderRewards] = useState(0n);
   const [orders, setOrders] = useState<IndexedOrder[]>([]);
   const [feeBps, setFeeBps] = useState(100n);
@@ -198,6 +198,12 @@ export function TokenMarket({ token }: { token: Address }) {
     setIndexed(indexedToken);
 
     if (celestial) {
+      const ready = await client.readContract({
+        address: curveAddress,
+        abi: celestialCurveAbi,
+        functionName: "readyToGraduate"
+      }).catch(() => false);
+      setReadyToGraduate(Boolean(ready));
       const buyer = walletAddress ?? zeroAddress;
       const [base, creatorTax, holderFee, snipe] = await Promise.all([
         client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "feeBps" }),
@@ -210,6 +216,7 @@ export function TokenMarket({ token }: { token: Address }) {
       setHolderFeeBps(holderFee as bigint);
       setSnipeBps(snipe as bigint);
     } else {
+      setReadyToGraduate(false);
       setFeeBps(100n);
       setCreatorTaxBps(0n);
       setHolderFeeBps(0n);
@@ -218,13 +225,23 @@ export function TokenMarket({ token }: { token: Address }) {
   }
 
   async function refreshWalletState(account: Address) {
-    const balance = await client.readContract({
-      address: token,
-      abi: erc20Abi,
-      functionName: "balanceOf",
-      args: [account]
-    }) as bigint;
+    const [balance, quoteAssetBalance] = await Promise.all([
+      client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account]
+      }),
+      client.readContract({
+        address: quoteAsset.address,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account]
+      })
+    ]) as [bigint, bigint];
+
     setTokenBalance(balance);
+    setQuoteBalance(quoteAssetBalance);
 
     if (isCelestial) {
       const rewards = await client.readContract({
@@ -261,26 +278,29 @@ export function TokenMarket({ token }: { token: Address }) {
   useEffect(() => {
     if (!walletAddress) {
       setTokenBalance(0n);
+      setQuoteBalance(0n);
       setHolderRewards(0n);
       setOrders([]);
       return;
     }
     void refreshWalletState(walletAddress);
     void refreshOrders(walletAddress);
-  }, [walletAddress, token, isCelestial, curve]);
+  }, [walletAddress, token, isCelestial, curve, quoteAsset.address]);
 
   useEffect(() => {
-    if (!curve || !amount || Number(amount) <= 0 || mode === "orders") {
+    if (!curve || mode === "orders" || (!graduated && isCelestial && readyToGraduate && side === "sell")) {
+      setQuote(undefined);
+      return;
+    }
+
+    const input = safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18);
+    if (input === undefined || input === 0n) {
       setQuote(undefined);
       return;
     }
 
     const timer = setTimeout(async () => {
       try {
-        const input = parseUnits(
-          amount,
-          side === "buy" ? quoteAsset.decimals : 18
-        );
 
         let output: bigint;
 
@@ -343,7 +363,8 @@ export function TokenMarket({ token }: { token: Address }) {
     indexed.pool_address,
     quoteAsset.address,
     quoteAsset.decimals,
-    token
+    token,
+    readyToGraduate
   ]);
 
   async function accountAndWallet() {
@@ -369,12 +390,24 @@ export function TokenMarket({ token }: { token: Address }) {
     label: string
   ) {
     const { account, wallet } = await accountAndWallet();
-    const allowance = await client.readContract({
-      address: asset,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [account, spender]
-    }) as bigint;
+    const [allowance, balance] = await Promise.all([
+      client.readContract({
+        address: asset,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [account, spender]
+      }),
+      client.readContract({
+        address: asset,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account]
+      })
+    ]) as [bigint, bigint];
+
+    if (balance < input) {
+      throw new Error("Insufficient balance for this trade.");
+    }
 
     if (allowance < input) {
       setStatus(label);
@@ -396,10 +429,16 @@ export function TokenMarket({ token }: { token: Address }) {
 
     try {
       setStatus("Preparing");
-      const input = parseUnits(
+      const input = safeParseUnits(
         amount,
         side === "buy" ? quoteAsset.decimals : 18
       );
+      if (input === undefined || input === 0n) {
+        throw new Error("Enter a valid trade amount.");
+      }
+      if (!graduated && isCelestial && readyToGraduate && side === "sell") {
+        throw new Error("Bonding curve trading is closed while this market graduates.");
+      }
       const minOut =
         quote *
         BigInt(
@@ -409,6 +448,8 @@ export function TokenMarket({ token }: { token: Address }) {
         10000n;
 
       const asset = side === "buy" ? quoteAsset.address : token;
+
+      let accountForRefresh: Address | undefined;
 
       if (graduated) {
         if (
@@ -427,6 +468,7 @@ export function TokenMarket({ token }: { token: Address }) {
           input,
           "Approve asset"
         );
+        accountForRefresh = account;
 
         setStatus("Confirm trade");
         const hash = await wallet.writeContract({
@@ -449,6 +491,7 @@ export function TokenMarket({ token }: { token: Address }) {
           input,
           side === "buy" ? "Approve " + quoteAsset.symbol : "Approve token"
         );
+        accountForRefresh = account;
 
         setStatus("Confirm trade");
         const hash = isCelestial
@@ -481,9 +524,9 @@ export function TokenMarket({ token }: { token: Address }) {
 
         setStatus("Confirming");
         await client.waitForTransactionReceipt({ hash });
-        await refreshWalletState(account);
       }
 
+      if (accountForRefresh) await refreshWalletState(accountForRefresh);
       setStatus("Complete");
       setAmount("");
       setQuote(undefined);
@@ -594,9 +637,7 @@ export function TokenMarket({ token }: { token: Address }) {
       : Math.min(100, Number((raised * 10000n) / threshold) / 100);
 
   const inputUnits =
-    amount && Number(amount) > 0
-      ? parseUnits(amount, side === "buy" ? quoteAsset.decimals : 18)
-      : 0n;
+    safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18) ?? 0n;
 
   const totalTradeBps =
     feeBps +
@@ -746,7 +787,13 @@ export function TokenMarket({ token }: { token: Address }) {
               </div>
 
               <div className="amount-box">
-                <div className="amount-label"><span>{side === "buy" ? "You pay" : "You sell"}</span><span>{side === "buy" ? quoteAsset.symbol : symbol}</span></div>
+                <div className="amount-label">
+                  <span>{side === "buy" ? "You pay" : "You sell"}</span>
+                  <span>
+                    {side === "buy" ? quoteAsset.symbol : symbol}
+                    {walletAddress ? " · Balance " + formatUnits(side === "buy" ? quoteBalance : tokenBalance, side === "buy" ? quoteAsset.decimals : 18) : ""}
+                  </span>
+                </div>
                 <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
                 {side === "buy" ? (
                   <div className="quick-amounts">
@@ -796,7 +843,10 @@ export function TokenMarket({ token }: { token: Address }) {
                 disabled={
                   mode === "limit"
                     ? !amount || !limitReceive || !celestialAddresses.orderBook
-                    : quote === undefined
+                    : quote === undefined ||
+                      (side === "sell" && walletAddress !== undefined && inputUnits > tokenBalance) ||
+                      (side === "buy" && walletAddress !== undefined && inputUnits > quoteBalance) ||
+                      (!graduated && isCelestial && readyToGraduate && side === "sell")
                 }
               >
                 {status ||
@@ -809,6 +859,9 @@ export function TokenMarket({ token }: { token: Address }) {
                         : "Review trade")}
               </button>
 
+              {!graduated && isCelestial && readyToGraduate && (
+                <p className="terminal-footnote">Bonding curve trading is closed while this market moves into graduation.</p>
+              )}
               {graduated && (!celestialAddresses.dexAdapter || !indexed.pool_address) && (
                 <p className="terminal-footnote">The market is graduated, but the production Arc DEX connector is not configured yet.</p>
               )}
