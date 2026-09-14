@@ -1,0 +1,13 @@
+{
+  "name": "arc-launchpad",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @arc-launchpad/web run dev",
+    "build:web": "npm --workspace @arc-launchpad/web run build",
+    "dev:indexer": "npm --workspace @arc-launchpad/indexer run dev",
+    "build:indexer": "npm --workspace @arc-launchpad/indexer run build"
+  }
+}
