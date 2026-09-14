@@ -122,15 +122,15 @@ export function CreateTokenForm() {
           </div>
 
           <label className="v2-field">
-            <span>Description <b>V2</b></span>
+            <span>Description</span>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this token?" disabled />
           </label>
 
           <div className="field-grid two">
-            <label className="v2-field"><span>Image <b>V2</b></span><input type="file" disabled /></label>
-            <label className="v2-field"><span>Website <b>V2</b></span><input placeholder="https://" disabled /></label>
-            <label className="v2-field"><span>X / Twitter <b>V2</b></span><input placeholder="@handle" disabled /></label>
-            <label className="v2-field"><span>Telegram <b>V2</b></span><input placeholder="t.me/..." disabled /></label>
+            <label className="v2-field"><span>Image</span><input type="file" disabled /></label>
+            <label className="v2-field"><span>Website</span><input placeholder="https://" disabled /></label>
+            <label className="v2-field"><span>X / Twitter</span><input placeholder="@handle" disabled /></label>
+            <label className="v2-field"><span>Telegram</span><input placeholder="t.me/..." disabled /></label>
           </div>
         </section>
 
@@ -153,16 +153,16 @@ export function CreateTokenForm() {
           </div>
 
           <button type="button" className="text-button" onClick={() => setAdvanced(!advanced)}>
-            {advanced ? "Hide" : "Show"} PONS-parity controls
+            {advanced ? "Hide" : "Show"} advanced controls
           </button>
 
           {advanced && (
             <div className="advanced-grid">
-              <label className="v2-field"><span>Developer buy <b>V2</b></span><input placeholder="0 USDC" disabled /></label>
-              <label className="v2-field"><span>Creator fee wallet <b>V2</b></span><input placeholder="0x..." disabled /></label>
-              <label className="v2-field"><span>Creator tax <b>V2</b></span><input placeholder="0.00%" disabled /></label>
-              <label className="v2-field"><span>Holder fee sharing <b>V2</b></span><input placeholder="Disabled" disabled /></label>
-              <label className="v2-field full"><span>Snipe-tax exemptions <b>V2</b></span><input placeholder="Wallet addresses" disabled /></label>
+              <label className="v2-field"><span>Developer buy</span><input placeholder="0 USDC" disabled /></label>
+              <label className="v2-field"><span>Creator fee wallet</span><input placeholder="0x..." disabled /></label>
+              <label className="v2-field"><span>Creator tax</span><input placeholder="0.00%" disabled /></label>
+              <label className="v2-field"><span>Holder fee sharing</span><input placeholder="Disabled" disabled /></label>
+              <label className="v2-field full"><span>Snipe-tax exemptions</span><input placeholder="Wallet addresses" disabled /></label>
             </div>
           )}
         </section>
@@ -174,7 +174,7 @@ export function CreateTokenForm() {
               <h2>Review</h2>
             </div>
           </div>
-          <p className="review-copy">The current Testnet factory makes the live economics immutable. Metadata and advanced creator controls are shown here so you can test the full product direction, but they require the V2 factory.</p>
+          <p className="review-copy">Review the launch terms before signing. Some advanced controls remain unavailable until supported by the deployed contracts.</p>
 
           <button className="launch-cta" type="submit" disabled={status === "wallet" || status === "submitted"}>
             {status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
@@ -186,11 +186,10 @@ export function CreateTokenForm() {
       </div>
 
       <aside className="launch-preview">
-        <span className="kicker">Preview</span>
         <div className="token-avatar">{previewSymbol.slice(0, 2)}</div>
         <h3>{name || "Untitled token"}</h3>
         <p className="preview-symbol">${previewSymbol}</p>
-        <p className="preview-description">{description || "Token description will appear here in V2."}</p>
+        <p className="preview-description">{description || "Add a token description."}</p>
 
         <div className="preview-rule" />
         <div className="preview-stat"><span>Market</span><strong>Bonding curve</strong></div>
