@@ -158,6 +158,7 @@ contract ArcLaunchFactory is ReentrancyGuard {
 
         Graduation storage g = graduations[token];
         if (g.swept) revert WrongGraduationState();
+        g.swept = true;
 
         ArcBondingCurve curve = ArcBondingCurve(curveAddr);
 
@@ -170,7 +171,6 @@ contract ArcLaunchFactory is ReentrancyGuard {
 
         g.quoteAmount = quoteAmount;
         g.tokenAmount = tokenAmount;
-        g.swept = true;
 
         emit GraduationSwept(token, quoteAmount, tokenAmount);
     }
@@ -182,6 +182,7 @@ contract ArcLaunchFactory is ReentrancyGuard {
     {
         Graduation storage g = graduations[token];
         if (!g.swept || g.seeded) revert WrongGraduationState();
+        g.seeded = true;
 
         IGraduationAdapter adapter = graduationAdapter;
         if (address(adapter) == address(0)) revert AdapterNotSet();
@@ -217,7 +218,6 @@ contract ArcLaunchFactory is ReentrancyGuard {
 
         g.pool = pool;
         g.positionId = positionId;
-        g.seeded = true;
 
         liquidityLocker.record(token, address(adapter), pool, positionId);
 
