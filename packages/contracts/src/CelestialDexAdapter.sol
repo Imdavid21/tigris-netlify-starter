@@ -4,10 +4,10 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IGraduationAdapter} from "./interfaces/IGraduationAdapter.sol";
+import {ICelestialGraduationAdapter} from "./interfaces/ICelestialGraduationAdapter.sol";
 import {ICelestialDexConnector} from "./interfaces/ICelestialDexConnector.sol";
 
-contract CelestialDexAdapter is IGraduationAdapter, ReentrancyGuard {
+contract CelestialDexAdapter is ICelestialGraduationAdapter, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public immutable factory;
