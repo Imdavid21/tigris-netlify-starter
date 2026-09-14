@@ -72,21 +72,26 @@ contract MockPositionManager is ICelestialV4PositionManager {
     }
 
     function modifyLiquidities(bytes calldata unlockData, uint256) external payable {
-        (bytes memory, bytes[] memory params) = abi.decode(unlockData, (bytes, bytes[]));
+        (bytes memory actions, bytes[] memory params) = abi.decode(unlockData, (bytes, bytes[]));
+        actions;
         (
             CelestialV4PoolKey memory key,
-            int24,
-            int24,
-            uint256,
+            int24 tickLower,
+            int24 tickUpper,
+            uint256 liquidity,
             uint256 amount0,
             uint256 amount1,
             address recipient,
-            bytes memory
+            bytes memory hookData
         ) = abi.decode(
             params[0],
             (CelestialV4PoolKey, int24, int24, uint256, uint256, uint256, address, bytes)
         );
 
+        tickLower;
+        tickUpper;
+        liquidity;
+        hookData;
         permit2.transferFrom(msg.sender, address(this), uint160(amount0), key.currency0);
         permit2.transferFrom(msg.sender, address(this), uint160(amount1), key.currency1);
 
@@ -131,7 +136,8 @@ contract MockUniversalRouter is ICelestialUniversalRouter {
 
     function execute(bytes calldata, bytes[] calldata inputs, uint256 deadline) external payable {
         require(block.timestamp <= deadline, "deadline");
-        (bytes memory, bytes[] memory params) = abi.decode(inputs[0], (bytes, bytes[]));
+        (bytes memory actions, bytes[] memory params) = abi.decode(inputs[0], (bytes, bytes[]));
+        actions;
         CelestialV4ExactInputSingleParams memory swapParams =
             abi.decode(params[0], (CelestialV4ExactInputSingleParams));
 
