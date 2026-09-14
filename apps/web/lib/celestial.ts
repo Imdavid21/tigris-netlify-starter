@@ -89,6 +89,21 @@ export const celestialFactoryAbi = [
   },
   {
     type: "function",
+    name: "previewInitialBuy",
+    stateMutability: "view",
+    inputs: [
+      { name: "quoteAsset", type: "address" },
+      { name: "creatorTaxBps", type: "uint256" },
+      { name: "holderFeeBps", type: "uint256" },
+      { name: "quoteIn", type: "uint256" }
+    ],
+    outputs: [
+      { name: "tokensOut", type: "uint256" },
+      { name: "effectiveQuoteIn", type: "uint256" }
+    ]
+  },
+  {
+    type: "function",
     name: "graduationAdapter",
     stateMutability: "view",
     inputs: [],
