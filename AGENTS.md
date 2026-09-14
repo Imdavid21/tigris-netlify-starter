@@ -53,6 +53,7 @@ Important docs:
 - docs/PONS_REVERSE_ENGINEERING.md
 - docs/AUDIT.md
 - docs/QA_REPORT.md
+- docs/UNISWAP_V4_INTEGRATION.md
 - AGENTS.md
 
 ## Arc Testnet
@@ -684,6 +685,35 @@ External/staging gates only:
 5. Confirm full historical indexer catch-up after the managed RPC is configured.
 6. When official Arc DEX addresses are published, implement/test the real connector, deploy/configure the adapter, graduate a market, and test post-graduation trading.
 7. Transfer mainnet privileged roles to a multisig and complete an independent external audit.
+
+## Uniswap v4 graduation implementation
+
+Implemented in repository:
+
+- CelestialUniswapV4Connector
+- CelestialV4PoolHandle
+- price-aware ICelestialGraduationAdapter
+- terminal curve price locking before reserve sweep
+- vanilla v4 pool initialization with no custom hook
+- full-range position minting directly to ArcLiquidityLocker
+- Permit2 bounded approvals and revocation
+- exact-input post-graduation swaps through Universal Router
+- v4 Quoter integration for frontend quotes
+- surplus launch-token burn when terminal price requires less inventory
+- post-graduation swap indexing with venue=UNISWAP_V4
+- v4 pool ID / position ID / graduation price persistence
+- venue-level API and Analytics reporting
+- guarded deployment script that rejects missing-code addresses
+- integration and graduation price-continuity tests
+- docs/UNISWAP_V4_INTEGRATION.md
+
+The existing deployed Arc Testnet Celestial factory predates the price-aware graduation ABI. Do not configure a v4 adapter against that old factory. A new factory deployment is required for the v4 graduation generation.
+
+Current external blocker:
+
+Arc is not present in the official Uniswap v4 deployment registry as of 2026-09-14. Do not invent PoolManager, PositionManager, Quoter, Universal Router, or Permit2 addresses. Keep NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS and the indexer DEX adapter/connector envs unset until official Arc addresses are verified.
+
+No v4 fee hook is included yet. The first production path intentionally uses vanilla v4 to minimize new security surface.
 
 ## Mainnet gate
 
