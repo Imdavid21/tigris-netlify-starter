@@ -25,6 +25,11 @@ jobs:
         run: forge build
       - name: Test
         run: forge test -vvv
+      - name: Slither static analysis
+        continue-on-error: true
+        run: |
+          pipx install slither-analyzer
+          slither . --exclude-dependencies
       - name: Format check
         continue-on-error: true
         run: forge fmt --check
