@@ -7,6 +7,7 @@ interface ICelestialDexConnector {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
+        uint160 sqrtPriceX96,
         address locker
     ) external returns (address pool, uint256 positionId);
 
@@ -14,7 +15,7 @@ interface ICelestialDexConnector {
         address pool,
         address tokenIn,
         uint256 amountIn
-    ) external view returns (uint256 amountOut);
+    ) external returns (uint256 amountOut);
 
     function swapExactInput(
         address pool,
