@@ -1,10 +1,13 @@
 import { WalletButton } from "@/components/wallet-button";
 import { SearchPalette } from "@/components/search-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProtocolStatus } from "@/components/protocol-status";
 
 export function AppHeader() {
   return (
-    <header className="topbar">
+    <>
+      <ProtocolStatus />
+      <header className="topbar">
       <a href="/" className="brand">
         <span className="brand-mark">✦</span>
         <span>Celestial</span>
@@ -24,6 +27,7 @@ export function AppHeader() {
         </a>
         <WalletButton />
       </div>
-    </header>
+      </header>
+    </>
   );
 }
