@@ -41,8 +41,8 @@ export default async function AnalyticsPage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <h1>What is happening on Arc.</h1>
-        <p>Indexed onchain activity. Execution and critical market state remain contract-native.</p>
+        <h1>Celestial, by the numbers.</h1>
+        <p>Live market activity indexed from Arc. Execution remains onchain.</p>
       </section>
 
       <section className="metric-grid">
