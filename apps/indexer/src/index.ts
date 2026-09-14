@@ -3,21 +3,26 @@ import { client, db } from "./context.js";
 import { startEventIngestion } from "./events.js";
 import { schemaSql } from "./schema.js";
 
-async function main() {
-  await db.query(schemaSql);
+let latestBlock = 0n;
+let ingestionState: "starting" | "backfilling" | "live" | "degraded" = "starting";
+let lastIngestionError = "";
 
-  const block = await client.getBlockNumber();
-  console.log(`Arc indexer connected at block ${block}`);
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  await startEventIngestion();
-  console.log("Arc event ingestion started");
-
+function startHealthServer() {
   const port = Number(process.env.PORT ?? 10000);
   http
     .createServer((req, res) => {
       if (req.url === "/health") {
         res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: true, latestBlock: block.toString() }));
+        res.end(JSON.stringify({
+          ok: true,
+          ingestion: ingestionState,
+          latestBlock: latestBlock.toString(),
+          error: lastIngestionError || undefined
+        }));
         return;
       }
       res.writeHead(404);
@@ -26,6 +31,42 @@ async function main() {
     .listen(port, "0.0.0.0", () => {
       console.log(`Indexer health server listening on ${port}`);
     });
+}
+
+async function runIngestionUntilLive() {
+  let retry = 0;
+  while (ingestionState !== "live") {
+    try {
+      ingestionState = retry ? "degraded" : "backfilling";
+      await startEventIngestion();
+      ingestionState = "live";
+      lastIngestionError = "";
+      console.log("Arc event ingestion started");
+    } catch (error) {
+      retry += 1;
+      ingestionState = "degraded";
+      lastIngestionError = error instanceof Error ? error.message : String(error);
+      const waitMs = Math.min(60_000, 5_000 * Math.max(1, retry));
+      console.error(`Indexer ingestion attempt ${retry} failed; retrying in ${waitMs}ms`, error);
+      await sleep(waitMs);
+    }
+  }
+}
+
+async function main() {
+  await db.query(schemaSql);
+  startHealthServer();
+
+  try {
+    latestBlock = await client.getBlockNumber();
+    console.log(`Arc indexer connected at block ${latestBlock}`);
+  } catch (error) {
+    ingestionState = "degraded";
+    lastIngestionError = error instanceof Error ? error.message : String(error);
+    console.error("Arc RPC unavailable during startup; indexer will keep retrying", error);
+  }
+
+  await runIngestionUntilLive();
 }
 
 main().catch((err) => {
