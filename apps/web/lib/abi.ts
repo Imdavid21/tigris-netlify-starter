@@ -148,3 +148,21 @@ export const erc20Abi = [
     outputs: [{ name: "", type: "bool" }]
   }
 ] as const;
+
+
+export const feeEscrowAbi = [
+  {
+    type: "function",
+    name: "claimable",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ name: "amount", type: "uint256" }]
+  }
+] as const;
