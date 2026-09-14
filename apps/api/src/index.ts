@@ -186,6 +186,54 @@ app.get("/tokens/:address/holders", async (request, reply) => {
   return { items: result.rows };
 });
 
+
+
+app.get("/wallet/:address/launches", async (request, reply) => {
+  const { address } = request.params as { address: string };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return reply.code(400).send({ error: "invalid address" });
+
+  const result = await db.query(
+    `select
+       '0x' || encode(address,'hex') as address,
+       name, symbol, status, created_at,
+       case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address
+     from tokens
+     where creator=decode($1,'hex')
+     order by created_at desc`,
+    [address.slice(2)]
+  );
+  return { items: result.rows };
+});
+
+app.get("/wallet/:address/positions", async (request, reply) => {
+  const { address } = request.params as { address: string };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return reply.code(400).send({ error: "invalid address" });
+
+  const result = await db.query(
+    `with deltas as (
+       select token, amount as delta from transfers where to_addr=decode($1,'hex')
+       union all
+       select token, -amount as delta from transfers where from_addr=decode($1,'hex')
+     ),
+     balances as (
+       select token, sum(delta) as balance
+       from deltas group by token having sum(delta) > 0
+     )
+     select
+       '0x' || encode(b.token,'hex') as token,
+       b.balance::text,
+       t.name,
+       t.symbol,
+       t.status
+     from balances b
+     join tokens t on t.address=b.token
+     order by b.balance desc
+     limit 100`,
+    [address.slice(2)]
+  );
+  return { items: result.rows };
+});
+
 app.get("/wallet/:address/activity", async (request, reply) => {
   const { address } = request.params as { address: string };
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
