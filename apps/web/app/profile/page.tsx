@@ -6,7 +6,6 @@ export default function ProfilePage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <span className="kicker">Profile</span>
         <h1>Your launchpad.</h1>
         <p>Launches, creator fees, positions, and trading activity.</p>
       </section>
