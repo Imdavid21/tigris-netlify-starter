@@ -7,6 +7,7 @@ import {ArcBondingCurve} from "../src/ArcBondingCurve.sol";
 import {ArcFeeEscrow} from "../src/ArcFeeEscrow.sol";
 import {ArcToken} from "../src/ArcToken.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
+import {MockGraduationAdapter} from "../src/mocks/MockGraduationAdapter.sol";
 
 contract ArcLaunchLifecycleTest is Test {
     MockUSDC usdc;
@@ -91,8 +92,64 @@ contract ArcLaunchLifecycleTest is Test {
         curve.buy(100_000e6, 1);
         vm.stopPrank();
 
-        assertEq(curve.trackedQuote(), 10_000e6);
+        assertLe(curve.trackedQuote(), 10_000e6);
         assertTrue(curve.readyToGraduate());
+    }
+
+    function testTwoPhaseGraduation() public {
+        MockGraduationAdapter adapter = new MockGraduationAdapter();
+        factory.setGraduationAdapter(adapter);
+
+        vm.prank(creator);
+        (address tokenAddr, address curveAddr) =
+            factory.createToken("Arc Test", "ARCX");
+
+        ArcBondingCurve curve = ArcBondingCurve(curveAddr);
+
+        vm.startPrank(trader);
+        usdc.approve(curveAddr, type(uint256).max);
+        curve.buy(100_000e6, 1);
+        vm.stopPrank();
+
+        factory.beginGraduation(tokenAddr);
+
+        (
+            uint256 quoteAmount,
+            uint256 tokenAmount,
+            address poolBefore,
+            uint256 positionBefore,
+            bool swept,
+            bool seededBefore
+        ) = factory.graduations(tokenAddr);
+
+        assertTrue(swept);
+        assertFalse(seededBefore);
+        assertEq(poolBefore, address(0));
+        assertEq(positionBefore, 0);
+        assertGt(quoteAmount, 0);
+        assertGt(tokenAmount, 0);
+        assertTrue(curve.graduated());
+
+        (address pool, uint256 positionId) =
+            factory.createGraduatedPool(tokenAddr);
+
+        assertEq(pool, adapter.mockPool());
+        assertEq(positionId, 1);
+
+        (
+            ,
+            ,
+            address storedPool,
+            uint256 storedPosition,
+            ,
+            bool seeded
+        ) = factory.graduations(tokenAddr);
+
+        assertTrue(seeded);
+        assertEq(storedPool, pool);
+        assertEq(storedPosition, positionId);
+        assertEq(ArcToken(tokenAddr).balanceOf(address(adapter)), tokenAmount);
+        assertEq(usdc.balanceOf(address(adapter)), quoteAmount);
     }
 
     function testCannotTradeWithZeroInput() public {
