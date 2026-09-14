@@ -27,6 +27,7 @@ create table if not exists trades (
 
 create index if not exists trades_token_time_idx on trades(token, block_time desc);
 create index if not exists trades_trader_time_idx on trades(trader, block_time desc);
+alter table trades add column if not exists venue text not null default 'CURVE';
 
 create table if not exists transfers (
   tx_hash bytea not null,
@@ -53,6 +54,9 @@ alter table tokens add column if not exists image text;
 alter table tokens add column if not exists website text;
 alter table tokens add column if not exists twitter text;
 alter table tokens add column if not exists telegram text;
+alter table tokens add column if not exists graduation_sqrt_price numeric(78,0);
+alter table tokens add column if not exists dex_pool_id bytea;
+alter table tokens add column if not exists dex_position_id numeric(78,0);
 
 create table if not exists buybacks (
   tx_hash bytea not null,
