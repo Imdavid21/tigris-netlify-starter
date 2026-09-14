@@ -28,9 +28,37 @@ app.get("/stats", async () => {
       "(select count(*)::int from tokens) as launches, " +
       "(select count(*)::int from trades) as trades, " +
       "(select coalesce(sum(quote_amount),0)::text from trades) as quote_volume, " +
+      "(select coalesce(sum(fee_amount),0)::text from trades) as fees, " +
+      "(select coalesce(sum(quote_amount),0)::text from trades where block_time > now() - interval '24 hours') as quote_volume_24h, " +
+      "(select count(*)::int from tokens where created_at > now() - interval '24 hours') as launches_24h, " +
+      "(select count(distinct trader)::int from trades where block_time > now() - interval '24 hours') as traders_24h, " +
       "(select count(*)::int from tokens where status='GRADUATED') as graduated"
   );
   return result.rows[0];
+});
+
+
+
+app.get("/analytics/daily", async () => {
+  const volume = await db.query(
+    `select date_trunc('day', block_time) as day,
+            coalesce(sum(quote_amount),0)::text as volume,
+            count(*)::int as trades,
+            count(distinct trader)::int as traders
+     from trades
+     where block_time > now() - interval '30 days'
+     group by 1 order by 1 asc`
+  );
+
+  const launches = await db.query(
+    `select date_trunc('day', created_at) as day,
+            count(*)::int as launches
+     from tokens
+     where created_at > now() - interval '30 days'
+     group by 1 order by 1 asc`
+  );
+
+  return { volume: volume.rows, launches: launches.rows };
 });
 
 app.get("/tokens", async (request) => {
