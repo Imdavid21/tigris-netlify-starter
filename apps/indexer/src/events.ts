@@ -1,9 +1,4 @@
-import {
-  getAddress,
-  parseAbiItem,
-  type Address,
-  type Log
-} from "viem";
+import { getAddress, parseAbiItem, type Address } from "viem";
 import { client, db } from "./context.js";
 
 const tokenCreated = parseAbiItem(
@@ -23,6 +18,8 @@ const tokenGraduated = parseAbiItem(
 );
 
 const factory = process.env.FACTORY_ADDRESS as Address | undefined;
+const startBlock = BigInt(process.env.FACTORY_START_BLOCK ?? "0");
+const watched = new Set<string>();
 
 function hexToBuffer(value: string) {
   return Buffer.from(value.slice(2), "hex");
@@ -33,38 +30,143 @@ async function blockTime(blockNumber: bigint) {
   return new Date(Number(block.timestamp) * 1000);
 }
 
+async function storeLaunch(log: any) {
+  const { token, curve, creator, name, symbol } = log.args;
+  if (!token || !curve || !creator) return;
+
+  await db.query(
+    `insert into tokens
+      (address, curve_address, creator, name, symbol, created_block, created_at, status)
+     values ($1,$2,$3,$4,$5,$6,$7,'ACTIVE')
+     on conflict (address) do update set
+       curve_address=excluded.curve_address,
+       creator=excluded.creator,
+       name=excluded.name,
+       symbol=excluded.symbol`,
+    [
+      hexToBuffer(token),
+      hexToBuffer(curve),
+      hexToBuffer(creator),
+      name,
+      symbol,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber)
+    ]
+  );
+
+  await backfillCurve(getAddress(curve), getAddress(token), log.blockNumber);
+  watchCurve(getAddress(curve), getAddress(token));
+}
+
+async function storeTrade(token: Address, side: "BUY" | "SELL", log: any) {
+  const args = log.args;
+  const tokenAmount = side === "BUY" ? args.tokensOut : args.tokensIn;
+  const quoteAmount = side === "BUY" ? args.quoteIn : args.quoteOut;
+
+  await db.query(
+    `insert into trades
+     (tx_hash, log_index, block_number, block_time, token, trader, side, token_amount, quote_amount, fee_amount)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+     on conflict (tx_hash,log_index) do nothing`,
+    [
+      hexToBuffer(log.transactionHash),
+      log.logIndex,
+      log.blockNumber.toString(),
+      await blockTime(log.blockNumber),
+      hexToBuffer(token),
+      hexToBuffer(args.trader),
+      side,
+      tokenAmount.toString(),
+      quoteAmount.toString(),
+      args.fee.toString()
+    ]
+  );
+}
+
+async function backfillCurve(curve: Address, token: Address, fromBlock: bigint) {
+  const toBlock = await client.getBlockNumber();
+
+  const [buys, sells] = await Promise.all([
+    client.getLogs({ address: curve, event: buy, fromBlock, toBlock }),
+    client.getLogs({ address: curve, event: sell, fromBlock, toBlock })
+  ]);
+
+  for (const log of buys) await storeTrade(token, "BUY", log);
+  for (const log of sells) await storeTrade(token, "SELL", log);
+}
+
+async function backfillFactory() {
+  if (!factory) throw new Error("FACTORY_ADDRESS is required");
+
+  const toBlock = await client.getBlockNumber();
+  const launches = await client.getLogs({
+    address: factory,
+    event: tokenCreated,
+    fromBlock: startBlock,
+    toBlock
+  });
+
+  for (const log of launches) await storeLaunch(log);
+
+  const [swept, graduated] = await Promise.all([
+    client.getLogs({ address: factory, event: graduationSwept, fromBlock: startBlock, toBlock }),
+    client.getLogs({ address: factory, event: tokenGraduated, fromBlock: startBlock, toBlock })
+  ]);
+
+  for (const log of swept) {
+    if (log.args.token) {
+      await db.query("update tokens set status='GRADUATING' where address=$1", [
+        hexToBuffer(log.args.token)
+      ]);
+    }
+  }
+
+  for (const log of graduated) {
+    if (log.args.token && log.args.pool) {
+      await db.query(
+        "update tokens set status='GRADUATED', pool_address=$2 where address=$1",
+        [hexToBuffer(log.args.token), hexToBuffer(log.args.pool)]
+      );
+    }
+  }
+}
+
+function watchCurve(curve: Address, token: Address) {
+  const key = curve.toLowerCase();
+  if (watched.has(key)) return;
+  watched.add(key);
+
+  client.watchEvent({
+    address: curve,
+    event: buy,
+    onLogs: async (logs) => {
+      for (const log of logs) await storeTrade(token, "BUY", log);
+    },
+    onError: console.error
+  });
+
+  client.watchEvent({
+    address: curve,
+    event: sell,
+    onLogs: async (logs) => {
+      for (const log of logs) await storeTrade(token, "SELL", log);
+    },
+    onError: console.error
+  });
+}
+
 export async function startEventIngestion() {
   if (!factory) throw new Error("FACTORY_ADDRESS is required");
+
+  await backfillFactory();
 
   client.watchEvent({
     address: factory,
     event: tokenCreated,
     onLogs: async (logs) => {
-      for (const log of logs) {
-        const { token, curve, creator, name, symbol } = log.args;
-        if (!token || !curve || !creator || name === undefined || symbol === undefined) continue;
-
-        const createdAt = await blockTime(log.blockNumber!);
-
-        await db.query(
-          `insert into tokens
-            (address, curve_address, creator, name, symbol, created_block, created_at, status)
-           values ($1,$2,$3,$4,$5,$6,$7,'ACTIVE')
-           on conflict (address) do nothing`,
-          [
-            hexToBuffer(token),
-            hexToBuffer(curve),
-            hexToBuffer(creator),
-            name,
-            symbol,
-            log.blockNumber!.toString(),
-            createdAt
-          ]
-        );
-
-        watchCurve(getAddress(curve), getAddress(token));
-      }
-    }
+      for (const log of logs) await storeLaunch(log);
+    },
+    onError: console.error
   });
 
   client.watchEvent({
@@ -72,14 +174,13 @@ export async function startEventIngestion() {
     event: graduationSwept,
     onLogs: async (logs) => {
       for (const log of logs) {
-        const token = log.args.token;
-        if (!token) continue;
-        await db.query(
-          "update tokens set status='GRADUATING' where address=$1",
-          [hexToBuffer(token)]
-        );
+        if (!log.args.token) continue;
+        await db.query("update tokens set status='GRADUATING' where address=$1", [
+          hexToBuffer(log.args.token)
+        ]);
       }
-    }
+    },
+    onError: console.error
   });
 
   client.watchEvent({
@@ -87,72 +188,13 @@ export async function startEventIngestion() {
     event: tokenGraduated,
     onLogs: async (logs) => {
       for (const log of logs) {
-        const token = log.args.token;
-        const pool = log.args.pool;
-        if (!token || !pool) continue;
+        if (!log.args.token || !log.args.pool) continue;
         await db.query(
           "update tokens set status='GRADUATED', pool_address=$2 where address=$1",
-          [hexToBuffer(token), hexToBuffer(pool)]
+          [hexToBuffer(log.args.token), hexToBuffer(log.args.pool)]
         );
       }
-    }
+    },
+    onError: console.error
   });
-
-  const existing = await db.query<{ token: string; curve: string }>(
-    `select
-       '0x' || encode(address,'hex') as token,
-       '0x' || encode(curve_address,'hex') as curve
-     from tokens
-     where status in ('ACTIVE','GRADUATING')`
-  );
-
-  for (const row of existing.rows) {
-    watchCurve(getAddress(row.curve), getAddress(row.token));
-  }
-}
-
-function watchCurve(curve: Address, token: Address) {
-  client.watchEvent({
-    address: curve,
-    event: buy,
-    onLogs: (logs) => ingestTrades(token, "BUY", logs)
-  });
-
-  client.watchEvent({
-    address: curve,
-    event: sell,
-    onLogs: (logs) => ingestTrades(token, "SELL", logs)
-  });
-}
-
-async function ingestTrades(token: Address, side: "BUY" | "SELL", logs: Log[]) {
-  for (const raw of logs as any[]) {
-    const args = raw.args as Record<string, bigint | Address>;
-    const trader = args.trader as Address;
-    const tokenAmount =
-      side === "BUY" ? (args.tokensOut as bigint) : (args.tokensIn as bigint);
-    const quoteAmount =
-      side === "BUY" ? (args.quoteIn as bigint) : (args.quoteOut as bigint);
-    const fee = args.fee as bigint;
-    const time = await blockTime(raw.blockNumber);
-
-    await db.query(
-      `insert into trades
-       (tx_hash, log_index, block_number, block_time, token, trader, side, token_amount, quote_amount, fee_amount)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       on conflict (tx_hash,log_index) do nothing`,
-      [
-        hexToBuffer(raw.transactionHash),
-        raw.logIndex,
-        raw.blockNumber.toString(),
-        time,
-        hexToBuffer(token),
-        hexToBuffer(trader),
-        side,
-        tokenAmount.toString(),
-        quoteAmount.toString(),
-        fee.toString()
-      ]
-    );
-  }
 }
