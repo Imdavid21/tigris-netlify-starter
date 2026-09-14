@@ -25,9 +25,42 @@ function hexToBuffer(value: string) {
   return Buffer.from(value.slice(2), "hex");
 }
 
+const blockTimeCache = new Map<bigint, Date>();
+
 async function blockTime(blockNumber: bigint) {
+  const cached = blockTimeCache.get(blockNumber);
+  if (cached) return cached;
   const block = await client.getBlock({ blockNumber });
-  return new Date(Number(block.timestamp) * 1000);
+  const time = new Date(Number(block.timestamp) * 1000);
+  blockTimeCache.set(blockNumber, time);
+  if (blockTimeCache.size > 5_000) {
+    const first = blockTimeCache.keys().next().value;
+    if (first !== undefined) blockTimeCache.delete(first);
+  }
+  return time;
+}
+
+async function chunkedLogs(args: {
+  address: Address;
+  event: any;
+  fromBlock: bigint;
+  toBlock: bigint;
+}) {
+  const logs: any[] = [];
+  const chunk = BigInt(process.env.LOG_CHUNK_SIZE ?? "5000");
+
+  for (let from = args.fromBlock; from <= args.toBlock; from += chunk) {
+    const to = from + chunk - 1n > args.toBlock ? args.toBlock : from + chunk - 1n;
+    const batch = await client.getLogs({
+      address: args.address,
+      event: args.event,
+      fromBlock: from,
+      toBlock: to
+    });
+    logs.push(...batch);
+  }
+
+  return logs;
 }
 
 async function storeLaunch(log: any) {
@@ -87,8 +120,8 @@ async function backfillCurve(curve: Address, token: Address, fromBlock: bigint) 
   const toBlock = await client.getBlockNumber();
 
   const [buys, sells] = await Promise.all([
-    client.getLogs({ address: curve, event: buy, fromBlock, toBlock }),
-    client.getLogs({ address: curve, event: sell, fromBlock, toBlock })
+    chunkedLogs({ address: curve, event: buy, fromBlock, toBlock }),
+    chunkedLogs({ address: curve, event: sell, fromBlock, toBlock })
   ]);
 
   for (const log of buys) await storeTrade(token, "BUY", log);
@@ -99,7 +132,7 @@ async function backfillFactory() {
   if (!factory) throw new Error("FACTORY_ADDRESS is required");
 
   const toBlock = await client.getBlockNumber();
-  const launches = await client.getLogs({
+  const launches = await chunkedLogs({
     address: factory,
     event: tokenCreated,
     fromBlock: startBlock,
@@ -109,8 +142,8 @@ async function backfillFactory() {
   for (const log of launches) await storeLaunch(log);
 
   const [swept, graduated] = await Promise.all([
-    client.getLogs({ address: factory, event: graduationSwept, fromBlock: startBlock, toBlock }),
-    client.getLogs({ address: factory, event: tokenGraduated, fromBlock: startBlock, toBlock })
+    chunkedLogs({ address: factory, event: graduationSwept, fromBlock: startBlock, toBlock }),
+    chunkedLogs({ address: factory, event: tokenGraduated, fromBlock: startBlock, toBlock })
   ]);
 
   for (const log of swept) {
