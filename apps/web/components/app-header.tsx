@@ -5,8 +5,8 @@ export function AppHeader() {
   return (
     <header className="topbar">
       <a href="/" className="brand">
-        <span className="brand-mark">A</span>
-        <span>Arc Launchpad</span>
+        <span className="brand-mark">✦</span>
+        <span>Celestial</span>
       </a>
       <nav className="nav">
         <a href="/">Explore</a>
