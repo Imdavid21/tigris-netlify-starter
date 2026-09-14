@@ -31,7 +31,6 @@ contract MockReentrantGraduationAdapter is IGraduationAdapter {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
-        uint160,
         address
     ) external returns (address pool, uint256 positionId) {
         try factory.createGraduatedPool(targetToken) {
