@@ -49,9 +49,15 @@ export function Holders({ token }: { token: string }) {
               }}
             >
               <span className="muted">{index + 1}</span>
-              <span>
+              <a
+                href={"https://testnet.arcscan.app/address/" + item.holder}
+                target="_blank"
+                rel="noreferrer"
+                style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
+                title={"Open " + item.holder + " on Arcscan"}
+              >
                 {item.holder.slice(0, 7)}...{item.holder.slice(-5)}
-              </span>
+              </a>
               <span>
                 {Number(formatUnits(BigInt(item.balance), 18)).toLocaleString(
                   undefined,
