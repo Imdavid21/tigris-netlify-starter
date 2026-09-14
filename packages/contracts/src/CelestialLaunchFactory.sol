@@ -202,26 +202,27 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         address feeRecipient =
             params.creatorFeeRecipient == address(0) ? creator : params.creatorFeeRecipient;
 
-        CelestialBondingCurve c = new CelestialBondingCurve(
-            IERC20(params.quoteAsset),
-            feeEscrow,
-            address(buybackVault),
-            protocolTreasury,
-            creator,
-            feeRecipient,
-            address(this),
-            q.phantomQuote,
-            q.graduationThreshold,
-            q.feeBps,
-            q.protocolShareBps,
-            q.buybackShareBps,
-            params.creatorTaxBps,
-            params.holderFeeBps,
-            q.maxSnipeBps,
-            q.snipeDuration,
-            RESERVED_TOKENS,
-            params.snipeExemptions
-        );
+        CelestialBondingCurve.Config memory curveConfig;
+        curveConfig.quoteAsset = IERC20(params.quoteAsset);
+        curveConfig.feeEscrow = feeEscrow;
+        curveConfig.buybackVault = address(buybackVault);
+        curveConfig.protocolTreasury = protocolTreasury;
+        curveConfig.creator = creator;
+        curveConfig.creatorFeeRecipient = feeRecipient;
+        curveConfig.factory = address(this);
+        curveConfig.phantomQuote = q.phantomQuote;
+        curveConfig.graduationThreshold = q.graduationThreshold;
+        curveConfig.feeBps = q.feeBps;
+        curveConfig.protocolShareBps = q.protocolShareBps;
+        curveConfig.buybackShareBps = q.buybackShareBps;
+        curveConfig.creatorTaxBps = params.creatorTaxBps;
+        curveConfig.holderFeeBps = params.holderFeeBps;
+        curveConfig.maxSnipeBps = q.maxSnipeBps;
+        curveConfig.snipeDuration = q.snipeDuration;
+        curveConfig.reservedTokens = RESERVED_TOKENS;
+
+        CelestialBondingCurve c =
+            new CelestialBondingCurve(curveConfig, params.snipeExemptions);
 
         CelestialToken t =
             new CelestialToken(params.name, params.symbol, TOTAL_SUPPLY, address(c), IERC20(params.quoteAsset));
