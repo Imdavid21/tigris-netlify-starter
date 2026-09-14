@@ -13,6 +13,7 @@ interface ICelestialLimitCurve {
     function buyFor(address recipient, uint256 quoteIn, uint256 minTokensOut) external returns (uint256);
     function sellFor(address recipient, uint256 tokenIn, uint256 minQuoteOut) external returns (uint256);
     function graduated() external view returns (bool);
+    function readyToGraduate() external view returns (bool);
 }
 
 contract CelestialLimitOrderBook is ReentrancyGuard {
@@ -55,7 +56,7 @@ contract CelestialLimitOrderBook is ReentrancyGuard {
     {
         if (quoteAmount == 0 || minTokensOut == 0) revert InvalidOrder();
         ICelestialLimitCurve c = ICelestialLimitCurve(curve);
-        if (c.graduated()) revert CurveClosed();
+        if (c.graduated() || c.readyToGraduate()) revert CurveClosed();
 
         IERC20 quote = c.quoteAsset();
         quote.safeTransferFrom(msg.sender, address(this), quoteAmount);
@@ -70,7 +71,7 @@ contract CelestialLimitOrderBook is ReentrancyGuard {
     {
         if (tokenAmount == 0 || minQuoteOut == 0) revert InvalidOrder();
         ICelestialLimitCurve c = ICelestialLimitCurve(curve);
-        if (c.graduated()) revert CurveClosed();
+        if (c.graduated() || c.readyToGraduate()) revert CurveClosed();
 
         IERC20(c.token()).safeTransferFrom(msg.sender, address(this), tokenAmount);
         orderId = _store(msg.sender, curve, Side.SELL, tokenAmount, minQuoteOut);
@@ -97,7 +98,7 @@ contract CelestialLimitOrderBook is ReentrancyGuard {
         if (!order.active) return false;
 
         ICelestialLimitCurve c = ICelestialLimitCurve(order.curve);
-        if (c.graduated()) return false;
+        if (c.graduated() || c.readyToGraduate()) return false;
 
         if (order.side == Side.BUY) {
             return c.quoteBuyFor(order.owner, order.amountIn) >= order.minAmountOut;
