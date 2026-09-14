@@ -6,7 +6,6 @@ export default function CreatePage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <span className="kicker">Create</span>
         <h1>Launch a token.</h1>
         <p>Review every economic term before you sign.</p>
       </section>
