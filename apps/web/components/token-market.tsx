@@ -303,8 +303,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
               <div><span>Liquidity</span><strong>Reserved + locked</strong></div>
             </div>
             <div className="v2-about">
-              <span>V2 metadata</span>
-              <p>Description, image, socials, creator tax, holder fee sharing, and launch protection will live here once the V2 factory stores them.</p>
+              <span>Token metadata</span>
+              <p>Description, image, socials, creator economics, holder fee sharing, and launch protection appear here when configured.</p>
             </div>
           </section>
         </section>
@@ -312,8 +312,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
         <aside className="trade-terminal">
           <div className="trade-modes">
             <button className={mode === "market" ? "active" : ""} onClick={() => setMode("market")}>Market</button>
-            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")}>Limit <small>V2</small></button>
-            <button className={mode === "orders" ? "active" : ""} onClick={() => setMode("orders")}>Orders <small>V2</small></button>
+            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")}>Limit</button>
+            <button className={mode === "orders" ? "active" : ""} onClick={() => setMode("orders")}>Orders</button>
           </div>
 
           {graduated ? (
@@ -325,8 +325,8 @@ export function TokenMarket({ token }: { token: `0x${string}` }) {
           ) : mode !== "market" ? (
             <div className="terminal-empty">
               <strong>{mode === "limit" ? "Limit orders" : "Open orders"}</strong>
-              <p>This interface is part of the parity build. Execution requires the V2 order layer.</p>
-              <span className="coming-chip">V2</span>
+              <p>This order mode is not available on the current market.</p>
+              <span className="coming-chip">Unavailable</span>
             </div>
           ) : (
             <>
