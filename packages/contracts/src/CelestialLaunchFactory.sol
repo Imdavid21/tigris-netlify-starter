@@ -10,6 +10,7 @@ import {CelestialFeeEscrow} from "./CelestialFeeEscrow.sol";
 import {CelestialBuybackVault} from "./CelestialBuybackVault.sol";
 import {ArcLiquidityLocker} from "./ArcLiquidityLocker.sol";
 import {IGraduationAdapter} from "./interfaces/IGraduationAdapter.sol";
+import {BondingCurveMath} from "./libraries/BondingCurveMath.sol";
 
 contract CelestialLaunchFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -152,6 +153,36 @@ contract CelestialLaunchFactory is ReentrancyGuard {
 
     function getMetadata(address token) external view returns (Metadata memory) {
         return metadataOf[token];
+    }
+
+    function previewInitialBuy(
+        address quoteAsset,
+        uint256 creatorTaxBps,
+        uint256 holderFeeBps,
+        uint256 quoteIn
+    ) external view returns (uint256 tokensOut, uint256 effectiveQuoteIn) {
+        QuoteConfig memory q = quoteConfigs[quoteAsset];
+        if (!q.enabled || quoteIn == 0) return (0, 0);
+        if (
+            creatorTaxBps > MAX_CREATOR_TAX_BPS ||
+            holderFeeBps > MAX_HOLDER_FEE_BPS
+        ) revert InvalidEconomics();
+
+        uint256 feeTotalBps = q.feeBps + creatorTaxBps + holderFeeBps;
+        uint256 netBps = 10_000 - feeTotalBps;
+        uint256 maxGross = q.graduationThreshold * 10_000 / netBps;
+        effectiveQuoteIn = quoteIn > maxGross ? maxGross : quoteIn;
+
+        uint256 net = effectiveQuoteIn * netBps / 10_000;
+        tokensOut = BondingCurveMath.amountOut(
+            net,
+            q.phantomQuote,
+            TOTAL_SUPPLY,
+            0
+        );
+
+        uint256 maxSellable = TOTAL_SUPPLY - RESERVED_TOKENS;
+        if (tokensOut > maxSellable) tokensOut = maxSellable;
     }
 
     function createToken(LaunchParams calldata params)
