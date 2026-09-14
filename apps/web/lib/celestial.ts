@@ -119,6 +119,7 @@ export const celestialFactoryAbi = [
     outputs: [
       { name: "quoteAmount", type: "uint256" },
       { name: "tokenAmount", type: "uint256" },
+      { name: "sqrtPriceX96", type: "uint160" },
       { name: "pool", type: "address" },
       { name: "positionId", type: "uint256" },
       { name: "swept", type: "bool" },
@@ -196,7 +197,7 @@ export const dexAdapterAbi = [
   {
     type: "function",
     name: "quoteExactInput",
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     inputs: [
       { name: "pool", type: "address" },
       { name: "tokenIn", type: "address" },
