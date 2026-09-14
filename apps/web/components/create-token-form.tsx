@@ -11,6 +11,7 @@ import {
 } from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { factoryAbi } from "@/lib/abi";
+import { ensureArcChain } from "@/lib/wallet";
 
 function getProvider(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -49,10 +50,7 @@ export function CreateTokenForm() {
     try {
       setStatus("wallet");
 
-      await ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${arcTestnet.id.toString(16)}` }]
-      });
+      await ensureArcChain(ethereum);
 
       const accounts = (await ethereum.request({
         method: "eth_requestAccounts"
