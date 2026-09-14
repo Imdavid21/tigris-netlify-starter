@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {BondingCurveMath} from "./libraries/BondingCurveMath.sol";
+import {ArcFeeEscrow} from "./ArcFeeEscrow.sol";
 
 contract ArcBondingCurve is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -12,6 +13,8 @@ contract ArcBondingCurve is ReentrancyGuard {
     uint256 private constant BPS = 10_000;
 
     IERC20 public immutable quoteAsset;
+    ArcFeeEscrow public immutable feeEscrow;
+    address public immutable protocolTreasury;
     address public immutable factory;
     address public immutable creator;
     address public token;
@@ -41,10 +44,13 @@ contract ArcBondingCurve is ReentrancyGuard {
 
     event Buy(address indexed trader, uint256 quoteIn, uint256 tokensOut, uint256 fee);
     event Sell(address indexed trader, uint256 tokensIn, uint256 quoteOut, uint256 fee);
+    event FeesSwept(uint256 protocolAmount, uint256 creatorAmount);
     event GraduationStarted(uint256 quoteAmount, uint256 tokenAmount);
 
     constructor(
         IERC20 quoteAsset_,
+        ArcFeeEscrow feeEscrow_,
+        address protocolTreasury_,
         address creator_,
         address factory_,
         uint256 phantomQuote_,
@@ -55,6 +61,8 @@ contract ArcBondingCurve is ReentrancyGuard {
     ) {
         if (
             address(quoteAsset_) == address(0) ||
+            address(feeEscrow_) == address(0) ||
+            protocolTreasury_ == address(0) ||
             creator_ == address(0) ||
             factory_ == address(0) ||
             phantomQuote_ == 0 ||
@@ -64,6 +72,8 @@ contract ArcBondingCurve is ReentrancyGuard {
         ) revert InvalidConfig();
 
         quoteAsset = quoteAsset_;
+        feeEscrow = feeEscrow_;
+        protocolTreasury = protocolTreasury_;
         creator = creator_;
         factory = factory_;
         phantomQuote = phantomQuote_;
@@ -87,32 +97,46 @@ contract ArcBondingCurve is ReentrancyGuard {
         return phantomQuote + trackedQuote;
     }
 
-    function quoteBuy(uint256 quoteIn) public view returns (uint256) {
+    function sellableTokens() public view returns (uint256) {
+        if (trackedTokens <= reservedTokens) return 0;
+        return trackedTokens - reservedTokens;
+    }
+
+    function quoteBuy(uint256 quoteIn) public view returns (uint256 tokensOut) {
         if (!initialized) revert NotInitialized();
-        uint256 out = BondingCurveMath.amountOut(
+
+        tokensOut = BondingCurveMath.amountOut(
             quoteIn,
             virtualQuoteReserve(),
             trackedTokens,
             feeBps
         );
-        uint256 sellable = trackedTokens - reservedTokens;
-        return out > sellable ? sellable : out;
+
+        uint256 sellable = sellableTokens();
+        if (tokensOut > sellable) tokensOut = sellable;
     }
 
     function quoteSell(uint256 tokenIn) public view returns (uint256 netQuoteOut) {
         if (!initialized) revert NotInitialized();
+
         uint256 gross = BondingCurveMath.amountOut(
             tokenIn,
             trackedTokens,
             virtualQuoteReserve(),
             0
         );
+
         if (gross > trackedQuote) gross = trackedQuote;
+
         uint256 fee = gross * feeBps / BPS;
         netQuoteOut = gross - fee;
     }
 
-    function buy(uint256 quoteIn, uint256 minTokensOut) external nonReentrant returns (uint256 tokensOut) {
+    function buy(uint256 quoteIn, uint256 minTokensOut)
+        external
+        nonReentrant
+        returns (uint256 tokensOut)
+    {
         if (graduated) revert CurveClosed();
         if (quoteIn == 0) revert ZeroAmount();
 
@@ -122,16 +146,33 @@ contract ArcBondingCurve is ReentrancyGuard {
         uint256 fee = quoteIn * feeBps / BPS;
         uint256 net = quoteIn - fee;
 
+        uint256 remainingQuoteCapacity =
+            graduationThreshold > trackedQuote ? graduationThreshold - trackedQuote : 0;
+
+        if (net > remainingQuoteCapacity) {
+            net = remainingQuoteCapacity;
+            fee = net * feeBps / (BPS - feeBps);
+            quoteIn = net + fee;
+            tokensOut = quoteBuy(quoteIn);
+            if (tokensOut < minTokensOut || tokensOut == 0) revert SlippageExceeded();
+        }
+
         quoteAsset.safeTransferFrom(msg.sender, address(this), quoteIn);
+
         trackedQuote += net;
         trackedTokens -= tokensOut;
         _accrueFee(fee);
+
         IERC20(token).safeTransfer(msg.sender, tokensOut);
 
         emit Buy(msg.sender, quoteIn, tokensOut, fee);
     }
 
-    function sell(uint256 tokenIn, uint256 minQuoteOut) external nonReentrant returns (uint256 quoteOut) {
+    function sell(uint256 tokenIn, uint256 minQuoteOut)
+        external
+        nonReentrant
+        returns (uint256 quoteOut)
+    {
         if (graduated) revert CurveClosed();
         if (tokenIn == 0) revert ZeroAmount();
 
@@ -145,15 +186,40 @@ contract ArcBondingCurve is ReentrancyGuard {
             0
         );
         if (gross > trackedQuote) gross = trackedQuote;
+
         uint256 fee = gross - quoteOut;
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), tokenIn);
+
         trackedTokens += tokenIn;
         trackedQuote -= gross;
         _accrueFee(fee);
+
         quoteAsset.safeTransfer(msg.sender, quoteOut);
 
         emit Sell(msg.sender, tokenIn, quoteOut, fee);
+    }
+
+    function sweepFees() external nonReentrant {
+        uint256 protocolAmount = pendingProtocolFees;
+        uint256 creatorAmount = pendingCreatorFees;
+        uint256 total = protocolAmount + creatorAmount;
+
+        if (total == 0) revert ZeroAmount();
+
+        pendingProtocolFees = 0;
+        pendingCreatorFees = 0;
+
+        quoteAsset.safeTransfer(address(feeEscrow), total);
+
+        if (protocolAmount > 0) {
+            feeEscrow.credit(protocolTreasury, protocolAmount);
+        }
+        if (creatorAmount > 0) {
+            feeEscrow.credit(creator, creatorAmount);
+        }
+
+        emit FeesSwept(protocolAmount, creatorAmount);
     }
 
     function readyToGraduate() public view returns (bool) {
@@ -167,6 +233,7 @@ contract ArcBondingCurve is ReentrancyGuard {
         graduated = true;
         quoteAmount = trackedQuote;
         tokenAmount = trackedTokens;
+
         emit GraduationStarted(quoteAmount, tokenAmount);
     }
 
