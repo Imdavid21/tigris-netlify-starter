@@ -63,6 +63,7 @@ contract ArcLaunchFactory is ReentrancyGuard {
     error UnknownToken();
     error WrongGraduationState();
     error AdapterNotSet();
+    error GraduationAssetsNotConsumed();
 
     constructor(
         IERC20 quoteAsset_,
@@ -185,6 +186,9 @@ contract ArcLaunchFactory is ReentrancyGuard {
         IGraduationAdapter adapter = graduationAdapter;
         if (address(adapter) == address(0)) revert AdapterNotSet();
 
+        uint256 tokenBalanceBefore = IERC20(token).balanceOf(address(this));
+        uint256 quoteBalanceBefore = quoteAsset.balanceOf(address(this));
+
         IERC20(token).forceApprove(address(adapter), g.tokenAmount);
         quoteAsset.forceApprove(address(adapter), g.quoteAmount);
 
@@ -197,6 +201,16 @@ contract ArcLaunchFactory is ReentrancyGuard {
         );
 
         if (pool == address(0)) revert ZeroAddress();
+
+        uint256 tokenBalanceAfter = IERC20(token).balanceOf(address(this));
+        uint256 quoteBalanceAfter = quoteAsset.balanceOf(address(this));
+
+        if (
+            tokenBalanceBefore < tokenBalanceAfter ||
+            quoteBalanceBefore < quoteBalanceAfter ||
+            tokenBalanceBefore - tokenBalanceAfter != g.tokenAmount ||
+            quoteBalanceBefore - quoteBalanceAfter != g.quoteAmount
+        ) revert GraduationAssetsNotConsumed();
 
         IERC20(token).forceApprove(address(adapter), 0);
         quoteAsset.forceApprove(address(adapter), 0);
