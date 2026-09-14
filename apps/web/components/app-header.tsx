@@ -1,5 +1,6 @@
 import { WalletButton } from "@/components/wallet-button";
 import { SearchPalette } from "@/components/search-palette";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AppHeader() {
   return (
@@ -17,6 +18,7 @@ export function AppHeader() {
       </nav>
       <div className="header-actions">
         <SearchPalette />
+        <ThemeToggle />
         <a className="network-chip" href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">
           <span className="status-dot" /> Arc Testnet
         </a>
