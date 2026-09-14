@@ -41,7 +41,6 @@ export default async function AnalyticsPage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <span className="kicker">Protocol analytics</span>
         <h1>What is happening on Arc.</h1>
         <p>Indexed onchain activity. Execution and critical market state remain contract-native.</p>
       </section>
@@ -70,11 +69,10 @@ export default async function AnalyticsPage() {
 
       <section className="analytics-card buyback-preview">
         <div>
-          <span className="kicker">PONS parity · V2</span>
           <h2>Buyback and burn</h2>
-          <p>PONS exposes protocol fee recycling as a separate analytics surface. We will add this when Arc V2 introduces an explicit buyback vault and policy rather than simulating it offchain.</p>
+          <p>Protocol fee recycling will appear here when an explicit buyback vault and policy are live.</p>
         </div>
-        <span className="coming-chip">V2 protocol</span>
+        
       </section>
     </main>
   );
