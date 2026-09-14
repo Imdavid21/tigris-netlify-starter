@@ -18,6 +18,7 @@ contract CelestialProtocolTest is Test {
 
     address creator = address(0xCAFE);
     address trader = address(0xBEEF);
+    address trader2 = address(0xB0B);
     address treasury = address(0xFEE);
 
     function setUp() public {
@@ -41,6 +42,7 @@ contract CelestialProtocolTest is Test {
 
         usdc.mint(creator, 100_000e6);
         usdc.mint(trader, 100_000e6);
+        usdc.mint(trader2, 100_000e6);
     }
 
     function _params(address quote)
@@ -211,6 +213,101 @@ contract CelestialProtocolTest is Test {
         assertGt(burned, 0);
         assertEq(CelestialToken(token).balanceOf(CelestialToken(token).DEAD()), deadBefore + burned);
         assertEq(usdc.allowance(address(vault), curve), 0);
+    }
+
+
+    function testMarketBuySellNormalFlow() public {
+        vm.prank(creator);
+        (address token, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        CelestialBondingCurve c = CelestialBondingCurve(curve);
+        CelestialToken t = CelestialToken(token);
+        uint256 initialQuote = usdc.balanceOf(trader);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+
+        uint256 buyQuote = c.quoteBuyFor(trader, 1_000e6);
+        uint256 bought = c.buy(1_000e6, buyQuote * 99 / 100);
+        assertEq(t.balanceOf(trader), bought);
+
+        uint256 sellAmount = bought / 4;
+        t.approve(curve, sellAmount);
+        uint256 sellQuote = c.quoteSell(sellAmount);
+        uint256 received = c.sell(sellAmount, sellQuote * 99 / 100);
+        vm.stopPrank();
+
+        assertGt(received, 0);
+        assertEq(t.balanceOf(trader), bought - sellAmount);
+        assertLt(usdc.balanceOf(trader), initialQuote);
+    }
+
+    function testZeroSellQuoteReturnsZero() public {
+        vm.prank(creator);
+        (, address curve) = factory.createToken(_params(address(usdc)));
+        assertEq(CelestialBondingCurve(curve).quoteSell(0), 0);
+    }
+
+    function testStaleBuyQuoteRespectsSlippage() public {
+        vm.prank(creator);
+        (, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        CelestialBondingCurve c = CelestialBondingCurve(curve);
+        uint256 staleQuote = c.quoteBuyFor(trader, 1_000e6);
+
+        vm.startPrank(trader2);
+        usdc.approve(curve, type(uint256).max);
+        c.buy(1_000e6, 1);
+        vm.stopPrank();
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        vm.expectRevert(CelestialBondingCurve.SlippageExceeded.selector);
+        c.buy(1_000e6, staleQuote);
+        vm.stopPrank();
+    }
+
+    function testFinalBuyCapsAndClosesSellSide() public {
+        vm.prank(creator);
+        (address token, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        CelestialBondingCurve c = CelestialBondingCurve(curve);
+        uint256 beforeQuote = usdc.balanceOf(trader);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        c.buy(100_000e6, 1);
+        vm.stopPrank();
+
+        uint256 spent = beforeQuote - usdc.balanceOf(trader);
+        assertLt(spent, 100_000e6);
+        assertTrue(c.readyToGraduate());
+
+        uint256 tokenBalance = CelestialToken(token).balanceOf(trader);
+        assertEq(c.quoteSell(tokenBalance / 10), 0);
+
+        vm.startPrank(trader);
+        CelestialToken(token).approve(curve, type(uint256).max);
+        vm.expectRevert(CelestialBondingCurve.CurveClosed.selector);
+        c.sell(tokenBalance / 10, 1);
+        vm.stopPrank();
+    }
+
+    function testLimitOrdersBlockedWhenGraduationReady() public {
+        vm.prank(creator);
+        (, address curve) = factory.createToken(_params(address(usdc)));
+        vm.warp(block.timestamp + 6);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        CelestialBondingCurve(curve).buy(100_000e6, 1);
+        usdc.approve(address(orderBook), 100e6);
+        vm.expectRevert(CelestialLimitOrderBook.CurveClosed.selector);
+        orderBook.placeBuyOrder(curve, 100e6, 1);
+        vm.stopPrank();
     }
 
     function testExplicitSnipeExemption() public {
