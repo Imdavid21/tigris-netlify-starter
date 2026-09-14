@@ -148,6 +148,7 @@ contract CelestialProtocolTest is Test {
         CelestialBondingCurve(curve).buy(1_000e6, 1);
         vm.stopPrank();
 
+        CelestialBondingCurve(curve).sweepFees();
         CelestialFeeEscrow escrow = factory.feeEscrow();
         uint256 claimable = escrow.claimable(address(usdc), creator);
         assertGt(claimable, 0);
@@ -200,6 +201,7 @@ contract CelestialProtocolTest is Test {
         CelestialBondingCurve(curve).buy(5_000e6, 1);
         vm.stopPrank();
 
+        CelestialBondingCurve(curve).sweepFees();
         CelestialBuybackVault vault = factory.buybackVault();
         uint256 available = usdc.balanceOf(address(vault));
         assertGt(available, 0);
