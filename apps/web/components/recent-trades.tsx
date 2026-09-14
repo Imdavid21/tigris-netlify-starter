@@ -56,9 +56,15 @@ export function RecentTrades({ token }: { token: string }) {
               <span style={{ fontWeight: 600 }}>
                 {trade.side === "BUY" ? "Buy" : "Sell"}
               </span>
-              <span style={{ opacity: 0.6 }}>
+              <a
+                href={"https://testnet.arcscan.app/address/" + trade.trader}
+                target="_blank"
+                rel="noreferrer"
+                style={{ opacity: 0.75, textDecoration: "underline", textUnderlineOffset: 3 }}
+                title={"Open " + trade.trader + " on Arcscan"}
+              >
                 {trade.trader.slice(0, 6)}...{trade.trader.slice(-4)}
-              </span>
+              </a>
               <span>
                 {Number(formatUnits(BigInt(trade.quote_amount), 6)).toLocaleString(
                   undefined,
