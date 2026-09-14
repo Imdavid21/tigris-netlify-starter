@@ -133,6 +133,9 @@ contract MockUniversalRouter is ICelestialUniversalRouter {
     IMockPermit2Transfer public immutable permit2;
     uint256 public numerator = 2;
     uint256 public denominator = 1;
+    address public reentryTarget;
+    bool public reentryAttempted;
+    bool public reentrySucceeded;
 
     constructor(IMockPermit2Transfer permit2_) {
         permit2 = permit2_;
@@ -143,7 +146,24 @@ contract MockUniversalRouter is ICelestialUniversalRouter {
         denominator = d;
     }
 
+    function setReentryTarget(address target) external {
+        reentryTarget = target;
+    }
+
     function execute(bytes calldata, bytes[] calldata inputs, uint256 deadline) external payable {
+        if (reentryTarget != address(0)) {
+            reentryAttempted = true;
+            (reentrySucceeded,) = reentryTarget.call(
+                abi.encodeWithSignature(
+                    "swapExactInput(address,address,uint256,uint256,address)",
+                    address(1),
+                    address(2),
+                    uint256(1),
+                    uint256(0),
+                    address(this)
+                )
+            );
+        }
         require(block.timestamp <= deadline, "deadline");
         (bytes memory actions, bytes[] memory params) = abi.decode(inputs[0], (bytes, bytes[]));
         actions;
@@ -344,6 +364,42 @@ contract CelestialUniswapV4ConnectorTest is Test {
         assertEq(quote.balanceOf(locker) - lockerQuoteBefore, quoteAmount / 5);
         assertEq(token.balanceOf(address(connector)), 0);
         assertEq(quote.balanceOf(address(connector)), 0);
+    }
+
+
+    function testUniversalRouterCannotReenterConnector() public {
+        uint160 sqrtPrice = CelestialV4PriceMath.sqrtPriceX96(
+            address(token),
+            address(quote),
+            1_000_000e6,
+            1_000_000e6
+        );
+
+        token.approve(address(adapter), 1_000_000e6);
+        quote.approve(address(adapter), 1_000_000e6);
+        (address handle,) = adapter.createPoolAndLock(
+            address(token),
+            address(quote),
+            1_000_000e6,
+            1_000_000e6,
+            sqrtPrice,
+            locker
+        );
+
+        router.setReentryTarget(address(connector));
+
+        quote.approve(address(adapter), 100e6);
+        uint256 amountOut = adapter.swapExactInput(
+            handle,
+            address(quote),
+            100e6,
+            190e6,
+            recipient
+        );
+
+        assertEq(amountOut, 200e6);
+        assertTrue(router.reentryAttempted());
+        assertFalse(router.reentrySucceeded());
     }
 
 }
