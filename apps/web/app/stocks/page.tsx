@@ -13,8 +13,8 @@ export default function StocksPage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <h1>Expand the orbit.</h1>
-        <p>A broader market universe built around approved quote assets on Arc.</p>
+        <h1>Launch against more than USDC.</h1>
+        <p>Paired-asset markets designed for Arc's approved quote-asset registry.</p>
       </section>
 
       <div className="feature-notice">
