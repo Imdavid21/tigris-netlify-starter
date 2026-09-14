@@ -20,7 +20,6 @@ contract MockGraduationAdapter is IGraduationAdapter {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
-        uint160,
         address
     ) external returns (address pool, uint256 positionId) {
         IERC20(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
