@@ -664,8 +664,11 @@ Do not deploy a commit whose current contracts/apps workflows are red.
 
 1. Confirm latest contracts workflow is green.
 2. Confirm latest apps workflow is green.
-3. Confirm Render indexer/API/web are live on the current main commit.
-4. Launch one Celestial token with metadata and an atomic developer buy.
+3. Confirm Render indexer/API/web are live on the current main commit. Render is the deployment source of truth; Vercel is secondary.
+4. Harden RPC infrastructure: private Arc RPC for indexer/backend, fallback provider support, smaller/adaptive log ranges, and user-facing rate-limit recovery.
+5. Upgrade product UI/UX using the strongest structural lessons from the supplied PONS references without cloning PONS. Priorities: information hierarchy, discovery density, token-market layout, trade ergonomics, mobile behavior, loading states, transaction feedback, and graduation UX.
+6. Maintain the complete marketing homepage at / and the market discovery product at /explore.
+7. Launch one Celestial token with metadata and an atomic developer buy.
 8. Test second-wallet buy/sell and Sell all.
 9. Test creator tax claim.
 10. Test holder reward accrual/claim.
@@ -674,6 +677,9 @@ Do not deploy a commit whose current contracts/apps workflows are red.
 13. Validate cirBTC decimals and launch math with small test amounts.
 14. Fund buyback vault, execute curve buyback, verify burn and analytics.
 15. When official Arc DEX addresses become available, implement/test connector, deploy adapter, configure factory, graduate a market, and test post-graduation trades.
+16. After feature work is complete, run a full protocol QA pass across contracts, frontend, API, indexer, database, Render services, wallet/session behavior, all routes, every supported transaction flow, failure/retry states, mobile/desktop, and dark/light modes.
+17. Validate every user journey end to end: connect/switch wallet, create, developer buy, discover/search, market buy, sell percentages/Sell all, limit place/execute/cancel, creator claims, holder claims, profile/activity, analytics, graduation readiness, buyback execution, and post-graduation routing when enabled.
+18. Re-check all Render deploys and runtime logs after the final commit and resolve any build, startup, database, RPC, or indexing failures before calling the protocol complete.
 
 ## Mainnet gate
 
