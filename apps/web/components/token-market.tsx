@@ -548,14 +548,20 @@ export function TokenMarket({ token }: { token: Address }) {
     ) return;
 
     try {
-      const input = parseUnits(
+      if (readyToGraduate) {
+        throw new Error("Limit orders are closed while this market graduates.");
+      }
+      const input = safeParseUnits(
         amount,
         side === "buy" ? quoteAsset.decimals : 18
       );
-      const minOutput = parseUnits(
+      const minOutput = safeParseUnits(
         limitReceive,
         side === "buy" ? 18 : quoteAsset.decimals
       );
+      if (input === undefined || input === 0n || minOutput === undefined || minOutput === 0n) {
+        throw new Error("Enter valid limit order amounts.");
+      }
       const asset = side === "buy" ? quoteAsset.address : token;
 
       const { account, wallet } = await ensureAllowance(
@@ -757,7 +763,7 @@ export function TokenMarket({ token }: { token: Address }) {
         <aside className="trade-terminal">
           <div className="trade-modes">
             <button className={mode === "market" ? "active" : ""} onClick={() => setMode("market")}>Market</button>
-            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")} disabled={!isCelestial || graduated}>Limit</button>
+            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")} disabled={!isCelestial || graduated || readyToGraduate}>Limit</button>
             <button className={mode === "orders" ? "active" : ""} onClick={() => setMode("orders")} disabled={!isCelestial}>Orders</button>
           </div>
 
@@ -842,7 +848,7 @@ export function TokenMarket({ token }: { token: Address }) {
                 onClick={() => void (mode === "limit" ? placeLimitOrder() : marketTrade())}
                 disabled={
                   mode === "limit"
-                    ? !amount || !limitReceive || !celestialAddresses.orderBook
+                    ? !amount || !limitReceive || !celestialAddresses.orderBook || readyToGraduate
                     : quote === undefined ||
                       (side === "sell" && walletAddress !== undefined && inputUnits > tokenBalance) ||
                       (side === "buy" && walletAddress !== undefined && inputUnits > quoteBalance) ||
