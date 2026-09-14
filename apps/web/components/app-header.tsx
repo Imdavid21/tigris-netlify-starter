@@ -10,7 +10,7 @@ export function AppHeader() {
         <span>Celestial</span>
       </a>
       <nav className="nav">
-        <a href="/">Explore</a>
+        <a href="/explore">Explore</a>
         <a href="/stocks">Stocks</a>
         <a href="/create">Create</a>
         <a href="/analytics">Analytics</a>
