@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
-import { arcTestnet } from "@/lib/arc";
 import { curveAbi } from "@/lib/abi";
 import { API_URL } from "@/lib/api";
 import { createArcPublicClient } from "@/lib/rpc";
@@ -124,10 +123,7 @@ export function Launches() {
   const [windowFilter, setWindowFilter] = useState<"all" | "24h" | "7d">("all");
 
   useEffect(() => {
-    const client = createPublicClient({
-      chain: arcTestnet,
-      transport: http(process.env.NEXT_PUBLIC_ARC_RPC_URL ?? "https://rpc.testnet.arc.network")
-    });
+    const client = createArcPublicClient();
 
     (async () => {
       try {
