@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, type EIP1193Provider } from "viem";
+import { createWalletClient, custom, formatUnits, getAddress, type EIP1193Provider } from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { feeEscrowAbi } from "@/lib/abi";
 import { celestialAddresses, celestialFeeEscrowAbi, orderBookAbi, quoteAssets } from "@/lib/celestial";
 import { API_URL } from "@/lib/api";
-import { useWalletSession } from "@/components/wallet-session";
+import { useWalletSession } from "@/components/wallet-session";\nimport { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 
 type Activity = { tx_hash:string; token:string; side:string; quote_amount:string; block_time:string };
 type Launch = { address:string; name:string; symbol:string; status:string; created_at:string };
@@ -67,7 +67,7 @@ export function ProfilePanel() {
       await client.waitForTransactionReceipt({hash});
       setStatus("Claimed");
       await refresh(address);
-    }catch(e){setStatus("");setError(e instanceof Error?e.message:"Claim failed.");}
+    }catch(e){setStatus("");setError(friendlyChainError(e,"Claim failed."));}
   }
 
 
@@ -89,7 +89,7 @@ export function ProfilePanel() {
       await client.waitForTransactionReceipt({hash});
       setStatus("Claimed");
       await refresh(address);
-    }catch(e){setStatus("");setError(e instanceof Error?e.message:"Claim failed.");}
+    }catch(e){setStatus("");setError(friendlyChainError(e,"Claim failed."));}
   }
 
   async function cancelOrder(orderId:string){
@@ -108,7 +108,7 @@ export function ProfilePanel() {
       await client.waitForTransactionReceipt({hash});
       setStatus("Cancelled");
       await refresh(address);
-    }catch(e){setStatus("");setError(e instanceof Error?e.message:"Cancellation failed.");}
+    }catch(e){setStatus("");setError(friendlyChainError(e,"Cancellation failed."));}
   }
 
   useEffect(()=>{ if(address) void refresh(address); },[address]);
