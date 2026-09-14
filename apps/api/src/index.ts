@@ -31,6 +31,9 @@ app.get("/stats", async () => {
       "(select coalesce(sum(fee_amount),0)::text from trades) as fees, " +
       "(select coalesce(sum(quote_amount),0)::text from trades where block_time > now() - interval '24 hours') as quote_volume_24h, " +
       "(select count(*)::int from tokens where created_at > now() - interval '24 hours') as launches_24h, " +
+      "(select count(distinct creator)::int from tokens) as unique_creators, " +
+      "(select count(distinct creator)::int from tokens where created_at > now() - interval '24 hours') as creators_24h, " +
+      "(select count(distinct trader)::int from trades) as unique_traders, " +
       "(select count(distinct trader)::int from trades where block_time > now() - interval '24 hours') as traders_24h, " +
       "(select count(*)::int from tokens where status='GRADUATED') as graduated, " +
       "(select coalesce(sum(quote_spent),0)::text from buybacks) as buyback_quote, " +
