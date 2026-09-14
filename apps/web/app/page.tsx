@@ -1,4 +1,5 @@
 import { WalletButton } from "@/components/wallet-button";
+import { Launches } from "@/components/launches";
 
 export default function Home() {
   return (
@@ -19,12 +20,7 @@ export default function Home() {
       </section>
 
       <section style={{ marginTop: 32 }}>
-        <div style={{ display: "flex", gap: 16 }}>
-          <button>Trending</button>
-          <button>New</button>
-          <button>Graduating</button>
-          <button>Graduated</button>
-        </div>
+        <Launches />
       </section>
     </main>
   );
