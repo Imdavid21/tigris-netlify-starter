@@ -694,7 +694,7 @@ Implemented in repository:
 - CelestialV4PoolHandle
 - price-aware ICelestialGraduationAdapter
 - terminal curve price locking before reserve sweep
-- vanilla v4 pool initialization with no custom hook
+- vanilla v4 swap/liquidity behavior with a minimal initialization-only guard hook
 - full-range position minting directly to ArcLiquidityLocker
 - Permit2 bounded approvals and revocation
 - exact-input post-graduation swaps through Universal Router
@@ -713,7 +713,7 @@ Current external blocker:
 
 Arc is not present in the official Uniswap v4 deployment registry as of 2026-09-14. Do not invent PoolManager, PositionManager, Quoter, Universal Router, or Permit2 addresses. Keep NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS and the indexer DEX adapter/connector envs unset until official Arc addresses are verified.
 
-No v4 fee hook is included yet. The first production path intentionally uses vanilla v4 to minimize new security surface.
+No v4 fee/buyback hook is included yet. The only hook is an initialization guard that prevents third parties from pre-initializing Celestial's intended PoolKey. It has no swap or fee permissions.
 
 ## Mainnet gate
 
