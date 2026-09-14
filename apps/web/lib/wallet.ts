@@ -13,7 +13,11 @@ export async function ensureArcChain(provider: EIP1193Provider) {
         chainId,
         chainName: arcTestnet.name,
         nativeCurrency: arcTestnet.nativeCurrency,
-        rpcUrls: arcTestnet.rpcUrls.default.http,
+        rpcUrls: [
+          process.env.NEXT_PUBLIC_ARC_WALLET_RPC_URL ??
+            process.env.NEXT_PUBLIC_ARC_RPC_URL ??
+            arcTestnet.rpcUrls.default.http[0]
+        ],
         blockExplorerUrls: ["https://testnet.arcscan.app"]
       }]
     });
