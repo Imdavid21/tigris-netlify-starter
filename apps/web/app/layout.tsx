@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Arc Launchpad",
   description: "USDC-native token launches on Arc"
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
