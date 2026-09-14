@@ -1,253 +1,193 @@
-# Arc Launchpad Functionality and Security Audit
+# Celestial Functionality and Security Audit
 
 Date: 2026-09-14
 
 ## Scope
 
-This audit covers the current repository implementation across:
+Internal engineering review of the current Celestial implementation across Solidity contracts, launch and trading flows, wallet/network handling, API, PostgreSQL, indexer, Render deployment, RPC failure behavior, and CI.
 
-- Solidity contracts
-- bonding curve economics and accounting
-- graduation state machine
-- fee accounting and claiming
-- frontend launch and trade flows
-- Arc wallet/network handling
-- API
-- PostgreSQL schema
-- event indexer
-- backend Docker packaging
-- Arc Testnet RPC configuration
-- dependency security
-- CI runtime smoke tests
+This is not an independent third-party smart-contract audit.
 
-It is an internal engineering audit, not an independent third-party smart contract audit.
+## Verified automated status
 
-## Current test status
+Current main branch verification:
 
-### Contracts
+- contracts workflow: passing
+- apps workflow: passing
+- Foundry build and tests: passing
+- stateful invariants: passing
+- Next.js production build: passing
+- API and indexer TypeScript builds: passing
+- API and indexer Docker builds: passing
+- PostgreSQL schema/runtime smoke tests: passing
+- frontend route smoke tests: passing
+- Render web/API/indexer: live on the same tested commit at the time of this review
 
-Tested with Foundry:
+Foundry coverage includes:
 
-- token creation
-- buy
-- sell
+- metadata and configurable quote pairs
+- atomic launch plus developer buy
+- buy and sell execution
 - slippage
 - fixed supply
-- fee accrual
-- fee sweep
-- creator claims
-- protocol claims
-- graduation threshold cap
-- two-phase graduation
-- duplicate-graduation rejection
-- duplicate-pool-seeding rejection
-- premature graduation rejection
-- unauthorized adapter configuration rejection
-- zero-input rejection
-- metadata validation
-- buy/sell round trip cannot increase trader USDC
-- curve freezes when graduation becomes ready
-- final-buy quote matches execution cap
-- bad graduation adapter cannot report success without consuming reserves
-- malicious graduation adapter cannot re-enter the factory
-- randomized buy/sell fuzzing
+- creator tax accrual, sweep, and claim
+- holder fee accrual and claim
+- anti-snipe decay and explicit exemptions
+- limit buy execution
+- limit sell execution
+- order cancellation and escrow refund
+- buyback funding, curve buyback, and burn
+- graduation state and reserve safety
+- malicious/reentrant adapter regression tests
+- randomized curve fuzzing
 - stateful invariants
 
-Stateful invariants:
+Core invariants include:
 
-- fixed token supply never changes
-- curve never sells reserved graduation inventory
-- tracked USDC never exceeds graduation threshold
-- physical USDC balance covers tracked reserves and pending fees
+- fixed token supply does not change
+- curve does not sell reserved graduation inventory
+- tracked quote reserve does not exceed graduation threshold
+- physical quote balance covers tracked reserve and pending fees
 
-Static analysis:
+## Contract review
 
-- Slither is run in CI.
-- Actionable factory reentrancy findings led to ReentrancyGuard, CEI state locks, adapter reserve-consumption checks, and regression tests.
-- Remaining Slither warnings include conservative balance-snapshot reentrancy warnings despite the guard, trusted newly-created-contract calls during launch, dependency pragma differences, and mock-only findings.
-- Remaining warnings must be reviewed again when the production DEX adapter is introduced.
+### Fee settlement
 
-## Contract issues found and fixed
+Creator, protocol, and buyback fees accrue on the curve and are settled by sweepFees.
 
-### Graduation reserve race
+Creator and protocol amounts move to CelestialFeeEscrow; buyback amounts move to CelestialBuybackVault.
 
-Issue:
+Tests now cover the complete accrue -> sweep -> claim/fund lifecycle rather than assuming fees are instantly escrowed.
 
-A sell remained possible after the curve reached its graduation threshold but before `beginGraduation` was called. A trader could reduce the reserve and delay graduation.
+### Holder rewards
 
-Fix:
+Holder fees use magnified per-share accounting in CelestialToken.
 
-Sell execution now closes immediately when the curve is graduation-ready.
+Curve inventory and the burn address are excluded from eligible reward supply. Claims are paid in the market quote asset.
 
-### Final-buy quote mismatch
+### Limit orders
 
-Issue:
+CelestialLimitOrderBook escrows the input side, supports permissionless execution when conditions are satisfied, and refunds active orders on owner cancellation.
 
-`quoteBuy` originally quoted the caller's full input while execution capped the final purchase at remaining graduation capacity.
+Automated tests cover buy execution, sell execution, and cancellation/refund.
 
-Fix:
+### Buyback and burn
 
-`quoteBuy` and `buy` now apply the same final-input cap.
+CelestialBuybackVault supports pre-graduation curve buybacks and a post-graduation adapter path.
 
-### Factory reentrancy boundary
+The curve path is tested end to end, including fee sweep, vault funding, purchase, burn-address transfer, and allowance cleanup.
 
-Issue:
+### Graduation
 
-Graduation calls external contracts before all state was finalized.
+Factory graduation uses explicit state transitions, reentrancy protection, reserve-consumption checks, and locked liquidity accounting.
 
-Fix:
-
-- factory-level ReentrancyGuard
-- nonReentrant on launch/graduation entry points
-- CEI graduation phase locks
-- malicious-adapter regression test
-
-### Adapter false-success condition
-
-Issue:
-
-A graduation adapter could return a non-zero pool without actually consuming the launch reserves.
-
-Fix:
-
-Factory records pre/post token and USDC balances and requires exact reserve consumption before marking graduation complete.
+The production DEX connector is intentionally not configured until an official Arc DEX deployment can be verified.
 
 ## Frontend
 
-Implemented and build-tested:
+Implemented and production-built:
 
-- wallet connection
-- Arc Testnet chain switching
-- fallback `wallet_addEthereumChain`
-- token creation transaction
-- launch confirmation
-- TokenCreated event decoding
-- automatic redirect to new token page
-- onchain launch discovery from factory
-- token name/ticker
-- raised USDC
-- graduation progress
-- buy quote
-- sell quote
-- USDC approval
-- token approval
-- buy execution
-- sell execution
-- 1% minimum-output slippage protection
-- transaction confirmation
-- state refresh
-- invalid token addresses return 404
+- complete marketing homepage
+- dense market discovery at /explore
+- separate graduated-market discovery
+- metadata/social display
+- launch form with approved quote assets
+- atomic developer buy
+- creator/holder economics
+- snipe exemptions
+- market buy/sell
+- Sell 25/50/75/100%
+- limit orders and cancellation
+- creator claims
+- holder reward claims
+- wallet/profile/activity/order management
+- charts, recent trades, and holder data through the API/indexer
+- protocol analytics and buyback history
+- dark/light mode
+- shared wallet session
+- degraded-service banner
 
-Current frontend limitations:
+Critical market state remains contract-native.
 
-- metadata/image upload remains disabled
-- chart/history UI is not yet connected to the indexer
-- holder analytics are not implemented
-- post-graduation DEX routing is not implemented until a production Arc DEX adapter exists
+## RPC resilience
 
-## API
+The public Arc RPC produced real -32005 rate-limit failures during both user transaction submission and indexer backfill.
 
-Runtime-tested against a real PostgreSQL container:
+Changes applied:
 
-- `GET /health`
-- `GET /tokens`
-- `GET /tokens/:address`
-- `GET /wallet/:address/activity`
-- token/trade retrieval from seeded data
-- invalid address rejection
-- pagination input hardening
+- browser public-client fallback support
+- optional dedicated wallet RPC
+- backend/indexer fallback RPC support
+- optional WebSocket transport
+- adaptive log ranges
+- small backfill chunks
+- exponential/cooldown retry behavior
+- indexer health server starts before backfill
+- indexer remains alive while ingestion is degraded
+- user-facing RPC rate-limit errors
+- protocol status endpoint/banner
 
-All SQL user inputs are parameterized in the current API routes.
+A managed/private Arc RPC is still strongly recommended for production. No provider credential is committed to the repository.
 
-## Indexer
+## API and data
 
-Implemented:
+Runtime CI covers:
 
-- TokenCreated ingestion
-- Buy ingestion
-- Sell ingestion
-- graduation state updates
-- idempotent trade insertion
-- historical factory backfill before live subscription
-- historical curve backfill
-- chunked log replay to avoid large RPC range failures
-- duplicate live-watcher prevention
-- block timestamp caching
+- /health
+- /tokens
+- /tokens/:address
+- wallet activity
+- invalid-address rejection
+- PostgreSQL schema/runtime startup
 
-Indexer limitations:
+Current API also provides:
 
-- candles are not implemented
-- holder snapshots are not implemented
-- trending aggregates are not implemented
-- a production deployment has not yet been load-tested against sustained Arc traffic
+- protocol stats
+- daily analytics
+- holders
+- launches
+- positions
+- orders
+- buybacks
 
-## Infrastructure and packaging
+User-controlled SQL inputs remain parameterized.
 
-CI verifies:
+## Render
 
-- Node installation
-- production dependency audit
-- indexer TypeScript build
-- API TypeScript build
-- Next.js production build
-- API Docker image build
-- indexer Docker image build
-- PostgreSQL schema application
-- seeded backend data
-- backend runtime routes
-- frontend runtime routes
-- Arc Testnet RPC chain ID
-- Arc canonical USDC ERC20 decimals
+Primary deployment target is Render.
 
-Dependency audit:
+Services:
 
-- Next 15 inherited a high-severity PostCSS advisory.
-- Web app upgraded to Next 16.3.5.
-- Subsequent production dependency audit reports 0 vulnerabilities.
+- web: arc-launchpad-web
+- API: arc-launchpad-api
+- indexer: arc-launchpad-indexer
+- PostgreSQL: arc-launchpad-db
 
-## Arc environment
+The earlier indexer crash loop was traced to Arc public-RPC throttling and has been changed to degraded/backoff behavior instead of process termination.
 
-Verified in CI against Arc Public Testnet:
+Historical Render error logs from earlier failed builds remain visible, but the final reviewed deployment is live.
 
-- chain ID: 5042002
-- RPC: https://rpc.testnet.arc.network
-- USDC ERC20 interface: 0x3600000000000000000000000000000000000000
-- USDC ERC20 decimals: 6
+## Static analysis
 
-## External blockers
+Slither runs in CI. It currently remains non-blocking because it reports a mix of actionable, conservative, dependency, interface-inheritance, and mock-only findings.
 
-### Real testnet contract deployment
+Previously actionable reentrancy findings were addressed with guards, state locks, reserve-consumption validation, and regression tests.
 
-Contracts cannot be broadcast without a funded signing wallet/private key and treasury address.
+Slither output must be reviewed again for the final production DEX connector.
 
-Until a real factory is deployed, the frontend cannot execute live launch/trade transactions against Arc despite those paths being build- and contract-tested.
+## Remaining external gates
 
-### Production DEX graduation
+These are not code TODOs that should be filled with guessed values:
 
-The repository currently uses an adapter interface plus test adapters.
-
-A production arbitrary-token Uniswap/DEX graduation adapter is not yet wired.
-
-Arc Public Testnet does not currently provide the final arbitrary-token Uniswap environment needed to prove the complete launched-token graduation lifecycle. Production Arc DEX addresses/configuration must be verified before mainnet deployment.
-
-### Backend hosting
-
-Backend/indexer deployment to Railway is blocked by the connected Railway account's free-plan resource provisioning limit.
-
-The images are tested in CI but are not publicly hosted.
+1. A reliable managed/private Arc RPC credential should be configured for production.
+2. Official Arc DEX deployment addresses and integration details must be verified before enabling real graduation/post-graduation swaps.
+3. Privileged mainnet ownership should move to a multisig.
+4. An independent external smart-contract audit is still required before real-fund mainnet use.
+5. The database credential previously exposed outside the repository should be rotated in Render.
+6. A real multi-wallet staging run should be performed with funded test wallets after the managed RPC is configured.
 
 ## Mainnet gate
 
-Do not put real funds through the protocol until:
+Do not use real funds until the external gates above are complete and one full staging lifecycle succeeds:
 
-- Arc factory is deployed and verified
-- real launch/buy/sell lifecycle is run with multiple wallets on Arc
-- production Arc DEX addresses are confirmed
-- production graduation adapter is implemented
-- production adapter is fuzzed and reviewed
-- LP custody/locking is verified against the actual DEX position representation
-- multisig replaces deployer ownership
-- external independent smart-contract review is completed
-- backend/indexer is deployed and monitored
-- frontend is configured with the verified factory address
-- full end-to-end production smoke test passes
+create -> optional developer buy -> discover -> market buy/sell -> Sell all -> limit place/execute/cancel -> creator claim -> holder claim -> fee sweep -> buyback/burn -> graduation -> locked DEX liquidity -> post-graduation trade.
