@@ -19,7 +19,7 @@ Lifecycle:
 9. burn surplus launch-token inventory that is not required at the terminal price
 10. route later Celestial trades through the v4 adapter
 
-No Celestial hook is used in the first version. Fee/buyback hooks are intentionally deferred until the base graduation path is externally reviewed.
+Celestial uses one minimal initialization-only guard hook. It cannot alter swaps, liquidity accounting, or fees. Its only purpose is to reject pool initialization unless the call originates from the sealed Celestial connector. Fee/buyback hooks are intentionally deferred until the base graduation path is externally reviewed.
 
 ## Official Uniswap surfaces used
 
@@ -151,6 +151,7 @@ Celestial owns:
 - allowance lifecycle
 - v4 position mint parameters
 - permanent LP recipient
+- an initialization-only guard hook to prevent PoolKey pre-initialization griefing
 - routing into the verified Uniswap contracts
 
 ## Required review before real funds
@@ -164,6 +165,7 @@ Celestial owns:
 - test malicious/reentrant token behavior
 - test Permit2 expiration/revocation
 - test partial liquidity consumption and surplus burn
-- test front-run / pool-preinitialization behavior
+- verify the mined guard-hook address has exactly BEFORE_INITIALIZE permission bits
+- test unauthorized pool initialization and connector sealing
 - test terminal price continuity within explicit tolerance
 - test complete curve -> graduation -> v4 buy/sell lifecycle with two wallets
