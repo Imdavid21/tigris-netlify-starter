@@ -250,3 +250,49 @@ label>span{font-size:12px;color:#89958e}
   .stocks-grid{grid-template-columns:1fr}
   .feature-notice{align-items:flex-start;flex-direction:column}
 }
+
+
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.analytics-card{border:1px solid #202622;border-radius:14px;padding:18px;background:#090c0a}
+.analytics-bars{height:190px;display:flex;align-items:flex-end;gap:5px;margin-top:18px;border-bottom:1px solid #1c221e}
+.analytics-bar-col{flex:1;height:100%;display:flex;align-items:flex-end}
+.analytics-bar{width:100%;min-height:4px;border-radius:4px 4px 0 0;background:#8fc9a0;opacity:.72}
+.analytics-empty{margin:auto;color:#606b65;font-size:12px}
+.buyback-preview{display:flex;justify-content:space-between;gap:22px;align-items:center;margin-top:12px}
+.buyback-preview h2{margin:7px 0 6px;font-size:20px}
+.buyback-preview p{max-width:760px;margin:0;color:#6d7871;font-size:12px;line-height:1.55}
+
+.profile-layout{display:grid;gap:14px}
+.profile-connect{min-height:340px;border:1px solid #202622;border-radius:15px;background:#090c0a;display:grid;place-content:center;justify-items:center;text-align:center;padding:30px}
+.profile-connect-mark{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:#e6f5eb;color:#09100c;font-weight:800}
+.profile-connect h2{margin:14px 0 4px;font-size:22px}
+.profile-connect p{margin:0 0 16px;color:#6c7771;font-size:12px}
+.profile-summary{display:grid;grid-template-columns:1.5fr .7fr .7fr auto;gap:14px;align-items:center;padding:15px 16px;border:1px solid #202622;border-radius:14px;background:#090c0a}
+.profile-summary>div:first-child strong{display:block;margin-top:5px;font-size:13px}
+.profile-summary-stat span{display:block;color:#5f6b64;font-size:10px;text-transform:uppercase}
+.profile-summary-stat strong{display:block;margin-top:5px;font-size:18px}
+.profile-summary button{background:#131914;color:#8d9992;border-color:#242b26}
+.fees-card{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px;border:1px solid #2a4131;border-radius:14px;background:linear-gradient(135deg,#0b120d,#0a0d0b)}
+.fees-card h2{margin:8px 0 3px;font-size:32px;letter-spacing:-.045em}
+.fees-card p{margin:0;color:#6d7a72;font-size:11px}
+.profile-tabs{display:flex;gap:4px;border-bottom:1px solid #1c221e;padding:6px 0}
+.profile-tabs button{border:0;background:transparent;color:#69756e;font-size:12px;padding:8px 10px}
+.profile-tabs button.active{background:#171d19;color:#f0f4f1}
+.profile-table{border:1px solid #202622;border-radius:13px;overflow:hidden;background:#090c0a}
+.profile-row{display:grid;grid-template-columns:1.5fr .7fr .7fr;gap:14px;align-items:center;padding:13px 15px;border-bottom:1px solid #171c18;font-size:12px}
+.profile-row:last-child{border-bottom:0}
+.profile-row:hover{background:#101410}
+.profile-row div strong{display:block}
+.profile-row div span{display:block;margin-top:3px;color:#616d66;font-size:10px}
+.profile-row>span{color:#78837d}
+.profile-empty{padding:32px;text-align:center;color:#657069;font-size:12px}
+
+@media(max-width:780px){
+  .analytics-grid{grid-template-columns:1fr}
+  .buyback-preview{align-items:flex-start;flex-direction:column}
+  .profile-summary{grid-template-columns:1fr 1fr}
+  .profile-summary>div:first-child{grid-column:1/-1}
+  .fees-card{align-items:flex-start;flex-direction:column}
+  .profile-row{grid-template-columns:1.4fr .6fr}
+  .profile-row>span:last-child{display:none}
+}
