@@ -239,6 +239,16 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         metadataOf[token] = params.metadata;
         allTokens.push(token);
 
+        _emitLaunch(token, curve, creator, feeRecipient, params);
+    }
+
+    function _emitLaunch(
+        address token,
+        address curve,
+        address creator,
+        address feeRecipient,
+        LaunchParams calldata params
+    ) internal {
         emit TokenCreated(
             token,
             curve,
