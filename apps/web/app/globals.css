@@ -333,3 +333,249 @@ body{
 .progress-track>div,.analytics-bar{background:linear-gradient(180deg,#C9B8FF,#8F70DF)}
 .kicker{display:none!important}
 .v2-field b{display:none}
+
+
+/* Theme behavior: preserve current dark palette, add readable light mode */
+html[data-theme="dark"]{
+  color-scheme:dark;
+}
+
+html[data-theme="light"]{
+  color-scheme:light;
+  background:#F7F5FA;
+  color:#1A1721;
+}
+
+html[data-theme="light"] body{
+  background:
+    radial-gradient(circle at 15% -10%,rgba(150,117,232,.08),transparent 31rem),
+    radial-gradient(circle at 92% 12%,rgba(139,167,255,.06),transparent 26rem),
+    #F7F5FA;
+  color:#1A1721;
+}
+
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .market-tabs,
+html[data-theme="light"] .about-panel,
+html[data-theme="light"] .profile-tabs,
+html[data-theme="light"] .analytics-bars,
+html[data-theme="light"] .preview-note,
+html[data-theme="light"] .preview-rule,
+html[data-theme="light"] .search-help{
+  border-color:#E3DEE9;
+}
+
+html[data-theme="light"] .nav,
+html[data-theme="light"] .muted,
+html[data-theme="light"] .explore-hero p,
+html[data-theme="light"] .page-heading p,
+html[data-theme="light"] .address-line,
+html[data-theme="light"] .token-links,
+html[data-theme="light"] .preview-description,
+html[data-theme="light"] .preview-symbol,
+html[data-theme="light"] .terminal-footnote,
+html[data-theme="light"] .review-copy,
+html[data-theme="light"] .profile-empty,
+html[data-theme="light"] .section-title span{
+  color:#746C7C;
+}
+
+html[data-theme="light"] .nav a:hover,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .launch-row,
+html[data-theme="light"] .profile-row,
+html[data-theme="light"] .token-title-line h1,
+html[data-theme="light"] .hero-metrics strong,
+html[data-theme="light"] .economics-table strong,
+html[data-theme="light"] .about-grid strong,
+html[data-theme="light"] .about-grid a{
+  color:#1A1721;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] textarea{
+  background:#FFFFFF;
+  color:#1A1721;
+  border-color:#DDD7E4;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder{
+  color:#9A91A3;
+}
+
+html[data-theme="light"] input:focus,
+html[data-theme="light"] textarea:focus{
+  border-color:#8B78C6;
+  box-shadow:0 0 0 3px rgba(139,120,198,.10);
+}
+
+html[data-theme="light"] .segmented,
+html[data-theme="light"] .launch-list,
+html[data-theme="light"] .empty-state,
+html[data-theme="light"] .form-card,
+html[data-theme="light"] .launch-preview,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .about-grid>div,
+html[data-theme="light"] .trade-terminal,
+html[data-theme="light"] .metric-card,
+html[data-theme="light"] .analytics-card,
+html[data-theme="light"] .profile-connect,
+html[data-theme="light"] .profile-summary,
+html[data-theme="light"] .profile-table,
+html[data-theme="light"] .stock-card,
+html[data-theme="light"] .jurisdiction-card,
+html[data-theme="light"] .feature-notice{
+  background:#FFFFFF;
+  border-color:#E3DEE9;
+}
+
+html[data-theme="light"] .launch-row,
+html[data-theme="light"] .launch-list-head,
+html[data-theme="light"] .profile-row{
+  border-color:#ECE8F0;
+}
+
+html[data-theme="light"] .launch-row:hover,
+html[data-theme="light"] .profile-row:hover,
+html[data-theme="light"] .search-results a:hover{
+  background:#F4F1F7;
+}
+
+html[data-theme="light"] .segmented button{
+  color:#746C7C;
+}
+
+html[data-theme="light"] .segmented button.active,
+html[data-theme="light"] .chart-ranges button.active,
+html[data-theme="light"] .market-tabs button.active,
+html[data-theme="light"] .profile-tabs button.active,
+html[data-theme="light"] .trade-modes button.active{
+  background:#EEE8F5;
+  color:#211B29;
+}
+
+html[data-theme="light"] .phase-pill,
+html[data-theme="light"] .phase-badge,
+html[data-theme="light"] .live-badge,
+html[data-theme="light"] .coming-chip{
+  background:#F5F1F8;
+  border-color:#DDD5E6;
+  color:#665D70;
+}
+
+html[data-theme="light"] .graduation-strip{
+  background:#FFFFFF;
+  border-color:#E3DEE9;
+}
+
+html[data-theme="light"] .progress-track{
+  background:#EEE9F2;
+}
+
+html[data-theme="light"] .trade-modes,
+html[data-theme="light"] .amount-box{
+  background:#F7F4F9;
+  border-color:#E3DEE9;
+}
+
+html[data-theme="light"] .side-toggle button,
+html[data-theme="light"] .quick-amounts button,
+html[data-theme="light"] .trade-settings button,
+html[data-theme="light"] .profile-summary button{
+  background:#F3EFF6;
+  border-color:#E1DAE7;
+  color:#6E6577;
+}
+
+html[data-theme="light"] .side-toggle button.active.buy{
+  background:#EEE7F7;
+  border-color:#C7B7DE;
+  color:#5A4278;
+}
+
+html[data-theme="light"] .side-toggle button.active.sell{
+  background:#FCECEF;
+  border-color:#EBC7D0;
+  color:#9A3D58;
+}
+
+html[data-theme="light"] .search-modal{
+  background:#FFFFFF;
+  border-color:#DAD3E1;
+  box-shadow:0 28px 80px rgba(54,43,69,.16);
+}
+
+html[data-theme="light"] .search-modal>input{
+  background:#FBF9FC;
+}
+
+html[data-theme="light"] .search-backdrop{
+  background:rgba(40,32,50,.22);
+}
+
+html[data-theme="light"] .fees-card{
+  background:linear-gradient(135deg,#F5F0F9,#FFFFFF);
+  border-color:#DED3EA;
+}
+
+html[data-theme="light"] .primary-link,
+html[data-theme="light"] .launch-cta,
+html[data-theme="light"] .review-trade-button,
+html[data-theme="light"] .profile-connect button,
+html[data-theme="light"] .fees-card>button{
+  background:linear-gradient(135deg,#EEE7FF,#C6B3FF);
+  color:#140F20;
+  border-color:#D7C8FF;
+}
+
+.theme-toggle{
+  width:34px;
+  height:34px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid #2C2638;
+  border-radius:10px;
+  background:#0E0C16;
+  color:#A79DB2;
+}
+
+.theme-toggle:hover{
+  border-color:#4A405A;
+  color:#F6F2FF;
+}
+
+.theme-toggle svg{
+  width:15px;
+  height:15px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+html[data-theme="light"] .theme-toggle{
+  background:#FFFFFF;
+  border-color:#DDD7E4;
+  color:#6D6476;
+}
+
+html[data-theme="light"] .theme-toggle:hover{
+  background:#F4F1F7;
+  border-color:#CFC6D8;
+  color:#1A1721;
+}
+
+html[data-theme="light"] .network-chip,
+html[data-theme="light"] .search-trigger{
+  background:#FFFFFF;
+  border-color:#DDD7E4;
+  color:#746C7C;
+}
+
+html[data-theme="light"] .brand-mark{
+  background:linear-gradient(145deg,#F1EBFF,#A98AF0);
+  color:#140F20;
+}
