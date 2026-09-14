@@ -19,9 +19,7 @@ contract RecordingCelestialGraduationAdapter is ICelestialGraduationAdapter {
     uint256 public lastTokenAmount;
     uint256 public lastQuoteAmount;
     address public lastLocker;
-
-    address public constant POOL = address(0xB0A1);
-    uint256 public constant POSITION_ID = 77;
+    uint256 public nextPositionId = 77;
 
     function createPoolAndLock(
         address token,
@@ -40,45 +38,10 @@ contract RecordingCelestialGraduationAdapter is ICelestialGraduationAdapter {
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
         IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), quoteAmount);
-        return (POOL, POSITION_ID);
+
+        pool = address(uint160(uint256(keccak256(abi.encode(token, nextPositionId)))));
+        positionId = nextPositionId++;
     }
-
-    function testMultipleFakeMarketsReachGraduationLifecycle() public {
-        for (uint256 i = 0; i < 3; ++i) {
-            CelestialLaunchFactory.LaunchParams memory p = _params();
-            p.name = string.concat("Graduate ", vm.toString(i));
-            p.symbol = string.concat("G", vm.toString(i));
-
-            vm.prank(creator);
-            (address token, address curveAddress) = factory.createToken(p);
-            CelestialBondingCurve curve = CelestialBondingCurve(curveAddress);
-
-            vm.startPrank(trader);
-            quote.approve(curveAddress, type(uint256).max);
-            curve.buy(2_000e6, 1);
-            vm.stopPrank();
-
-            assertTrue(curve.readyToGraduate());
-            factory.beginGraduation(token);
-            factory.createGraduatedPool(token);
-
-            (
-                ,
-                ,
-                uint160 sqrtPriceX96,
-                address pool,
-                ,
-                bool swept,
-                bool seeded
-            ) = factory.graduations(token);
-
-            assertGt(uint256(sqrtPriceX96), 0);
-            assertTrue(pool != address(0));
-            assertTrue(swept);
-            assertTrue(seeded);
-        }
-    }
-
 }
 
 contract CelestialGraduationPriceTest is Test {
@@ -167,8 +130,8 @@ contract CelestialGraduationPriceTest is Test {
         ) = factory.graduations(token);
 
         assertEq(sqrtPriceX96, expected);
-        assertEq(pool, adapter.POOL());
-        assertEq(positionId, adapter.POSITION_ID());
+        assertTrue(pool != address(0));
+        assertEq(positionId, 77);
         assertTrue(swept);
         assertTrue(seeded);
         assertEq(adapter.lastTokenAmount(), tokenAmount);
@@ -177,8 +140,8 @@ contract CelestialGraduationPriceTest is Test {
         (address lockedAdapter, address lockedPool, uint256 lockedPositionId,) =
             factory.liquidityLocker().locked(token);
         assertEq(lockedAdapter, address(adapter));
-        assertEq(lockedPool, adapter.POOL());
-        assertEq(lockedPositionId, adapter.POSITION_ID());
+        assertEq(lockedPool, pool);
+        assertEq(lockedPositionId, positionId);
     }
 
     function testGraduationPriceIncludesPhantomReserve() public {
@@ -205,5 +168,41 @@ contract CelestialGraduationPriceTest is Test {
         );
 
         assertTrue(terminalPrice != naiveSeedRatio);
+    }
+
+    function testMultipleFakeMarketsReachGraduationLifecycle() public {
+        for (uint256 i = 0; i < 3; ++i) {
+            CelestialLaunchFactory.LaunchParams memory p = _params();
+            p.name = string.concat("Graduate ", vm.toString(i));
+            p.symbol = string.concat("G", vm.toString(i));
+
+            vm.prank(creator);
+            (address token, address curveAddress) = factory.createToken(p);
+            CelestialBondingCurve curve = CelestialBondingCurve(curveAddress);
+
+            vm.startPrank(trader);
+            quote.approve(curveAddress, type(uint256).max);
+            curve.buy(2_000e6, 1);
+            vm.stopPrank();
+
+            assertTrue(curve.readyToGraduate());
+            factory.beginGraduation(token);
+            factory.createGraduatedPool(token);
+
+            (
+                ,
+                ,
+                uint160 sqrtPriceX96,
+                address pool,
+                ,
+                bool swept,
+                bool seeded
+            ) = factory.graduations(token);
+
+            assertGt(uint256(sqrtPriceX96), 0);
+            assertTrue(pool != address(0));
+            assertTrue(swept);
+            assertTrue(seeded);
+        }
     }
 }
