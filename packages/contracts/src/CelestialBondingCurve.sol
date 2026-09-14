@@ -190,6 +190,7 @@ contract CelestialBondingCurve is ReentrancyGuard {
 
     function quoteSell(uint256 tokenIn) public view returns (uint256 netQuoteOut) {
         if (!initialized) revert NotInitialized();
+        if (graduated || readyToGraduate() || tokenIn == 0) return 0;
         uint256 gross = BondingCurveMath.amountOut(tokenIn, trackedTokens, virtualQuoteReserve(), 0);
         if (gross > trackedQuote) gross = trackedQuote;
 
