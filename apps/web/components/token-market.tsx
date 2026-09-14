@@ -28,7 +28,9 @@ import { RecentTrades } from "@/components/recent-trades";
 import { PriceChart } from "@/components/price-chart";
 import { Holders } from "@/components/holders";
 import { API_URL } from "@/lib/api";
-import { AppHeader } from "@/components/app-header";\nimport { SiteFooter } from "@/components/site-footer";\nimport { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { AppHeader } from "@/components/app-header";
+import { SiteFooter } from "@/components/site-footer";
+import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
