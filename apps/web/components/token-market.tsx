@@ -17,6 +17,7 @@ import { curveAbi, erc20Abi, factoryAbi } from "@/lib/abi";
 import {
   celestialAddresses,
   celestialCurveAbi,
+  celestialFactoryAbi,
   celestialTokenAbi,
   dexAdapterAbi,
   orderBookAbi,
@@ -115,20 +116,66 @@ export function TokenMarket({ token }: { token: Address }) {
       .then((r) => (r.ok ? r.json() : {}))
       .catch(() => ({})) as IndexedToken;
 
-    const celestial = indexedToken.generation === "CELESTIAL";
+    let celestial = indexedToken.generation === "CELESTIAL";
     let curveAddress = indexedToken.curve_address;
 
-    if (!curveAddress) {
-      if (!addresses.factory) throw new Error("Factory address is not configured.");
-      curveAddress = (await client.readContract({
+    // Indexed data improves discovery/history, but market resolution must work
+    // directly from Arc so an indexer delay cannot make a live market unusable.
+    if (!curveAddress && celestialAddresses.factory) {
+      const celestialCurve = await client.readContract({
+        address: celestialAddresses.factory,
+        abi: celestialFactoryAbi,
+        functionName: "curveOf",
+        args: [token]
+      }).catch(() => zeroAddress) as Address;
+
+      if (celestialCurve !== zeroAddress) {
+        celestial = true;
+        curveAddress = celestialCurve;
+        indexedToken.generation = "CELESTIAL";
+
+        const [quoteAsset, graduation] = await Promise.all([
+          client.readContract({
+            address: celestialAddresses.factory,
+            abi: celestialFactoryAbi,
+            functionName: "quoteAssetOf",
+            args: [token]
+          }).catch(() => zeroAddress),
+          client.readContract({
+            address: celestialAddresses.factory,
+            abi: celestialFactoryAbi,
+            functionName: "graduations",
+            args: [token]
+          }).catch(() => undefined)
+        ]);
+
+        if (quoteAsset !== zeroAddress) {
+          indexedToken.quote_asset = quoteAsset as Address;
+        }
+
+        if (graduation) {
+          const pool = graduation[3] as Address;
+          if (pool !== zeroAddress) indexedToken.pool_address = pool;
+        }
+      }
+    }
+
+    if (!curveAddress && addresses.factory) {
+      const legacyCurve = await client.readContract({
         address: addresses.factory,
         abi: factoryAbi,
         functionName: "curveOf",
         args: [token]
-      })) as Address;
+      }).catch(() => zeroAddress) as Address;
+
+      if (legacyCurve !== zeroAddress) {
+        celestial = false;
+        curveAddress = legacyCurve;
+        indexedToken.generation = "V1";
+      }
     }
 
-    if (!curveAddress || BigInt(curveAddress) === 0n) {
+    if (!curveAddress || curveAddress === zeroAddress) {
       throw new Error("Token market could not be resolved.");
     }
 
