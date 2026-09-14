@@ -8,11 +8,13 @@ import {ArcLaunchFactory} from "../src/ArcLaunchFactory.sol";
 contract Deploy is Script {
     function run() external returns (ArcLaunchFactory factory) {
         address usdc = vm.envAddress("ARC_USDC_ADDRESS");
+        address treasury = vm.envAddress("PROTOCOL_TREASURY");
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(deployerKey);
         factory = new ArcLaunchFactory(
             IERC20(usdc),
+            treasury,
             2_500e6,
             10_000e6,
             100,
