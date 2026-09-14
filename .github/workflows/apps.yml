@@ -19,10 +19,18 @@ jobs:
       - run: docker build -f apps/indexer/Dockerfile -t arc-launchpad-indexer .
       - run: |
           docker run -d --name arc-postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=arc_launchpad -p 5432:5432 postgres:16
-          for i in {1..30}; do
-            docker exec arc-postgres pg_isready -U postgres && break
+          READY=0
+          for i in {1..45}; do
+            if docker exec arc-postgres pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+              READY=$((READY+1))
+              if [ "$READY" -ge 3 ]; then break; fi
+            else
+              READY=0
+            fi
             sleep 1
           done
+          test "$READY" -ge 3
+          docker exec arc-postgres psql -U postgres -d postgres -c "select 1" >/dev/null
           docker exec arc-postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='arc_launchpad'" | grep -q 1 || docker exec arc-postgres createdb -U postgres arc_launchpad
           docker exec -i arc-postgres psql -U postgres -d arc_launchpad < apps/indexer/schema.sql
           docker exec -i arc-postgres psql -U postgres -d arc_launchpad <<'SQL'
