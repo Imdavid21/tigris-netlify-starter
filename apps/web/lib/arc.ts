@@ -16,7 +16,9 @@ export const arcTestnet = defineChain({
 });
 
 export const addresses = {
-  factory: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined,
+  factory:
+    (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ??
+    "0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423",
   usdc:
     (process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined) ??
     "0x3600000000000000000000000000000000000000"
