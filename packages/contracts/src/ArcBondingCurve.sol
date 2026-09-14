@@ -108,6 +108,15 @@ contract ArcBondingCurve is ReentrancyGuard {
 
     function quoteBuy(uint256 quoteIn) public view returns (uint256 tokensOut) {
         if (!initialized) revert NotInitialized();
+        if (graduated || quoteIn == 0) return 0;
+
+        uint256 remainingQuoteCapacity =
+            graduationThreshold > trackedQuote ? graduationThreshold - trackedQuote : 0;
+        if (remainingQuoteCapacity == 0) return 0;
+
+        uint256 maxGrossInput =
+            remainingQuoteCapacity * BPS / (BPS - feeBps);
+        if (quoteIn > maxGrossInput) quoteIn = maxGrossInput;
 
         tokensOut = BondingCurveMath.amountOut(
             quoteIn,
@@ -174,7 +183,7 @@ contract ArcBondingCurve is ReentrancyGuard {
         nonReentrant
         returns (uint256 quoteOut)
     {
-        if (graduated) revert CurveClosed();
+        if (graduated || readyToGraduate()) revert CurveClosed();
         if (tokenIn == 0) revert ZeroAmount();
 
         quoteOut = quoteSell(tokenIn);
