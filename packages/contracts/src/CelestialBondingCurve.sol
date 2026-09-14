@@ -43,6 +43,14 @@ contract CelestialBondingCurve is ReentrancyGuard {
     bool public initialized;
     bool public graduated;
 
+    struct BuyFees {
+        uint256 baseFee;
+        uint256 creatorTax;
+        uint256 holderFee;
+        uint256 snipeFee;
+        uint256 net;
+    }
+
     mapping(address => bool) public snipeExempt;
 
     error NotFactory();
@@ -204,31 +212,30 @@ contract CelestialBondingCurve is ReentrancyGuard {
         uint256 remaining = graduationThreshold > trackedQuote ? graduationThreshold - trackedQuote : 0;
         if (remaining == 0) revert CurveClosed();
 
-        uint256 snipeBps = currentSnipeBps(recipient);
-        uint256 feeTotalBps = feeBps + creatorTaxBps + holderFeeBps + snipeBps;
-        uint256 netBps = BPS - feeTotalBps;
+        uint256 netBps = BPS - totalBuyFeeBps(recipient);
         uint256 maxGrossInput = remaining * BPS / netBps;
         if (quoteIn > maxGrossInput) quoteIn = maxGrossInput;
 
         tokensOut = quoteBuyFor(recipient, quoteIn);
         if (tokensOut < minTokensOut || tokensOut == 0) revert SlippageExceeded();
 
-        uint256 baseFee = quoteIn * feeBps / BPS;
-        uint256 creatorTax = quoteIn * creatorTaxBps / BPS;
-        uint256 holderFee = quoteIn * holderFeeBps / BPS;
-        uint256 snipeFee = quoteIn * snipeBps / BPS;
-        uint256 net = quoteIn - baseFee - creatorTax - holderFee - snipeFee;
-
+        BuyFees memory fees = _calculateBuyFees(recipient, quoteIn);
         quoteAsset.safeTransferFrom(msg.sender, address(this), quoteIn);
 
-        trackedQuote += net;
+        trackedQuote += fees.net;
         trackedTokens -= tokensOut;
-        _accrueBaseFee(baseFee, creatorTax, snipeFee);
+        _accrueBaseFee(fees.baseFee, fees.creatorTax, fees.snipeFee);
 
         IERC20(token).safeTransfer(recipient, tokensOut);
-        _distributeHolderFee(holderFee);
+        _distributeHolderFee(fees.holderFee);
 
-        emit Buy(msg.sender, recipient, quoteIn, tokensOut, baseFee + creatorTax + holderFee + snipeFee);
+        emit Buy(
+            msg.sender,
+            recipient,
+            quoteIn,
+            tokensOut,
+            fees.baseFee + fees.creatorTax + fees.holderFee + fees.snipeFee
+        );
     }
 
     function sell(uint256 tokenIn, uint256 minQuoteOut) external returns (uint256 quoteOut) {
@@ -309,6 +316,18 @@ contract CelestialBondingCurve is ReentrancyGuard {
         quoteAsset.safeTransfer(recipient, quoteAmount);
         IERC20(token).safeTransfer(recipient, tokenAmount);
         emit GraduationStarted(quoteAmount, tokenAmount);
+    }
+
+    function _calculateBuyFees(address recipient, uint256 quoteIn)
+        internal
+        view
+        returns (BuyFees memory fees)
+    {
+        fees.baseFee = quoteIn * feeBps / BPS;
+        fees.creatorTax = quoteIn * creatorTaxBps / BPS;
+        fees.holderFee = quoteIn * holderFeeBps / BPS;
+        fees.snipeFee = quoteIn * currentSnipeBps(recipient) / BPS;
+        fees.net = quoteIn - fees.baseFee - fees.creatorTax - fees.holderFee - fees.snipeFee;
     }
 
     function _accrueBaseFee(uint256 baseFee, uint256 creatorTax, uint256 snipeFee) internal {
