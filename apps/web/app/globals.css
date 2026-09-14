@@ -204,3 +204,49 @@ label>span{font-size:12px;color:#89958e}
   .market-data-grid,.about-grid{grid-template-columns:1fr}
   .metric-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+.search-trigger{
+  display:flex;align-items:center;gap:22px;padding:8px 10px;
+  border:1px solid #232925;background:#0b0e0c;color:#707b75;font-size:11px
+}
+.search-trigger kbd{font:inherit;color:#566159}
+.search-backdrop{
+  position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.64);
+  backdrop-filter:blur(8px);display:grid;place-items:start center;padding-top:12vh
+}
+.search-modal{
+  width:min(620px,calc(100vw - 28px));border:1px solid #2a312d;border-radius:16px;
+  background:#0a0d0b;box-shadow:0 28px 80px rgba(0,0,0,.5);overflow:hidden
+}
+.search-modal>input{border:0;border-radius:0;padding:17px 18px;font-size:16px;background:#0d100e}
+.search-results{padding:6px}
+.search-results>p{padding:22px;text-align:center;color:#66726b;font-size:12px}
+.search-results a{display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;padding:10px;border-radius:10px}
+.search-results a:hover{background:#121713}
+.search-avatar{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:#dff1e5;color:#0a110d;font-size:11px;font-weight:800}
+.search-results strong{display:block;font-size:13px}
+.search-results small{color:#647069}
+.search-results em{font-style:normal;color:#68746d;font-size:10px}
+.search-help{display:flex;justify-content:space-between;padding:10px 14px;border-top:1px solid #1c221e;color:#556159;font-size:10px}
+
+.feature-notice{
+  display:flex;justify-content:space-between;gap:20px;align-items:center;
+  padding:13px 15px;border:1px solid #2b332e;border-radius:12px;background:#0b0e0c;margin-bottom:14px
+}
+.feature-notice strong{font-size:12px}
+.feature-notice span{color:#6d7871;font-size:11px}
+.stocks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stock-card{display:grid;grid-template-columns:42px 1fr auto;gap:12px;align-items:center;padding:15px;border:1px solid #202622;border-radius:13px;background:#090c0a}
+.stock-symbol{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:#171e19;color:#a8b8ae;font-size:11px;font-weight:800}
+.stock-card strong{display:block;font-size:13px}
+.stock-card div>span{display:block;margin-top:3px;color:#68736d;font-size:10px}
+.jurisdiction-card{max-width:760px;margin-top:26px;padding:20px;border:1px solid #202622;border-radius:14px;background:#090c0a}
+.jurisdiction-card h2{margin:8px 0;font-size:22px;letter-spacing:-.03em}
+.jurisdiction-card p{margin:0;color:#76817b;font-size:12px;line-height:1.6}
+
+@media(max-width:780px){
+  .search-trigger{display:none}
+  .stocks-grid{grid-template-columns:1fr}
+  .feature-notice{align-items:flex-start;flex-direction:column}
+}
