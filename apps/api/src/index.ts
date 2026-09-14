@@ -35,7 +35,8 @@ app.get("/stats", async () => {
       "(select count(*)::int from tokens where status='GRADUATED') as graduated, " +
       "(select coalesce(sum(quote_spent),0)::text from buybacks) as buyback_quote, " +
       "(select coalesce(sum(tokens_burned),0)::text from buybacks) as tokens_burned, " +
-      "(select count(*)::int from limit_orders where status='OPEN') as open_orders"
+      "(select count(*)::int from limit_orders where status='OPEN') as open_orders, " +
+      "(select count(*)::int from buybacks) as buyback_count"
   );
   return result.rows[0];
 });
@@ -244,7 +245,9 @@ app.get("/wallet/:address/positions", async (request, reply) => {
        b.balance::text,
        t.name,
        t.symbol,
-       t.status
+       t.status,
+       t.generation,
+       case when t.quote_asset is null then null else '0x' || encode(t.quote_asset,'hex') end as quote_asset
      from balances b
      join tokens t on t.address=b.token
      order by b.balance desc
