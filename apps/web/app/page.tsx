@@ -1,4 +1,5 @@
 import { AppHeader } from "@/components/app-header";
+import { SiteFooter } from "@/components/site-footer";
 
 const features = [
   ["Launch with real market structure", "Configure quote asset, creator economics, holder rewards, opening protection, and an optional developer buy in one flow."],
@@ -119,6 +120,8 @@ export default function Home() {
           <a className="secondary-link" href="/create">Create a market</a>
         </div>
       </section>
+
+      <SiteFooter />
     </main>
   );
 }
