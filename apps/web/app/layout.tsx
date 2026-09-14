@@ -1,42 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { BrandFooter } from "@/components/brand-footer";
 
 export const metadata: Metadata = {
-  title: {
-    default: "Celestial",
-    template: "%s | Celestial"
-  },
-  description: "Launch, discover, and trade onchain markets on Arc.",
-  applicationName: "Celestial",
-  icons: {
-    icon: "/icon.svg"
-  }
+  title: "Arc Launchpad",
+  description: "USDC-native token launches on Arc"
 };
-
-const themeScript = `
-  (() => {
-    try {
-      const saved = localStorage.getItem("celestial-theme");
-      const theme = saved === "light" || saved === "dark"
-        ? saved
-        : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-      document.documentElement.dataset.theme = theme;
-    } catch (_) {
-      document.documentElement.dataset.theme = "dark";
-    }
-  })();
-`;
 
 export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body>{children}<BrandFooter /></body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
