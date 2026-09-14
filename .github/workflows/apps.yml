@@ -80,6 +80,8 @@ jobs:
           PID=$!
           for i in {1..30}; do curl -fsS http://127.0.0.1:3000/ && break; sleep 1; done
           curl -fsS http://127.0.0.1:3000/ | grep 'Arc Launchpad'
-          curl -fsS http://127.0.0.1:3000/create | grep 'Create token'
-          curl -fsS http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001 | grep 'Back'
+          curl -fsS http://127.0.0.1:3000/create | grep 'Launch token'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/profile)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/analytics)" = "200"
           kill $PID
