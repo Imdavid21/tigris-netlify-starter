@@ -1,11 +1,13 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import pg from "pg";
+import { schemaSql } from "./schema.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
 const db = new pg.Pool({ connectionString: databaseUrl });
+await db.query(schemaSql);
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
