@@ -11,6 +11,7 @@ import {CelestialBuybackVault} from "./CelestialBuybackVault.sol";
 import {ArcLiquidityLocker} from "./ArcLiquidityLocker.sol";
 import {IGraduationAdapter} from "./interfaces/IGraduationAdapter.sol";
 import {BondingCurveMath} from "./libraries/BondingCurveMath.sol";
+import {CelestialV4PriceMath} from "./libraries/CelestialV4PriceMath.sol";
 
 contract CelestialLaunchFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -61,6 +62,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
     struct Graduation {
         uint256 quoteAmount;
         uint256 tokenAmount;
+        uint160 sqrtPriceX96;
         address pool;
         uint256 positionId;
         bool swept;
@@ -90,6 +92,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
     event MetadataSet(address indexed token, string description, string image, string website, string twitter, string telegram);
     event DeveloperBuy(address indexed token, address indexed creator, uint256 quoteIn, uint256 tokensOut);
     event GraduationSwept(address indexed token, uint256 quoteAmount, uint256 tokenAmount);
+    event GraduationPriceLocked(address indexed token, uint160 sqrtPriceX96);
     event TokenGraduated(address indexed token, address indexed pool, uint256 positionId);
     event GraduationAdapterUpdated(address indexed adapter);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -310,6 +313,15 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         g.swept = true;
 
         CelestialBondingCurve curve = CelestialBondingCurve(curveAddr);
+        address quoteAsset = quoteAssetOf[token];
+        g.sqrtPriceX96 = CelestialV4PriceMath.sqrtPriceX96(
+            token,
+            quoteAsset,
+            curve.trackedTokens(),
+            curve.virtualQuoteReserve()
+        );
+        emit GraduationPriceLocked(token, g.sqrtPriceX96);
+
         if (
             curve.pendingProtocolFees() +
             curve.pendingCreatorFees() +
@@ -347,6 +359,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
             quoteAsset,
             g.tokenAmount,
             g.quoteAmount,
+            g.sqrtPriceX96,
             address(liquidityLocker)
         );
 
