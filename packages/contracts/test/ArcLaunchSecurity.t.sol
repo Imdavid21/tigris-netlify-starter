@@ -158,9 +158,7 @@ contract ArcLaunchSecurityTest is Test {
 
     function testGraduationAdapterCannotReenterFactory() public {
         MockReentrantGraduationAdapter adapter =
-            new MockReentrantGraduationAdapter(
-                MockReentrantGraduationAdapter.IReentryFactory(address(factory))
-            );
+            new MockReentrantGraduationAdapter(address(factory));
         factory.setGraduationAdapter(adapter);
 
         (address token, address curve) = _launch();
