@@ -7,8 +7,7 @@ export default function Home() {
       <AppHeader />
       <section className="explore-hero">
         <div>
-          <span className="kicker">Markets</span>
-          <h1>Find the next market before everyone else.</h1>
+            <h1>Find the next market before everyone else.</h1>
           <p>Launch, trade, and graduate USDC-native tokens on Arc.</p>
         </div>
         <a href="/create" className="primary-link">Launch a token</a>
