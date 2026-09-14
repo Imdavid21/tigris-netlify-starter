@@ -6,7 +6,8 @@ import { addresses, arcTestnet } from "@/lib/arc";
 import { feeEscrowAbi } from "@/lib/abi";
 import { celestialAddresses, celestialFeeEscrowAbi, orderBookAbi, quoteAssets } from "@/lib/celestial";
 import { API_URL } from "@/lib/api";
-import { useWalletSession } from "@/components/wallet-session";\nimport { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { useWalletSession } from "@/components/wallet-session";
+import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 
 type Activity = { tx_hash:string; token:string; side:string; quote_amount:string; block_time:string };
 type Launch = { address:string; name:string; symbol:string; status:string; created_at:string };
