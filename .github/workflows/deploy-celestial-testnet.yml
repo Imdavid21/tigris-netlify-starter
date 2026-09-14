@@ -1,0 +1,74 @@
+name: Deploy Celestial Testnet
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ARC_RPC_URL: "https://rpc.testnet.arc.network"
+      PROTOCOL_TREASURY: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+      EXPECTED_DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+      RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Normalize deployer key
+        run: |
+          test -n "$RAW_PRIVATE_KEY"
+          case "$RAW_PRIVATE_KEY" in
+            0x*) PRIVATE_KEY="$RAW_PRIVATE_KEY" ;;
+            *) PRIVATE_KEY="0x$RAW_PRIVATE_KEY" ;;
+          esac
+          echo "PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+          DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY")
+          test "${DEPLOYER,,}" = "${EXPECTED_DEPLOYER,,}"
+
+      - name: Verify Arc and test
+        run: |
+          test "$(cast chain-id --rpc-url "$ARC_RPC_URL")" = "5042002"
+          forge test -vv
+
+      - name: Deploy Celestial
+        id: deploy
+        run: |
+          set -o pipefail
+          forge script packages/contracts/script/DeployCelestial.s.sol:DeployCelestial \
+            --rpc-url "$ARC_RPC_URL" \
+            --broadcast \
+            -vvv | tee /tmp/celestial-deployment.log
+
+          FACTORY=$(grep "CELESTIAL_FACTORY" /tmp/celestial-deployment.log | tail -1 | awk '{print $NF}')
+          ESCROW=$(grep "CELESTIAL_FEE_ESCROW" /tmp/celestial-deployment.log | tail -1 | awk '{print $NF}')
+          BUYBACK=$(grep "CELESTIAL_BUYBACK_VAULT" /tmp/celestial-deployment.log | tail -1 | awk '{print $NF}')
+          LOCKER=$(grep "CELESTIAL_LIQUIDITY_LOCKER" /tmp/celestial-deployment.log | tail -1 | awk '{print $NF}')
+          ORDERBOOK=$(grep "CELESTIAL_LIMIT_ORDER_BOOK" /tmp/celestial-deployment.log | tail -1 | awk '{print $NF}')
+
+          {
+            echo "## Celestial Arc Testnet"
+            echo "- Factory: `$FACTORY`"
+            echo "- Fee escrow: `$ESCROW`"
+            echo "- Buyback vault: `$BUYBACK`"
+            echo "- Liquidity locker: `$LOCKER`"
+            echo "- Limit order book: `$ORDERBOOK`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celestial-testnet-deployment
+          path: |
+            /tmp/celestial-deployment.log
+            broadcast/
