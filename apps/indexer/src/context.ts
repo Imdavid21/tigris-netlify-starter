@@ -18,6 +18,7 @@ const arc = defineChain({
 
 export const client = createPublicClient({
   chain: arc,
+  pollingInterval: Number(process.env.ARC_POLLING_INTERVAL_MS ?? "15000"),
   transport: wsUrl ? webSocket(wsUrl) : http(rpcUrl)
 });
 
