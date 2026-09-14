@@ -1,0 +1,124 @@
+name: deploy-arc-testnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to broadcast Arc Testnet contracts"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: arc-testnet
+
+    env:
+      ARC_RPC_URL: https://rpc.testnet.arc.network
+      ARC_USDC_ADDRESS: 0x3600000000000000000000000000000000000000
+      PROTOCOL_TREASURY: 0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01
+      EXPECTED_DEPLOYER: 0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01
+      PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install contract dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Verify secret exists
+        run: |
+          test -n "$PRIVATE_KEY" || {
+            echo "::error::ARC_DEPLOYER_PRIVATE_KEY is not configured in the arc-testnet environment."
+            exit 1
+          }
+
+      - name: Verify deployer wallet
+        run: |
+          DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY")
+          echo "Deployer: $DEPLOYER"
+          test "${DEPLOYER,,}" = "${EXPECTED_DEPLOYER,,}" || {
+            echo "::error::Private key does not match the approved test deployer $EXPECTED_DEPLOYER"
+            exit 1
+          }
+
+      - name: Verify Arc Testnet
+        run: |
+          CHAIN_ID=$(cast chain-id --rpc-url "$ARC_RPC_URL")
+          echo "Arc chain ID: $CHAIN_ID"
+          test "$CHAIN_ID" = "5042002"
+
+          DECIMALS=$(cast call "$ARC_USDC_ADDRESS" "decimals()(uint8)" --rpc-url "$ARC_RPC_URL")
+          echo "Arc USDC ERC20 decimals: $DECIMALS"
+          test "$DECIMALS" = "6"
+
+      - name: Check deployer gas balance
+        run: |
+          BALANCE=$(cast balance "$EXPECTED_DEPLOYER" --rpc-url "$ARC_RPC_URL")
+          echo "Native gas balance (base units): $BALANCE"
+          test "$BALANCE" != "0" || {
+            echo "::error::Deployer has no Arc Testnet USDC for gas. Fund it from the Circle faucet first."
+            exit 1
+          }
+
+      - name: Run contract tests
+        run: forge test -vv
+
+      - name: Simulate deployment
+        run: |
+          forge script packages/contracts/script/Deploy.s.sol:Deploy \
+            --rpc-url "$ARC_RPC_URL" \
+            -vvv
+
+      - name: Broadcast deployment
+        id: deploy
+        run: |
+          set -o pipefail
+          forge script packages/contracts/script/Deploy.s.sol:Deploy \
+            --rpc-url "$ARC_RPC_URL" \
+            --broadcast \
+            -vvv | tee /tmp/arc-deployment.log
+
+          FACTORY=$(grep "ARC_LAUNCH_FACTORY" /tmp/arc-deployment.log | tail -1 | awk '{print $NF}')
+          ESCROW=$(grep "ARC_FEE_ESCROW" /tmp/arc-deployment.log | tail -1 | awk '{print $NF}')
+          LOCKER=$(grep "ARC_LIQUIDITY_LOCKER" /tmp/arc-deployment.log | tail -1 | awk '{print $NF}')
+
+          test -n "$FACTORY"
+          test -n "$ESCROW"
+          test -n "$LOCKER"
+
+          {
+            echo "## Arc Testnet deployment"
+            echo ""
+            echo "- Factory: \`$FACTORY\`"
+            echo "- Fee escrow: \`$ESCROW\`"
+            echo "- Liquidity locker: \`$LOCKER\`"
+            echo "- Treasury: \`$PROTOCOL_TREASURY\`"
+            echo "- USDC: \`$ARC_USDC_ADDRESS\`"
+            echo "- Chain ID: \`5042002\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "factory=$FACTORY" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployed factory bytecode
+        run: |
+          CODE=$(cast code "${{ steps.deploy.outputs.factory }}" --rpc-url "$ARC_RPC_URL")
+          test "$CODE" != "0x"
+          echo "Factory bytecode verified on Arc Testnet."
+
+      - name: Upload deployment logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: arc-testnet-deployment
+          path: |
+            /tmp/arc-deployment.log
+            broadcast/
+          if-no-files-found: warn
