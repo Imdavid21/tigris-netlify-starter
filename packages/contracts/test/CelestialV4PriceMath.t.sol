@@ -49,8 +49,17 @@ contract CelestialV4PriceMathTest is Test {
         assertTrue(usdcPrice != btcPrice);
     }
 
+    function callPrice(uint256 tokenReserve, uint256 quoteReserve) external pure returns (uint160) {
+        return CelestialV4PriceMath.sqrtPriceX96(
+            address(1),
+            address(2),
+            tokenReserve,
+            quoteReserve
+        );
+    }
+
     function testRejectsZeroReserve() public {
         vm.expectRevert(CelestialV4PriceMath.InvalidPrice.selector);
-        CelestialV4PriceMath.sqrtPriceX96(address(1), address(2), 0, 1);
+        this.callPrice(0, 1);
     }
 }
