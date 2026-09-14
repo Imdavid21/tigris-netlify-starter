@@ -31,6 +31,7 @@ contract MockCelestialDexConnector is ICelestialDexConnector {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
+        uint160,
         address
     ) external returns (address, uint256) {
         IERC20(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
