@@ -19,8 +19,14 @@ app.get("/health", async () => {
 
 app.get("/tokens", async (request) => {
   const q = request.query as { status?: string; limit?: string; offset?: string };
-  const limit = Math.min(Math.max(Number(q.limit ?? 50), 1), 100);
-  const offset = Math.max(Number(q.offset ?? 0), 0);
+  const parsedLimit = Number(q.limit ?? 50);
+  const parsedOffset = Number(q.offset ?? 0);
+  const limit = Number.isFinite(parsedLimit)
+    ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 100)
+    : 50;
+  const offset = Number.isFinite(parsedOffset)
+    ? Math.max(Math.trunc(parsedOffset), 0)
+    : 0;
 
   const values: unknown[] = [];
   let where = "";
