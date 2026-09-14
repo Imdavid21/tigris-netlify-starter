@@ -8,15 +8,29 @@ if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
 const db = new pg.Pool({ connectionString: databaseUrl });
 await db.query(schemaSql);
+
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(",") ?? true
 });
 
+app.get("/", async () => ({ service: "arc-launchpad-api", ok: true }));
+
 app.get("/health", async () => {
   const result = await db.query("select now() as now");
   return { ok: true, databaseTime: result.rows[0].now };
+});
+
+app.get("/stats", async () => {
+  const result = await db.query(
+    "select " +
+      "(select count(*)::int from tokens) as launches, " +
+      "(select count(*)::int from trades) as trades, " +
+      "(select coalesce(sum(quote_amount),0)::text from trades) as quote_volume, " +
+      "(select count(*)::int from tokens where status='GRADUATED') as graduated"
+  );
+  return result.rows[0];
 });
 
 app.get("/tokens", async (request) => {
@@ -35,7 +49,7 @@ app.get("/tokens", async (request) => {
 
   if (q.status) {
     values.push(q.status.toUpperCase());
-    where = `where status = $${values.length}`;
+    where = "where status = $" + values.length;
   }
 
   values.push(limit, offset);
@@ -50,10 +64,27 @@ app.get("/tokens", async (request) => {
        created_block,
        created_at,
        status,
-       case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address
+       case when pool_address is null then null else '0x' || encode(pool_address,'hex') end as pool_address,
+       coalesce((
+         select sum(tr.quote_amount)::text
+         from trades tr
+         where tr.token=tokens.address and tr.block_time > now() - interval '24 hours'
+       ), '0') as volume_24h,
+       coalesce((
+         select count(*)::int
+         from trades tr
+         where tr.token=tokens.address and tr.block_time > now() - interval '24 hours'
+       ), 0) as trades_24h,
+       (
+         select max(tr.block_time)
+         from trades tr
+         where tr.token=tokens.address
+       ) as last_trade_at
      from tokens
      ${where}
-     order by created_at desc
+     order by coalesce((
+       select max(tr.block_time) from trades tr where tr.token=tokens.address
+     ), created_at) desc
      limit $${values.length - 1} offset $${values.length}`,
     values
   );
@@ -63,7 +94,9 @@ app.get("/tokens", async (request) => {
 
 app.get("/tokens/:address", async (request, reply) => {
   const { address } = request.params as { address: string };
-  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return reply.code(400).send({ error: "invalid address" });
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return reply.code(400).send({ error: "invalid address" });
+  }
 
   const result = await db.query(
     `select
@@ -94,7 +127,9 @@ app.get("/tokens/:address", async (request, reply) => {
 
 app.get("/wallet/:address/activity", async (request, reply) => {
   const { address } = request.params as { address: string };
-  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return reply.code(400).send({ error: "invalid address" });
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return reply.code(400).send({ error: "invalid address" });
+  }
 
   const result = await db.query(
     `select
