@@ -20,7 +20,8 @@ import {
   celestialFactoryAbi,
   quoteAssets
 } from "@/lib/celestial";
-import { ensureArcChain } from "@/lib/wallet";\nimport { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { ensureArcChain } from "@/lib/wallet";
+import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 import { useWalletSession } from "@/components/wallet-session";
 
 function getProvider(): EIP1193Provider | undefined {
