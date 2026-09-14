@@ -61,62 +61,63 @@ contract CelestialBondingCurve is ReentrancyGuard {
     event HolderFeeDistributed(uint256 amount);
     event GraduationStarted(uint256 quoteAmount, uint256 tokenAmount);
 
-    constructor(
-        IERC20 quoteAsset_,
-        CelestialFeeEscrow feeEscrow_,
-        address buybackVault_,
-        address protocolTreasury_,
-        address creator_,
-        address creatorFeeRecipient_,
-        address factory_,
-        uint256 phantomQuote_,
-        uint256 graduationThreshold_,
-        uint256 feeBps_,
-        uint256 protocolShareBps_,
-        uint256 buybackShareBps_,
-        uint256 creatorTaxBps_,
-        uint256 holderFeeBps_,
-        uint256 maxSnipeBps_,
-        uint256 snipeDuration_,
-        uint256 reservedTokens_,
-        address[] memory snipeExemptions_
-    ) {
+    struct Config {
+        IERC20 quoteAsset;
+        CelestialFeeEscrow feeEscrow;
+        address buybackVault;
+        address protocolTreasury;
+        address creator;
+        address creatorFeeRecipient;
+        address factory;
+        uint256 phantomQuote;
+        uint256 graduationThreshold;
+        uint256 feeBps;
+        uint256 protocolShareBps;
+        uint256 buybackShareBps;
+        uint256 creatorTaxBps;
+        uint256 holderFeeBps;
+        uint256 maxSnipeBps;
+        uint256 snipeDuration;
+        uint256 reservedTokens;
+    }
+
+    constructor(Config memory cfg, address[] memory snipeExemptions_) {
         if (
-            address(quoteAsset_) == address(0) ||
-            address(feeEscrow_) == address(0) ||
-            buybackVault_ == address(0) ||
-            protocolTreasury_ == address(0) ||
-            creator_ == address(0) ||
-            creatorFeeRecipient_ == address(0) ||
-            factory_ == address(0) ||
-            phantomQuote_ == 0 ||
-            graduationThreshold_ == 0 ||
-            feeBps_ + creatorTaxBps_ + holderFeeBps_ + maxSnipeBps_ >= BPS ||
-            protocolShareBps_ > BPS ||
-            buybackShareBps_ > BPS
+            address(cfg.quoteAsset) == address(0) ||
+            address(cfg.feeEscrow) == address(0) ||
+            cfg.buybackVault == address(0) ||
+            cfg.protocolTreasury == address(0) ||
+            cfg.creator == address(0) ||
+            cfg.creatorFeeRecipient == address(0) ||
+            cfg.factory == address(0) ||
+            cfg.phantomQuote == 0 ||
+            cfg.graduationThreshold == 0 ||
+            cfg.feeBps + cfg.creatorTaxBps + cfg.holderFeeBps + cfg.maxSnipeBps >= BPS ||
+            cfg.protocolShareBps > BPS ||
+            cfg.buybackShareBps > BPS
         ) revert InvalidConfig();
 
-        quoteAsset = quoteAsset_;
-        feeEscrow = feeEscrow_;
-        buybackVault = buybackVault_;
-        protocolTreasury = protocolTreasury_;
-        creator = creator_;
-        creatorFeeRecipient = creatorFeeRecipient_;
-        factory = factory_;
-        phantomQuote = phantomQuote_;
-        graduationThreshold = graduationThreshold_;
-        feeBps = feeBps_;
-        protocolShareBps = protocolShareBps_;
-        buybackShareBps = buybackShareBps_;
-        creatorTaxBps = creatorTaxBps_;
-        holderFeeBps = holderFeeBps_;
-        maxSnipeBps = maxSnipeBps_;
-        snipeDuration = snipeDuration_;
-        reservedTokens = reservedTokens_;
+        quoteAsset = cfg.quoteAsset;
+        feeEscrow = cfg.feeEscrow;
+        buybackVault = cfg.buybackVault;
+        protocolTreasury = cfg.protocolTreasury;
+        creator = cfg.creator;
+        creatorFeeRecipient = cfg.creatorFeeRecipient;
+        factory = cfg.factory;
+        phantomQuote = cfg.phantomQuote;
+        graduationThreshold = cfg.graduationThreshold;
+        feeBps = cfg.feeBps;
+        protocolShareBps = cfg.protocolShareBps;
+        buybackShareBps = cfg.buybackShareBps;
+        creatorTaxBps = cfg.creatorTaxBps;
+        holderFeeBps = cfg.holderFeeBps;
+        maxSnipeBps = cfg.maxSnipeBps;
+        snipeDuration = cfg.snipeDuration;
+        reservedTokens = cfg.reservedTokens;
         launchTimestamp = block.timestamp;
 
-        snipeExempt[creator_] = true;
-        snipeExempt[creatorFeeRecipient_] = true;
+        snipeExempt[cfg.creator] = true;
+        snipeExempt[cfg.creatorFeeRecipient] = true;
         for (uint256 i; i < snipeExemptions_.length; ++i) {
             if (snipeExemptions_[i] != address(0)) snipeExempt[snipeExemptions_[i]] = true;
         }
