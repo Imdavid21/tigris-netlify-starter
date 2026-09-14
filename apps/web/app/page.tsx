@@ -1,24 +1,18 @@
-import { WalletButton } from "@/components/wallet-button";
+import { AppHeader } from "@/components/app-header";
 import { Launches } from "@/components/launches";
 
 export default function Home() {
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <a href="/" className="brand">Arc Launchpad</a>
-        <nav className="nav">
-          <a href="/">Explore</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/create">Create</a>
-        </nav>
-        <WalletButton />
-      </header>
-
-      <section className="page-heading">
-        <h1>Explore</h1>
-        <p>USDC-native tokens climbing toward graduation on Arc.</p>
+      <AppHeader />
+      <section className="explore-hero">
+        <div>
+          <span className="kicker">Markets</span>
+          <h1>Find the next market before everyone else.</h1>
+          <p>Launch, trade, and graduate USDC-native tokens on Arc.</p>
+        </div>
+        <a href="/create" className="primary-link">Launch a token</a>
       </section>
-
       <Launches />
     </main>
   );
