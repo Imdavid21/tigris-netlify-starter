@@ -32,8 +32,7 @@ contract CelestialProtocolTest is Test {
             protocolShareBps: 7_500,
             buybackShareBps: 2_000,
             maxSnipeBps: 2_000,
-            snipeDuration: 5,
-            enabled: true
+            snipeDuration: 5
         });
         factory.configureQuoteAsset(address(usdc), config);
         factory.configureQuoteAsset(address(eurc), config);
@@ -133,6 +132,7 @@ contract CelestialProtocolTest is Test {
 
         assertTrue(orderBook.canExecute(id));
         orderBook.execute(id);
-        assertFalse(orderBook.orders(id).active);
+        (, , , , , bool active) = orderBook.orders(id);
+        assertFalse(active);
     }
 }
