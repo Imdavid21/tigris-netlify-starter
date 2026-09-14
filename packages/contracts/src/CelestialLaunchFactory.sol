@@ -9,7 +9,7 @@ import {CelestialBondingCurve} from "./CelestialBondingCurve.sol";
 import {CelestialFeeEscrow} from "./CelestialFeeEscrow.sol";
 import {CelestialBuybackVault} from "./CelestialBuybackVault.sol";
 import {ArcLiquidityLocker} from "./ArcLiquidityLocker.sol";
-import {IGraduationAdapter} from "./interfaces/IGraduationAdapter.sol";
+import {ICelestialGraduationAdapter} from "./interfaces/ICelestialGraduationAdapter.sol";
 import {BondingCurveMath} from "./libraries/BondingCurveMath.sol";
 import {CelestialV4PriceMath} from "./libraries/CelestialV4PriceMath.sol";
 
@@ -27,7 +27,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
     CelestialFeeEscrow public immutable feeEscrow;
     CelestialBuybackVault public immutable buybackVault;
     ArcLiquidityLocker public immutable liquidityLocker;
-    IGraduationAdapter public graduationAdapter;
+    ICelestialGraduationAdapter public graduationAdapter;
 
     struct QuoteConfig {
         bool enabled;
@@ -148,7 +148,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         emit QuoteAssetConfigured(asset, config.enabled, config.graduationThreshold);
     }
 
-    function setGraduationAdapter(IGraduationAdapter adapter) external onlyOwner {
+    function setGraduationAdapter(ICelestialGraduationAdapter adapter) external onlyOwner {
         if (address(adapter) == address(0)) revert ZeroAddress();
         graduationAdapter = adapter;
         emit GraduationAdapterUpdated(address(adapter));
@@ -344,7 +344,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         if (!g.swept || g.seeded) revert WrongGraduationState();
         g.seeded = true;
 
-        IGraduationAdapter adapter = graduationAdapter;
+        ICelestialGraduationAdapter adapter = graduationAdapter;
         if (address(adapter) == address(0)) revert AdapterNotSet();
 
         address quoteAsset = quoteAssetOf[token];
