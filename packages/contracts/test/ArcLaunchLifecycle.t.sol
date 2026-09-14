@@ -30,10 +30,20 @@ contract ArcLaunchLifecycleTest is Test {
         usdc.mint(trader, 100_000e6);
     }
 
-    function testCreateBuySellLifecycle() public {
+    function _launch() internal returns (address tokenAddr, address curveAddr) {
         vm.prank(creator);
-        (address tokenAddr, address curveAddr) =
-            factory.createToken("Arc Test", "ARCX");
+        return factory.createToken("Arc Test", "ARCX");
+    }
+
+    function _buyToGraduation(address curveAddr) internal {
+        vm.startPrank(trader);
+        usdc.approve(curveAddr, type(uint256).max);
+        ArcBondingCurve(curveAddr).buy(100_000e6, 1);
+        vm.stopPrank();
+    }
+
+    function testCreateBuySellLifecycle() public {
+        (address tokenAddr, address curveAddr) = _launch();
 
         ArcToken token = ArcToken(tokenAddr);
         ArcBondingCurve curve = ArcBondingCurve(curveAddr);
@@ -59,8 +69,7 @@ contract ArcLaunchLifecycleTest is Test {
     }
 
     function testFeesSweepAndClaim() public {
-        vm.prank(creator);
-        (, address curveAddr) = factory.createToken("Arc Test", "ARCX");
+        (, address curveAddr) = _launch();
 
         ArcBondingCurve curve = ArcBondingCurve(curveAddr);
         ArcFeeEscrow escrow = factory.feeEscrow();
@@ -82,15 +91,10 @@ contract ArcLaunchLifecycleTest is Test {
     }
 
     function testBuyCapsRealReserveAtGraduationThreshold() public {
-        vm.prank(creator);
-        (, address curveAddr) = factory.createToken("Arc Test", "ARCX");
-
+        (, address curveAddr) = _launch();
         ArcBondingCurve curve = ArcBondingCurve(curveAddr);
 
-        vm.startPrank(trader);
-        usdc.approve(curveAddr, type(uint256).max);
-        curve.buy(100_000e6, 1);
-        vm.stopPrank();
+        _buyToGraduation(curveAddr);
 
         assertLe(curve.trackedQuote(), 10_000e6);
         assertTrue(curve.readyToGraduate());
@@ -100,61 +104,54 @@ contract ArcLaunchLifecycleTest is Test {
         MockGraduationAdapter adapter = new MockGraduationAdapter();
         factory.setGraduationAdapter(adapter);
 
-        vm.prank(creator);
-        (address tokenAddr, address curveAddr) =
-            factory.createToken("Arc Test", "ARCX");
-
-        ArcBondingCurve curve = ArcBondingCurve(curveAddr);
-
-        vm.startPrank(trader);
-        usdc.approve(curveAddr, type(uint256).max);
-        curve.buy(100_000e6, 1);
-        vm.stopPrank();
+        (address tokenAddr, address curveAddr) = _launch();
+        _buyToGraduation(curveAddr);
 
         factory.beginGraduation(tokenAddr);
+        assertTrue(ArcBondingCurve(curveAddr).graduated());
 
-        (
-            uint256 quoteAmount,
-            uint256 tokenAmount,
-            address poolBefore,
-            uint256 positionBefore,
-            bool swept,
-            bool seededBefore
-        ) = factory.graduations(tokenAddr);
+        {
+            (
+                uint256 quoteAmount,
+                uint256 tokenAmount,
+                address poolBefore,
+                uint256 positionBefore,
+                bool swept,
+                bool seededBefore
+            ) = factory.graduations(tokenAddr);
 
-        assertTrue(swept);
-        assertFalse(seededBefore);
-        assertEq(poolBefore, address(0));
-        assertEq(positionBefore, 0);
-        assertGt(quoteAmount, 0);
-        assertGt(tokenAmount, 0);
-        assertTrue(curve.graduated());
+            assertTrue(swept);
+            assertFalse(seededBefore);
+            assertEq(poolBefore, address(0));
+            assertEq(positionBefore, 0);
+            assertGt(quoteAmount, 0);
+            assertGt(tokenAmount, 0);
+        }
 
-        (address pool, uint256 positionId) =
-            factory.createGraduatedPool(tokenAddr);
-
+        (address pool, uint256 positionId) = factory.createGraduatedPool(tokenAddr);
         assertEq(pool, adapter.mockPool());
         assertEq(positionId, 1);
 
-        (
-            ,
-            ,
-            address storedPool,
-            uint256 storedPosition,
-            ,
-            bool seeded
-        ) = factory.graduations(tokenAddr);
+        {
+            (
+                uint256 quoteAmount,
+                uint256 tokenAmount,
+                address storedPool,
+                uint256 storedPosition,
+                ,
+                bool seeded
+            ) = factory.graduations(tokenAddr);
 
-        assertTrue(seeded);
-        assertEq(storedPool, pool);
-        assertEq(storedPosition, positionId);
-        assertEq(ArcToken(tokenAddr).balanceOf(address(adapter)), tokenAmount);
-        assertEq(usdc.balanceOf(address(adapter)), quoteAmount);
+            assertTrue(seeded);
+            assertEq(storedPool, pool);
+            assertEq(storedPosition, positionId);
+            assertEq(ArcToken(tokenAddr).balanceOf(address(adapter)), tokenAmount);
+            assertEq(usdc.balanceOf(address(adapter)), quoteAmount);
+        }
     }
 
     function testCannotTradeWithZeroInput() public {
-        vm.prank(creator);
-        (, address curveAddr) = factory.createToken("Arc Test", "ARCX");
+        (, address curveAddr) = _launch();
 
         vm.expectRevert(ArcBondingCurve.ZeroAmount.selector);
         ArcBondingCurve(curveAddr).buy(0, 0);
@@ -163,9 +160,7 @@ contract ArcLaunchLifecycleTest is Test {
     function testFuzzBuyNeverCrossesReservedInventory(uint96 amount) public {
         vm.assume(amount > 1e6 && amount < 100_000e6);
 
-        vm.prank(creator);
-        (address tokenAddr, address curveAddr) =
-            factory.createToken("Arc Test", "ARCX");
+        (address tokenAddr, address curveAddr) = _launch();
 
         ArcBondingCurve curve = ArcBondingCurve(curveAddr);
         ArcToken token = ArcToken(tokenAddr);
