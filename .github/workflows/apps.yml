@@ -23,12 +23,41 @@ jobs:
           done
           docker exec arc-postgres psql -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='arc_launchpad'" | grep -q 1 || docker exec arc-postgres createdb -U postgres arc_launchpad
           docker exec -i arc-postgres psql -U postgres -d arc_launchpad < apps/indexer/schema.sql
+          docker exec -i arc-postgres psql -U postgres -d arc_launchpad <<'SQL'
+          insert into tokens(address, curve_address, creator, name, symbol, created_block, created_at, status)
+          values (
+            decode('1111111111111111111111111111111111111111','hex'),
+            decode('2222222222222222222222222222222222222222','hex'),
+            decode('3333333333333333333333333333333333333333','hex'),
+            'Smoke Token',
+            'SMOKE',
+            1,
+            now(),
+            'ACTIVE'
+          );
+          insert into trades(tx_hash, log_index, block_number, block_time, token, trader, side, token_amount, quote_amount, fee_amount)
+          values (
+            decode(repeat('44',32),'hex'),
+            0,
+            2,
+            now(),
+            decode('1111111111111111111111111111111111111111','hex'),
+            decode('5555555555555555555555555555555555555555','hex'),
+            'BUY',
+            1000000000000000000,
+            1000000,
+            10000
+          );
+          SQL
       - run: |
           DATABASE_URL=postgres://postgres:test@127.0.0.1:5432/arc_launchpad PORT=3001 npm --workspace @arc-launchpad/api run start > /tmp/api.log 2>&1 &
           PID=$!
           for i in {1..30}; do curl -fsS http://127.0.0.1:3001/health && break; sleep 1; done
           curl -fsS http://127.0.0.1:3001/health | grep '"ok":true'
-          curl -fsS http://127.0.0.1:3001/tokens | grep '"items"'
+          curl -fsS http://127.0.0.1:3001/tokens | grep 'Smoke Token'
+          curl -fsS http://127.0.0.1:3001/tokens/0x1111111111111111111111111111111111111111 | grep 'SMOKE'
+          curl -fsS http://127.0.0.1:3001/tokens/0x1111111111111111111111111111111111111111 | grep '"BUY"'
+          curl -fsS http://127.0.0.1:3001/wallet/0x5555555555555555555555555555555555555555/activity | grep '"BUY"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/tokens/not-an-address)" = "400"
           kill $PID
       - run: |
