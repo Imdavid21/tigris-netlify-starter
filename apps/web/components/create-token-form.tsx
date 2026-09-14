@@ -2,34 +2,38 @@
 
 import { FormEvent, useState } from "react";
 import {
-  useAccount,
-  useChainId,
-  useSwitchChain,
-  useWaitForTransactionReceipt,
-  useWriteContract
-} from "wagmi";
+  createPublicClient,
+  createWalletClient,
+  custom,
+  getAddress,
+  http,
+  type EIP1193Provider
+} from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { factoryAbi } from "@/lib/abi";
 
+function getProvider(): EIP1193Provider | undefined {
+  return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
+}
+
 export function CreateTokenForm() {
-  const { isConnected } = useAccount();
-  const chainId = useChainId();
-  const { switchChainAsync } = useSwitchChain();
-  const { data: hash, error, isPending, writeContractAsync } = useWriteContract();
-  const receipt = useWaitForTransactionReceipt({ hash });
-  const [formError, setFormError] = useState<string | null>(null);
+  const [status, setStatus] = useState<
+    "idle" | "wallet" | "submitted" | "confirmed"
+  >("idle");
+  const [hash, setHash] = useState<`0x${string}`>();
+  const [error, setError] = useState<string>();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormError(null);
+    setError(undefined);
 
-    if (!isConnected) {
-      setFormError("Connect a wallet first.");
+    const ethereum = getProvider();
+    if (!ethereum) {
+      setError("No EVM wallet detected.");
       return;
     }
-
     if (!addresses.factory) {
-      setFormError("Factory address is not configured.");
+      setError("Factory address is not configured.");
       return;
     }
 
@@ -38,24 +42,54 @@ export function CreateTokenForm() {
     const symbol = String(data.get("symbol") ?? "").trim();
 
     if (!name || !symbol) {
-      setFormError("Name and ticker are required.");
+      setError("Name and ticker are required.");
       return;
     }
 
     try {
-      if (chainId !== arcTestnet.id) {
-        await switchChainAsync({ chainId: arcTestnet.id });
-      }
+      setStatus("wallet");
 
-      await writeContractAsync({
+      await ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${arcTestnet.id.toString(16)}` }]
+      });
+
+      const accounts = (await ethereum.request({
+        method: "eth_requestAccounts"
+      })) as string[];
+
+      if (!accounts[0]) throw new Error("No wallet account available.");
+
+      const account = getAddress(accounts[0]);
+      const wallet = createWalletClient({
+        account,
+        chain: arcTestnet,
+        transport: custom(ethereum)
+      });
+
+      const txHash = await wallet.writeContract({
         address: addresses.factory,
         abi: factoryAbi,
         functionName: "createToken",
-        args: [name, symbol],
-        chainId: arcTestnet.id
+        args: [name, symbol]
       });
+
+      setHash(txHash);
+      setStatus("submitted");
+
+      const publicClient = createPublicClient({
+        chain: arcTestnet,
+        transport: http(
+          process.env.NEXT_PUBLIC_ARC_RPC_URL ??
+            "https://rpc.testnet.arc.network"
+        )
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      setStatus("confirmed");
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Transaction failed.");
+      setStatus("idle");
+      setError(err instanceof Error ? err.message : "Transaction failed.");
     }
   }
 
@@ -69,22 +103,20 @@ export function CreateTokenForm() {
       <input name="twitter" placeholder="X (metadata phase)" disabled />
       <input name="telegram" placeholder="Telegram (metadata phase)" disabled />
 
-      <button type="submit" disabled={isPending || receipt.isLoading}>
-        {isPending
+      <button type="submit" disabled={status === "wallet" || status === "submitted"}>
+        {status === "wallet"
           ? "Confirm in wallet"
-          : receipt.isLoading
+          : status === "submitted"
             ? "Confirming"
-            : receipt.isSuccess
+            : status === "confirmed"
               ? "Launched"
               : "Launch token"}
       </button>
 
-      {hash && <p style={{ opacity: 0.65, wordBreak: "break-all" }}>Tx: {hash}</p>}
-      {(formError || error) && (
-        <p style={{ color: "#ff9d9d" }}>
-          {formError ?? error?.message}
-        </p>
+      {hash && (
+        <p style={{ opacity: 0.65, wordBreak: "break-all" }}>Tx: {hash}</p>
       )}
+      {error && <p style={{ color: "#ff9d9d" }}>{error}</p>}
     </form>
   );
 }
