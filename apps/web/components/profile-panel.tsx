@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, type EIP1193Provider } from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { feeEscrowAbi } from "@/lib/abi";
+import { celestialAddresses, celestialFeeEscrowAbi, orderBookAbi, quoteAssets } from "@/lib/celestial";
 import { API_URL } from "@/lib/api";
 import { useWalletSession } from "@/components/wallet-session";
 
 type Activity = { tx_hash:string; token:string; side:string; quote_amount:string; block_time:string };
 type Launch = { address:string; name:string; symbol:string; status:string; created_at:string };
-type Position = { token:string; balance:string; name:string; symbol:string; status:string };
+type Position = { token:string; balance:string; name:string; symbol:string; status:string; generation?:string; quote_asset?:string|null };
+type Order = { order_id:string; curve:string; side:string; amount_in:string; min_amount_out:string; status:string; created_at?:string };
 
 export function ProfilePanel() {
   const { address, connect, connecting } = useWalletSession();
@@ -17,7 +19,9 @@ export function ProfilePanel() {
   const [activity,setActivity]=useState<Activity[]>([]);
   const [launches,setLaunches]=useState<Launch[]>([]);
   const [positions,setPositions]=useState<Position[]>([]);
-  const [tab,setTab]=useState<"launches"|"positions"|"activity">("launches");
+  const [orders,setOrders]=useState<Order[]>([]);
+  const [celestialClaims,setCelestialClaims]=useState<Record<string,bigint>>({});
+  const [tab,setTab]=useState<"launches"|"positions"|"orders"|"activity">("launches");
   const [status,setStatus]=useState("");
   const [error,setError]=useState<string>();
 
@@ -27,13 +31,29 @@ export function ProfilePanel() {
   });
 
   async function refresh(account:string){
-    const [amount,a,l,p]=await Promise.all([
+    const [amount,a,l,p,o]=await Promise.all([
       client.readContract({address:addresses.feeEscrow,abi:feeEscrowAbi,functionName:"claimable",args:[getAddress(account)]}) as Promise<bigint>,
       fetch(API_URL+"/wallet/"+account+"/activity").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
       fetch(API_URL+"/wallet/"+account+"/launches").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
-      fetch(API_URL+"/wallet/"+account+"/positions").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]}))
+      fetch(API_URL+"/wallet/"+account+"/positions").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
+      fetch(API_URL+"/wallet/"+account+"/orders").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]}))
     ]);
-    setClaimable(amount); setActivity(a.items??[]); setLaunches(l.items??[]); setPositions(p.items??[]);
+    setClaimable(amount); setActivity(a.items??[]); setLaunches(l.items??[]); setPositions(p.items??[]); setOrders(o.items??[]);
+
+    if (celestialAddresses.feeEscrow) {
+      const entries = await Promise.all(
+        quoteAssets.map(async (asset) => {
+          const value = await client.readContract({
+            address: celestialAddresses.feeEscrow!,
+            abi: celestialFeeEscrowAbi,
+            functionName: "claimable",
+            args: [asset.address, getAddress(account)]
+          }).catch(() => 0n) as bigint;
+          return [asset.symbol, value] as const;
+        })
+      );
+      setCelestialClaims(Object.fromEntries(entries));
+    }
   }
 
   async function claim(){
@@ -48,6 +68,47 @@ export function ProfilePanel() {
       setStatus("Claimed");
       await refresh(address);
     }catch(e){setStatus("");setError(e instanceof Error?e.message:"Claim failed.");}
+  }
+
+
+  async function claimCelestial(symbol:string){
+    if(!address||!celestialAddresses.feeEscrow)return;
+    const asset=quoteAssets.find((q)=>q.symbol===symbol);
+    if(!asset||!(celestialClaims[symbol]??0n))return;
+    const provider=(window as Window & { ethereum?: EIP1193Provider }).ethereum;
+    if(!provider)return;
+    try{
+      setStatus("Confirm "+symbol+" claim");
+      const wallet=createWalletClient({account:getAddress(address),chain:arcTestnet,transport:custom(provider)});
+      const hash=await wallet.writeContract({
+        address:celestialAddresses.feeEscrow,
+        abi:celestialFeeEscrowAbi,
+        functionName:"claim",
+        args:[asset.address]
+      });
+      await client.waitForTransactionReceipt({hash});
+      setStatus("Claimed");
+      await refresh(address);
+    }catch(e){setStatus("");setError(e instanceof Error?e.message:"Claim failed.");}
+  }
+
+  async function cancelOrder(orderId:string){
+    if(!address||!celestialAddresses.orderBook)return;
+    const provider=(window as Window & { ethereum?: EIP1193Provider }).ethereum;
+    if(!provider)return;
+    try{
+      setStatus("Cancel order");
+      const wallet=createWalletClient({account:getAddress(address),chain:arcTestnet,transport:custom(provider)});
+      const hash=await wallet.writeContract({
+        address:celestialAddresses.orderBook,
+        abi:orderBookAbi,
+        functionName:"cancel",
+        args:[BigInt(orderId)]
+      });
+      await client.waitForTransactionReceipt({hash});
+      setStatus("Cancelled");
+      await refresh(address);
+    }catch(e){setStatus("");setError(e instanceof Error?e.message:"Cancellation failed.");}
   }
 
   useEffect(()=>{ if(address) void refresh(address); },[address]);
@@ -73,15 +134,28 @@ export function ProfilePanel() {
     <section className="fees-card">
       <div>
         <span className="kicker">Creator fees</span>
-        <h2>{"$"+Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})}</h2>
-        <p>USDC claimable from the deployed fee escrow.</p>
+        <h2>{Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})} USDC</h2>
+        <p>Legacy and Celestial creator-tax revenue remains non-custodial until claimed.</p>
       </div>
-      <button onClick={claim} disabled={claimable===0n||status==="Confirming"}>{status||"Claim USDC"}</button>
+      <button onClick={claim} disabled={claimable===0n||status==="Confirming"}>{status||"Claim legacy USDC"}</button>
     </section>
+
+    {celestialAddresses.feeEscrow && (
+      <section className="metric-grid">
+        {quoteAssets.map((asset)=>(
+          <div className="metric-card" key={asset.symbol}>
+            <span>{asset.symbol} creator fees</span>
+            <strong>{Number(formatUnits(celestialClaims[asset.symbol]??0n,asset.decimals)).toLocaleString(undefined,{maximumFractionDigits:6})}</strong>
+            <button onClick={()=>void claimCelestial(asset.symbol)} disabled={(celestialClaims[asset.symbol]??0n)===0n}>Claim {asset.symbol}</button>
+          </div>
+        ))}
+      </section>
+    )}
 
     <div className="profile-tabs">
       <button className={tab==="launches"?"active":""} onClick={()=>setTab("launches")}>My launches</button>
       <button className={tab==="positions"?"active":""} onClick={()=>setTab("positions")}>Positions</button>
+      <button className={tab==="orders"?"active":""} onClick={()=>setTab("orders")}>Orders</button>
       <button className={tab==="activity"?"active":""} onClick={()=>setTab("activity")}>Activity</button>
     </div>
 
@@ -101,6 +175,14 @@ export function ProfilePanel() {
           <span>{x.status==="GRADUATED"?"Graduated":"Curve"}</span>
         </a>
       ):<div className="profile-empty">No indexed token positions yet.</div>)}
+
+      {tab==="orders" && (orders.length?orders.map(x=>
+        <div className="profile-row" key={x.order_id}>
+          <div><strong>{x.side} order</strong><span>#{x.order_id}</span></div>
+          <span>{x.status}</span>
+          <span>{x.status==="OPEN"&&celestialAddresses.orderBook?<button onClick={()=>void cancelOrder(x.order_id)}>Cancel</button>:new Date(x.created_at??Date.now()).toLocaleDateString()}</span>
+        </div>
+      ):<div className="profile-empty">No indexed limit orders yet.</div>)}
 
       {tab==="activity" && (activity.length?activity.map(x=>
         <a href={"/token/"+x.token} className="profile-row" key={x.tx_hash}>
