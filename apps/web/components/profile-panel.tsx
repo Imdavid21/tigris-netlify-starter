@@ -26,10 +26,7 @@ export function ProfilePanel() {
   const [status,setStatus]=useState("");
   const [error,setError]=useState<string>();
 
-  const client=createPublicClient({
-    chain:arcTestnet,
-    transport:http(process.env.NEXT_PUBLIC_ARC_RPC_URL ?? "https://rpc.testnet.arc.network")
-  });
+  const client=createArcPublicClient();
 
   async function refresh(account:string){
     const [amount,a,l,p,o]=await Promise.all([
