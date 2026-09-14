@@ -79,7 +79,7 @@ jobs:
           NEXT_PUBLIC_ARC_CHAIN_ID=5042002 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000 npm --workspace @arc-launchpad/web run start -- -p 3000 > /tmp/web.log 2>&1 &
           PID=$!
           for i in {1..30}; do curl -fsS http://127.0.0.1:3000/ && break; sleep 1; done
-          curl -fsS http://127.0.0.1:3000/ | grep 'Arc Launchpad'
+          curl -fsS http://127.0.0.1:3000/ | grep 'Celestial'
           curl -fsS http://127.0.0.1:3000/create | grep 'Launch token'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001)" = "200"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/profile)" = "200"
