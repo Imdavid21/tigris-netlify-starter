@@ -1,85 +1,39 @@
 name: apps
 
 on:
-  push:
-    paths:
-      - "apps/**"
-      - "package.json"
-      - ".github/workflows/apps.yml"
-  pull_request:
-    paths:
-      - "apps/**"
-      - "package.json"
+  - push
+  - pull_request
 
 jobs:
-  build-and-smoke:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install
-        run: npm install
-
-      - name: Dependency audit
-        continue-on-error: true
-        run: npm audit --omit=dev
-
-      - name: Build all apps
-        run: npm run build
-
-      - name: Start PostgreSQL
-        run: |
-          docker run -d --name arc-postgres             -e POSTGRES_PASSWORD=test             -e POSTGRES_DB=arc_launchpad             -p 5432:5432 postgres:16
+      - run: npm install
+      - run: npm run build
+      - run: |
+          docker run -d --name arc-postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=arc_launchpad -p 5432:5432 postgres:16
           for i in {1..30}; do
-            if docker exec arc-postgres pg_isready -U postgres -d arc_launchpad; then
-              exit 0
-            fi
+            docker exec arc-postgres pg_isready -U postgres -d arc_launchpad && break
             sleep 1
           done
-          docker logs arc-postgres
-          exit 1
-
-      - name: Apply database schema
-        run: docker exec -i arc-postgres psql -U postgres -d arc_launchpad < apps/indexer/schema.sql
-
-      - name: Smoke test API
-        env:
-          DATABASE_URL: postgres://postgres:test@127.0.0.1:5432/arc_launchpad
-          PORT: "3001"
-          CORS_ORIGIN: http://localhost:3000
-        run: |
-          npm --workspace @arc-launchpad/api run start > /tmp/arc-api.log 2>&1 &
-          API_PID=$!
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:3001/health; then
-              break
-            fi
-            sleep 1
-          done
+          docker exec -i arc-postgres psql -U postgres -d arc_launchpad < apps/indexer/schema.sql
+      - run: |
+          DATABASE_URL=postgres://postgres:test@127.0.0.1:5432/arc_launchpad PORT=3001 npm --workspace @arc-launchpad/api run start > /tmp/api.log 2>&1 &
+          PID=$!
+          for i in {1..30}; do curl -fsS http://127.0.0.1:3001/health && break; sleep 1; done
           curl -fsS http://127.0.0.1:3001/health | grep '"ok":true'
           curl -fsS http://127.0.0.1:3001/tokens | grep '"items"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/tokens/not-an-address)" = "400"
-          kill $API_PID
-
-      - name: Smoke test web routes
-        env:
-          NEXT_PUBLIC_ARC_CHAIN_ID: "5042002"
-          NEXT_PUBLIC_ARC_RPC_URL: https://rpc.testnet.arc.network
-          NEXT_PUBLIC_USDC_ADDRESS: 0x3600000000000000000000000000000000000000
-        run: |
-          npm --workspace @arc-launchpad/web run start -- -p 3000 > /tmp/arc-web.log 2>&1 &
-          WEB_PID=$!
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:3000/; then
-              break
-            fi
-            sleep 1
-          done
+          kill $PID
+      - run: |
+          NEXT_PUBLIC_ARC_CHAIN_ID=5042002 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000 npm --workspace @arc-launchpad/web run start -- -p 3000 > /tmp/web.log 2>&1 &
+          PID=$!
+          for i in {1..30}; do curl -fsS http://127.0.0.1:3000/ && break; sleep 1; done
           curl -fsS http://127.0.0.1:3000/ | grep 'Arc Launchpad'
           curl -fsS http://127.0.0.1:3000/create | grep 'Create token'
           curl -fsS http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001 | grep 'Back'
-          kill $WEB_PID
+          kill $PID
