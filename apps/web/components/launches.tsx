@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
 import { arcTestnet } from "@/lib/arc";
 import { curveAbi } from "@/lib/abi";
-import { API_URL } from "@/lib/api";\nimport { createArcPublicClient } from "@/lib/rpc";
+import { API_URL } from "@/lib/api";
+import { createArcPublicClient } from "@/lib/rpc";
 
 type IndexedLaunch = {
   address: `0x${string}`;
