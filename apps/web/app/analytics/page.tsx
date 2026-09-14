@@ -4,19 +4,21 @@ import { API_URL } from "@/lib/api";
 
 async function loadData() {
   try {
-    const [statsRes, dailyRes, buybacksRes] = await Promise.all([
+    const [statsRes, dailyRes, buybacksRes, venuesRes] = await Promise.all([
       fetch(API_URL + "/stats", { cache: "no-store" }),
       fetch(API_URL + "/analytics/daily", { cache: "no-store" }),
-      fetch(API_URL + "/buybacks", { cache: "no-store" })
+      fetch(API_URL + "/buybacks", { cache: "no-store" }),
+      fetch(API_URL + "/analytics/venues", { cache: "no-store" })
     ]);
     return {
       stats: statsRes.ok ? await statsRes.json() : null,
       daily: dailyRes.ok ? await dailyRes.json() : null,
       buybacks: buybacksRes.ok ? (await buybacksRes.json()).items ?? [] : [],
+      venues: venuesRes.ok ? (await venuesRes.json()).items ?? [] : [],
       degraded: !statsRes.ok || !dailyRes.ok
     };
   } catch {
-    return { stats: null, daily: null, buybacks: [], degraded: true };
+    return { stats: null, daily: null, buybacks: [], venues: [], degraded: true };
   }
 }
 
@@ -53,7 +55,9 @@ function Metric({ label, value, note }: { label: string; value: string; note?: s
 }
 
 export default async function AnalyticsPage() {
-  const { stats, daily, buybacks, degraded } = await loadData();
+  const { stats, daily, buybacks, venues, degraded } = await loadData();
+  const curveVenue = venues.find((item: any) => item.venue === "CURVE");
+  const v4Venue = venues.find((item: any) => item.venue === "UNISWAP_V4");
 
   return (
     <main className="app-shell analytics-page">
@@ -101,6 +105,23 @@ export default async function AnalyticsPage() {
           <Metric label="24h traders" value={String(stats?.traders_24h ?? "—")} />
           <Metric label="Open orders" value={String(stats?.open_orders ?? "—")} />
           <Metric label="Buyback executions" value={String(stats?.buyback_count ?? "—")} />
+          <Metric label="Post-grad trades" value={String(stats?.post_graduation_trades ?? "—")} />
+          <Metric label="Post-grad markets" value={String(stats?.post_graduation_markets ?? "—")} />
+        </div>
+      </section>
+
+      <section className="analytics-panel">
+        <div className="analytics-panel-head">
+          <div>
+            <h2>Trading venues</h2>
+            <p>Celestial keeps one market page while execution moves from the bonding curve to Uniswap v4 after graduation.</p>
+          </div>
+        </div>
+        <div className="analytics-kpi-grid analytics-kpi-grid-four">
+          <Metric label="Curve trades" value={String(curveVenue?.trades ?? "—")} />
+          <Metric label="Curve traders" value={String(curveVenue?.traders ?? "—")} />
+          <Metric label="Uniswap v4 trades" value={String(v4Venue?.trades ?? "—")} />
+          <Metric label="Uniswap v4 markets" value={String(v4Venue?.markets ?? "—")} />
         </div>
       </section>
 
