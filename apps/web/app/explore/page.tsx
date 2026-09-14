@@ -1,18 +1,20 @@
 import { AppHeader } from "@/components/app-header";
 import { Launches } from "@/components/launches";
+import { SiteFooter } from "@/components/site-footer";
 
-export default function Home() {
+export default function ExplorePage() {
   return (
-    <main className="app-shell">
+    <main className="app-shell explore-page">
       <AppHeader />
-      <section className="explore-hero">
+      <section className="explore-intro">
         <div>
-            <h1>Find the next market before everyone else.</h1>
-          <p>Launch, trade, and graduate USDC-native tokens on Arc.</p>
+          <h1>Explore markets</h1>
+          <p>Discover live and graduated Celestial markets on Arc.</p>
         </div>
         <a href="/create" className="primary-link">Launch a token</a>
       </section>
       <Launches />
+      <SiteFooter />
     </main>
   );
 }
