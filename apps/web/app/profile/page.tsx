@@ -6,8 +6,8 @@ export default function ProfilePage() {
     <main className="app-shell">
       <AppHeader />
       <section className="page-heading compact">
-        <h1>Your launchpad.</h1>
-        <p>Launches, creator fees, positions, and trading activity.</p>
+        <h1>Your Celestial account.</h1>
+        <p>Markets, positions, creator fees, and trading activity in one place.</p>
       </section>
       <ProfilePanel />
     </main>
