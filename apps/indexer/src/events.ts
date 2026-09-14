@@ -8,7 +8,7 @@ const tokenCreatedV2 = parseAbiItem(
   "event TokenCreated(address indexed token,address indexed curve,address indexed creator,address quoteAsset,string name,string symbol,address creatorFeeRecipient,uint256 creatorTaxBps,uint256 holderFeeBps)"
 );
 const metadataSet = parseAbiItem(
-  "event MetadataSet(address indexed token,string image,string website,string twitter,string telegram)"
+  "event MetadataSet(address indexed token,string description,string image,string website,string twitter,string telegram)"
 );
 const buyV1 = parseAbiItem(
   "event Buy(address indexed trader,uint256 quoteIn,uint256 tokensOut,uint256 fee)"
@@ -169,14 +169,14 @@ async function storeLaunchV2(log: any) {
 }
 
 async function storeMetadata(log: any) {
-  const { token, image, website, twitter, telegram } = log.args;
+  const { token, description, image, website, twitter, telegram } = log.args;
   if (!token) return;
 
   await db.query(
     `update tokens
-     set image=$2, website=$3, twitter=$4, telegram=$5
+     set description=$2, image=$3, website=$4, twitter=$5, telegram=$6
      where address=$1`,
-    [hexToBuffer(token), image ?? "", website ?? "", twitter ?? "", telegram ?? ""]
+    [hexToBuffer(token), description ?? "", image ?? "", website ?? "", twitter ?? "", telegram ?? ""]
   );
 }
 
