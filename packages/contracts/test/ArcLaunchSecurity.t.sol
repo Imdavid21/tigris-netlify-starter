@@ -107,6 +107,36 @@ contract ArcLaunchSecurityTest is Test {
         assertLt(usdc.balanceOf(trader), initial);
     }
 
+    function testSellBlockedOnceGraduationReady() public {
+        (address token, address curve) = _launch();
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        ArcBondingCurve(curve).buy(100_000e6, 1);
+
+        uint256 tokenBalance = ArcToken(token).balanceOf(trader);
+        ArcToken(token).approve(curve, tokenBalance);
+
+        vm.expectRevert(ArcBondingCurve.CurveClosed.selector);
+        ArcBondingCurve(curve).sell(tokenBalance / 10, 1);
+        vm.stopPrank();
+    }
+
+    function testFinalBuyQuoteMatchesExecutionCap() public {
+        (, address curve) = _launch();
+
+        ArcBondingCurve c = ArcBondingCurve(curve);
+        uint256 quoted = c.quoteBuy(100_000e6);
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        uint256 received = c.buy(100_000e6, quoted);
+        vm.stopPrank();
+
+        assertEq(received, quoted);
+        assertTrue(c.readyToGraduate());
+    }
+
     function testFactoryRejectsEmptyMetadata() public {
         vm.prank(creator);
         vm.expectRevert(ArcLaunchFactory.InvalidMetadata.selector);
