@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { CreateTokenForm } from "@/components/create-token-form";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function CreatePage() {
   return (
@@ -10,6 +11,7 @@ export default function CreatePage() {
         <p>Review every economic term before you sign.</p>
       </section>
       <CreateTokenForm />
+      <SiteFooter />
     </main>
   );
 }
