@@ -7,6 +7,7 @@ import {ArcBondingCurve} from "../src/ArcBondingCurve.sol";
 import {ArcToken} from "../src/ArcToken.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {MockGraduationAdapter} from "../src/mocks/MockGraduationAdapter.sol";
+import {MockBadGraduationAdapter} from "../src/mocks/MockBadGraduationAdapter.sol";
 import {IGraduationAdapter} from "../src/interfaces/IGraduationAdapter.sol";
 
 contract ArcLaunchSecurityTest is Test {
@@ -135,6 +136,23 @@ contract ArcLaunchSecurityTest is Test {
 
         assertEq(received, quoted);
         assertTrue(c.readyToGraduate());
+    }
+
+    function testBadAdapterCannotFakeGraduation() public {
+        MockBadGraduationAdapter adapter = new MockBadGraduationAdapter();
+        factory.setGraduationAdapter(adapter);
+
+        (address token, address curve) = _launch();
+
+        vm.startPrank(trader);
+        usdc.approve(curve, type(uint256).max);
+        ArcBondingCurve(curve).buy(100_000e6, 1);
+        vm.stopPrank();
+
+        factory.beginGraduation(token);
+
+        vm.expectRevert(ArcLaunchFactory.GraduationAssetsNotConsumed.selector);
+        factory.createGraduatedPool(token);
     }
 
     function testFactoryRejectsEmptyMetadata() public {
