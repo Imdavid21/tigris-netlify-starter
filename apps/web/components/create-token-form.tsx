@@ -5,6 +5,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  decodeEventLog,
   getAddress,
   http,
   type EIP1193Provider
@@ -83,8 +84,26 @@ export function CreateTokenForm() {
         )
       });
 
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
       setStatus("confirmed");
+
+      for (const log of receipt.logs) {
+        try {
+          const decoded = decodeEventLog({
+            abi: factoryAbi,
+            data: log.data,
+            topics: log.topics
+          });
+
+          if (decoded.eventName === "TokenCreated") {
+            const args = decoded.args as { token: `0x${string}` };
+            window.location.href = "/token/" + args.token;
+            return;
+          }
+        } catch {
+          // Ignore logs emitted by child contracts.
+        }
+      }
     } catch (err) {
       setStatus("idle");
       setError(err instanceof Error ? err.message : "Transaction failed.");
