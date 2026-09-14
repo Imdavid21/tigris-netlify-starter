@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, type EIP1193Provider } from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { feeEscrowAbi } from "@/lib/abi";
-import { ensureArcChain } from "@/lib/wallet";
 import { API_URL } from "@/lib/api";
-
-function injected(): EIP1193Provider | undefined {
-  return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
-}
+import { useWalletSession } from "@/components/wallet-session";
 
 type Activity = { tx_hash:string; token:string; side:string; quote_amount:string; block_time:string };
 type Launch = { address:string; name:string; symbol:string; status:string; created_at:string };
 type Position = { token:string; balance:string; name:string; symbol:string; status:string };
 
 export function ProfilePanel() {
-  const [address,setAddress]=useState<string>();
+  const { address, connect, connecting } = useWalletSession();
   const [claimable,setClaimable]=useState(0n);
   const [activity,setActivity]=useState<Activity[]>([]);
   const [launches,setLaunches]=useState<Launch[]>([]);
@@ -40,26 +36,11 @@ export function ProfilePanel() {
     setClaimable(amount); setActivity(a.items??[]); setLaunches(l.items??[]); setPositions(p.items??[]);
   }
 
-  async function connect(){
-    setError(undefined);
-    const provider=injected();
-    if(!provider){setError("No EVM wallet detected.");return;}
-    try{
-      await ensureArcChain(provider);
-      const accounts=(await provider.request({method:"eth_requestAccounts"})) as string[];
-      if(!accounts[0]) throw new Error("No wallet account available.");
-      const account=getAddress(accounts[0]);
-      setAddress(account);
-      await refresh(account);
-    }catch(e){setError(e instanceof Error?e.message:"Wallet connection failed.");}
-  }
-
   async function claim(){
     if(!address||claimable===0n)return;
-    const provider=injected(); if(!provider)return;
+    const provider=(window as Window & { ethereum?: EIP1193Provider }).ethereum; if(!provider)return;
     try{
       setStatus("Confirm claim");
-      await ensureArcChain(provider);
       const wallet=createWalletClient({account:getAddress(address),chain:arcTestnet,transport:custom(provider)});
       const hash=await wallet.writeContract({address:addresses.feeEscrow,abi:feeEscrowAbi,functionName:"claim"});
       setStatus("Confirming");
@@ -69,12 +50,14 @@ export function ProfilePanel() {
     }catch(e){setStatus("");setError(e instanceof Error?e.message:"Claim failed.");}
   }
 
+  useEffect(()=>{ if(address) void refresh(address); },[address]);
+
   if(!address){
     return <div className="profile-connect">
       <div className="profile-connect-mark">A</div>
       <h2>Connect your wallet</h2>
       <p>See your launches, positions, creator fees, and indexed activity.</p>
-      <button onClick={connect}>Connect wallet</button>
+      <button disabled={connecting} onClick={()=>void connect()}>{connecting?"Connecting...":"Connect wallet"}</button>
       {error&&<span className="form-error">{error}</span>}
     </div>;
   }
