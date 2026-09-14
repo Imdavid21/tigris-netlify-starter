@@ -38,6 +38,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
     ICelestialPermit2 public immutable permit2;
     uint24 public immutable lpFee;
     int24 public immutable tickSpacing;
+    address public immutable hook;
 
     struct PoolConfig {
         CelestialV4PoolKey key;
@@ -90,6 +91,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         ICelestialV4Quoter quoter_,
         ICelestialUniversalRouter universalRouter_,
         ICelestialPermit2 permit2_,
+        address hook_,
         uint24 lpFee_,
         int24 tickSpacing_
     ) {
@@ -98,15 +100,22 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
             address(positionManager_) == address(0) ||
             address(quoter_) == address(0) ||
             address(universalRouter_) == address(0) ||
-            address(permit2_) == address(0)
+            address(permit2_) == address(0) ||
+            hook_ == address(0)
         ) revert ZeroAddress();
-        if (lpFee_ >= 1_000_000 || tickSpacing_ != 1) revert InvalidConfig();
+        if (
+            lpFee_ >= 1_000_000 ||
+            tickSpacing_ != 1 ||
+            hook_.code.length == 0 ||
+            (uint160(hook_) & ((1 << 14) - 1)) != (1 << 13)
+        ) revert InvalidConfig();
 
         poolManager = poolManager_;
         positionManager = positionManager_;
         quoter = quoter_;
         universalRouter = universalRouter_;
         permit2 = permit2_;
+        hook = hook_;
         lpFee = lpFee_;
         tickSpacing = tickSpacing_;
     }
@@ -148,7 +157,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
             currency1: currency1,
             fee: lpFee,
             tickSpacing: tickSpacing,
-            hooks: address(0)
+            hooks: hook
         });
 
         if (sqrtPriceX96 <= MIN_SQRT_PRICE || sqrtPriceX96 >= MAX_SQRT_PRICE) revert InvalidLiquidity();
