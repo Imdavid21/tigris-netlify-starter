@@ -125,6 +125,39 @@ app.get("/tokens/:address", async (request, reply) => {
   return { ...result.rows[0], trades: trades.rows };
 });
 
+
+
+app.get("/tokens/:address/holders", async (request, reply) => {
+  const { address } = request.params as { address: string };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return reply.code(400).send({ error: "invalid address" });
+  }
+
+  const result = await db.query(
+    `with deltas as (
+       select to_addr as holder, amount as delta
+       from transfers
+       where token=decode($1,'hex')
+       union all
+       select from_addr as holder, -amount as delta
+       from transfers
+       where token=decode($1,'hex')
+     )
+     select
+       '0x' || encode(holder,'hex') as holder,
+       sum(delta)::text as balance
+     from deltas
+     where holder <> decode(repeat('00',20),'hex')
+     group by holder
+     having sum(delta) > 0
+     order by sum(delta) desc
+     limit 100`,
+    [address.slice(2)]
+  );
+
+  return { items: result.rows };
+});
+
 app.get("/wallet/:address/activity", async (request, reply) => {
   const { address } = request.params as { address: string };
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
