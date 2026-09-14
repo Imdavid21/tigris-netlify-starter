@@ -70,6 +70,17 @@ async function blockTime(blockNumber: bigint) {
   return time;
 }
 
+function isRpcLimitError(error: unknown) {
+  const message = String((error as any)?.shortMessage ?? (error as any)?.message ?? error).toLowerCase();
+  const details = String((error as any)?.details ?? "").toLowerCase();
+  const code = (error as any)?.code ?? (error as any)?.cause?.code;
+  return code === -32005 || message.includes("rate limit") || message.includes("exceeds defined limit") || details.includes("rate limit");
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function chunkedLogs(args: {
   address: Address;
   event: any;
@@ -77,17 +88,41 @@ async function chunkedLogs(args: {
   toBlock: bigint;
 }) {
   const logs: any[] = [];
-  const chunk = BigInt(process.env.LOG_CHUNK_SIZE ?? "5000");
+  const configured = BigInt(process.env.LOG_CHUNK_SIZE ?? "500");
+  const minChunk = 25n;
+  let chunk = configured > 0n ? configured : 500n;
+  let from = args.fromBlock;
 
-  for (let from = args.fromBlock; from <= args.toBlock; from += chunk) {
-    const to = from + chunk - 1n > args.toBlock ? args.toBlock : from + chunk - 1n;
-    const batch = await client.getLogs({
-      address: args.address,
-      event: args.event,
-      fromBlock: from,
-      toBlock: to
-    });
-    logs.push(...batch);
+  while (from <= args.toBlock) {
+    let to = from + chunk - 1n > args.toBlock ? args.toBlock : from + chunk - 1n;
+    let attempt = 0;
+
+    for (;;) {
+      try {
+        const batch = await client.getLogs({
+          address: args.address,
+          event: args.event,
+          fromBlock: from,
+          toBlock: to
+        });
+        logs.push(...batch);
+        break;
+      } catch (error) {
+        if (!isRpcLimitError(error)) throw error;
+
+        attempt += 1;
+        if (chunk > minChunk) {
+          chunk = chunk / 2n < minChunk ? minChunk : chunk / 2n;
+          to = from + chunk - 1n > args.toBlock ? args.toBlock : from + chunk - 1n;
+        }
+
+        if (attempt > 8) throw error;
+        await sleep(Math.min(5_000, 500 * 2 ** Math.min(attempt, 4)));
+      }
+    }
+
+    from = to + 1n;
+    await sleep(125);
   }
 
   return logs;
