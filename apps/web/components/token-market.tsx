@@ -28,7 +28,7 @@ import { RecentTrades } from "@/components/recent-trades";
 import { PriceChart } from "@/components/price-chart";
 import { Holders } from "@/components/holders";
 import { API_URL } from "@/lib/api";
-import { AppHeader } from "@/components/app-header";
+import { AppHeader } from "@/components/app-header";\nimport { SiteFooter } from "@/components/site-footer";\nimport { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -439,7 +439,7 @@ export function TokenMarket({ token }: { token: Address }) {
       await refresh();
     } catch (e) {
       setStatus("");
-      setError(e instanceof Error ? e.message : "Trade failed.");
+      setError(friendlyChainError(e, "Trade failed."));
     }
   }
 
@@ -494,7 +494,7 @@ export function TokenMarket({ token }: { token: Address }) {
       setMode("orders");
     } catch (e) {
       setStatus("");
-      setError(e instanceof Error ? e.message : "Order placement failed.");
+      setError(friendlyChainError(e, "Order placement failed."));
     }
   }
 
@@ -514,7 +514,7 @@ export function TokenMarket({ token }: { token: Address }) {
       await refreshOrders(account);
     } catch (e) {
       setStatus("");
-      setError(e instanceof Error ? e.message : "Cancellation failed.");
+      setError(friendlyChainError(e, "Cancellation failed."));
     }
   }
 
@@ -533,7 +533,7 @@ export function TokenMarket({ token }: { token: Address }) {
       await refreshWalletState(account);
     } catch (e) {
       setStatus("");
-      setError(e instanceof Error ? e.message : "Reward claim failed.");
+      setError(friendlyChainError(e, "Reward claim failed."));
     }
   }
 
@@ -578,7 +578,7 @@ export function TokenMarket({ token }: { token: Address }) {
       <AppHeader />
 
       <div className="token-breadcrumb">
-        <a href="/">Explore</a><span>/</span><span>{symbol || "Token"}</span>
+        <a href="/explore">Explore</a><span>/</span><span>{symbol || "Token"}</span>
       </div>
 
       <section className="token-hero">
