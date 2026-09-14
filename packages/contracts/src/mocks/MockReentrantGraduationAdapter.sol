@@ -18,8 +18,8 @@ contract MockReentrantGraduationAdapter is IGraduationAdapter {
     address public targetToken;
     bool public reentryBlocked;
 
-    constructor(IReentryFactory factory_) {
-        factory = factory_;
+    constructor(address factory_) {
+        factory = IReentryFactory(factory_);
     }
 
     function setTargetToken(address token) external {
