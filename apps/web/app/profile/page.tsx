@@ -1,23 +1,15 @@
+import { AppHeader } from "@/components/app-header";
 import { ProfilePanel } from "@/components/profile-panel";
 
 export default function ProfilePage() {
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <a href="/" className="brand">Arc Launchpad</a>
-        <nav className="nav">
-          <a href="/">Explore</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/create">Create</a>
-          <a href="/profile">Profile</a>
-        </nav>
-      </header>
-
-      <section className="page-heading">
-        <h1>Profile</h1>
-        <p>Creator fees and wallet activity on Arc.</p>
+      <AppHeader />
+      <section className="page-heading compact">
+        <span className="kicker">Profile</span>
+        <h1>Your launchpad.</h1>
+        <p>Launches, creator fees, positions, and trading activity.</p>
       </section>
-
       <ProfilePanel />
     </main>
   );
