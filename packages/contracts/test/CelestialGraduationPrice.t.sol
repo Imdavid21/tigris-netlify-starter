@@ -42,6 +42,43 @@ contract RecordingCelestialGraduationAdapter is ICelestialGraduationAdapter {
         IERC20(quoteAsset).safeTransferFrom(msg.sender, address(this), quoteAmount);
         return (POOL, POSITION_ID);
     }
+
+    function testMultipleFakeMarketsReachGraduationLifecycle() public {
+        for (uint256 i = 0; i < 3; ++i) {
+            CelestialLaunchFactory.LaunchParams memory p = _params();
+            p.name = string.concat("Graduate ", vm.toString(i));
+            p.symbol = string.concat("G", vm.toString(i));
+
+            vm.prank(creator);
+            (address token, address curveAddress) = factory.createToken(p);
+            CelestialBondingCurve curve = CelestialBondingCurve(curveAddress);
+
+            vm.startPrank(trader);
+            quote.approve(curveAddress, type(uint256).max);
+            curve.buy(2_000e6, 1);
+            vm.stopPrank();
+
+            assertTrue(curve.readyToGraduate());
+            factory.beginGraduation(token);
+            factory.createGraduatedPool(token);
+
+            (
+                ,
+                ,
+                uint160 sqrtPriceX96,
+                address pool,
+                ,
+                bool swept,
+                bool seeded
+            ) = factory.graduations(token);
+
+            assertGt(uint256(sqrtPriceX96), 0);
+            assertTrue(pool != address(0));
+            assertTrue(swept);
+            assertTrue(seeded);
+        }
+    }
+
 }
 
 contract CelestialGraduationPriceTest is Test {
