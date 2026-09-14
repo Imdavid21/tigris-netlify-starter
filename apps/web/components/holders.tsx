@@ -37,8 +37,12 @@ export function Holders({ token }: { token: string }) {
           <p className="muted">No indexed holders yet.</p>
         ) : (
           items.slice(0, 20).map((item, index) => (
-            <div
+            <a
               key={item.holder}
+              href={"https://testnet.arcscan.app/address/" + item.holder}
+              target="_blank"
+              rel="noreferrer"
+              title={"Open " + item.holder + " on Arcscan"}
               style={{
                 display: "grid",
                 gridTemplateColumns: "34px 1fr auto",
@@ -49,22 +53,16 @@ export function Holders({ token }: { token: string }) {
               }}
             >
               <span className="muted">{index + 1}</span>
-              <a
-                href={"https://testnet.arcscan.app/address/" + item.holder}
-                target="_blank"
-                rel="noreferrer"
-                style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
-                title={"Open " + item.holder + " on Arcscan"}
-              >
+              <span style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
                 {item.holder.slice(0, 7)}...{item.holder.slice(-5)}
-              </a>
+              </span>
               <span>
                 {Number(formatUnits(BigInt(item.balance), 18)).toLocaleString(
                   undefined,
                   { maximumFractionDigits: 0 }
                 )}
               </span>
-            </div>
+            </a>
           ))
         )}
       </div>
