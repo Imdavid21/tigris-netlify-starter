@@ -37,6 +37,7 @@ contract CelestialDexAdapter is IGraduationAdapter, ReentrancyGuard {
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
+        uint160 sqrtPriceX96,
         address locker
     ) external nonReentrant returns (address pool, uint256 positionId) {
         if (msg.sender != factory) revert NotFactory();
@@ -52,6 +53,7 @@ contract CelestialDexAdapter is IGraduationAdapter, ReentrancyGuard {
             quoteAsset,
             tokenAmount,
             quoteAmount,
+            sqrtPriceX96,
             locker
         );
 
@@ -63,7 +65,6 @@ contract CelestialDexAdapter is IGraduationAdapter, ReentrancyGuard {
 
     function quoteExactInput(address pool, address tokenIn, uint256 amountIn)
         external
-        view
         returns (uint256 amountOut)
     {
         return connector.quoteExactInput(pool, tokenIn, amountIn);
