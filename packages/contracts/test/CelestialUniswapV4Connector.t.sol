@@ -22,6 +22,8 @@ interface IMockPermit2Transfer {
     function transferFrom(address from, address to, uint160 amount, address token) external;
 }
 
+contract MockGuardHook {}
+
 contract MockPermit2 is ICelestialPermit2 {
     struct Allowance {
         uint160 amount;
@@ -179,12 +181,16 @@ contract CelestialUniswapV4ConnectorTest is Test {
         quoter = new MockV4Quoter();
         router = new MockUniversalRouter(IMockPermit2Transfer(address(permit2)));
 
+        MockGuardHook mockGuard = new MockGuardHook();
+        vm.etch(address(0x2000), address(mockGuard).code);
+
         connector = new CelestialUniswapV4Connector(
             poolManager,
             positionManager,
             quoter,
             router,
             permit2,
+            address(0x2000),
             3_000,
             1
         );
