@@ -87,7 +87,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         uint256 creatorTaxBps,
         uint256 holderFeeBps
     );
-    event MetadataSet(address indexed token, string image, string website, string twitter, string telegram);
+    event MetadataSet(address indexed token, string description, string image, string website, string twitter, string telegram);
     event DeveloperBuy(address indexed token, address indexed creator, uint256 quoteIn, uint256 tokensOut);
     event GraduationSwept(address indexed token, uint256 quoteAmount, uint256 tokenAmount);
     event TokenGraduated(address indexed token, address indexed pool, uint256 positionId);
@@ -293,6 +293,7 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         );
         emit MetadataSet(
             token,
+            params.metadata.description,
             params.metadata.image,
             params.metadata.website,
             params.metadata.twitter,
