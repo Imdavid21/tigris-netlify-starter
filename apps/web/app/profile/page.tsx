@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { ProfilePanel } from "@/components/profile-panel";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function ProfilePage() {
   return (
@@ -10,6 +11,7 @@ export default function ProfilePage() {
         <p>Launches, creator fees, positions, and trading activity.</p>
       </section>
       <ProfilePanel />
+      <SiteFooter />
     </main>
   );
 }
