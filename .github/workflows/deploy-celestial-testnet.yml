@@ -2,9 +2,6 @@ name: Deploy Celestial Testnet
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "CELESTIAL_DEPLOY_NOW"
 
 permissions:
   contents: read
