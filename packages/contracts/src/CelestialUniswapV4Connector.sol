@@ -117,6 +117,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
         address quoteAsset,
         uint256 tokenAmount,
         uint256 quoteAmount,
+        uint160 sqrtPriceX96,
         address locker
     ) external nonReentrant returns (address pool, uint256 positionId) {
         if (token == address(0) || quoteAsset == address(0) || locker == address(0)) revert ZeroAddress();
@@ -138,7 +139,7 @@ contract CelestialUniswapV4Connector is ICelestialDexConnector, ReentrancyGuard 
             hooks: address(0)
         });
 
-        uint160 sqrtPriceX96 = _sqrtPriceX96(amount0, amount1);
+        if (sqrtPriceX96 <= MIN_SQRT_PRICE || sqrtPriceX96 >= MAX_SQRT_PRICE) revert InvalidLiquidity();
         poolManager.initialize(key, sqrtPriceX96);
 
         uint128 liquidity = _fullRangeLiquidity(amount0, amount1, sqrtPriceX96);
