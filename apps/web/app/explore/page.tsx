@@ -8,8 +8,8 @@ export default function ExplorePage() {
       <AppHeader />
       <section className="explore-intro">
         <div>
-          <h1>Explore markets</h1>
-          <p>Discover live and graduated Celestial markets on Arc.</p>
+          <h1>Discover</h1>
+          <p>New, active, near-graduation, and graduated Celestial markets on Arc.</p>
         </div>
         <a href="/create" className="primary-link">Launch a token</a>
       </section>
