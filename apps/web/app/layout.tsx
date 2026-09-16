@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import "../styles/tokens.css";
+import "../styles/base.css";
 import "./globals.css";
-import "./utopia.css";
-import "./utopia-app.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -12,7 +12,11 @@ export const metadata: Metadata = {
 const themeScript = `
 (() => {
   try {
-    document.documentElement.dataset.theme = "dark";
+    const saved = localStorage.getItem("celestial-theme");
+    const theme = saved === "dark" || saved === "light"
+      ? saved
+      : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.dataset.theme = theme;
   } catch {}
 })();
 `;
