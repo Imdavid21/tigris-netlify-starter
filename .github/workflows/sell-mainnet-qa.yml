@@ -1,0 +1,88 @@
+name: Sell Supershot QA Holdings
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/contracts/script/SellMainnetQA.s.sol
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supershot-mainnet-sell-cleanup
+  cancel-in-progress: false
+
+jobs:
+  sell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ARC_RPC_URL: https://rpc.mainnet.arc.io
+      RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+      EXPECTED_WALLET: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install verified Arc Foundry
+        run: |
+          set -euo pipefail
+          VERSION="v0.8.0-1"
+          ASSET="arc-foundry-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          BASE="https://github.com/circlefin/arc-foundry/releases/download/${VERSION}"
+          curl --fail --location --retry 3 -o "/tmp/$ASSET" "$BASE/$ASSET"
+          curl --fail --location --retry 3 -o "/tmp/$ASSET.sha256" "$BASE/$ASSET.sha256"
+          (cd /tmp && sha256sum -c "$ASSET.sha256")
+          mkdir -p /tmp/arc-foundry
+          tar -xzf "/tmp/$ASSET" -C /tmp/arc-foundry
+          sudo install -m 0755 /tmp/arc-foundry/forge /usr/local/bin/arc-forge
+          sudo install -m 0755 /tmp/arc-foundry/cast /usr/local/bin/arc-cast
+
+      - name: Install dependencies
+        run: |
+          arc-forge install OpenZeppelin/openzeppelin-contracts
+          arc-forge install foundry-rs/forge-std
+
+      - name: Validate signer and chain
+        run: |
+          set -euo pipefail
+          case "$RAW_PRIVATE_KEY" in
+            0x*) PRIVATE_KEY="$RAW_PRIVATE_KEY" ;;
+            *) PRIVATE_KEY="0x$RAW_PRIVATE_KEY" ;;
+          esac
+          echo "PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+          WALLET=$(arc-cast wallet address --private-key "$PRIVATE_KEY")
+          test "${WALLET,,}" = "${EXPECTED_WALLET,,}"
+          test "$(arc-cast chain-id --rpc-url "$ARC_RPC_URL")" = "5042"
+          echo "START_BALANCE=$(arc-cast balance "$WALLET" --rpc-url "$ARC_RPC_URL")" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: arc-forge build
+
+      - name: Simulate all sells
+        run: |
+          arc-forge script packages/contracts/script/SellMainnetQA.s.sol:SellMainnetQA \
+            --rpc-url "$ARC_RPC_URL" -vvvv
+
+      - name: Broadcast all sells
+        run: |
+          set -o pipefail
+          arc-forge script packages/contracts/script/SellMainnetQA.s.sol:SellMainnetQA \
+            --rpc-url "$ARC_RPC_URL" --broadcast --slow -vvvv 2>&1 | tee /tmp/supershot-sell-cleanup.log
+
+      - name: Report final wallet balance
+        if: always()
+        run: |
+          END_BALANCE=$(arc-cast balance "$EXPECTED_WALLET" --rpc-url "$ARC_RPC_URL")
+          echo "Starting native balance: ${START_BALANCE:-unknown}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Final native balance: $END_BALANCE" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supershot-sell-cleanup
+          path: |
+            /tmp/supershot-sell-cleanup.log
+            broadcast/
