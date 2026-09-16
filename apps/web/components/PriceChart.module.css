@@ -1,20 +1,21 @@
 .card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-level0);
 }
 
 .head {
-  min-height: 68px;
+  min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px 12px;
+  border-bottom: 0;
 }
 
 .price {
@@ -24,58 +25,80 @@
 }
 
 .price span {
-  color: var(--text-tertiary);
-  font-size: 9px;
-  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: var(--md-sys-typescale-label-small-weight);
 }
 
 .price strong {
-  color: var(--text-primary);
-  font-size: 25px;
-  font-weight: 500;
-  letter-spacing: -0.035em;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  line-height: var(--md-sys-typescale-headline-medium-line-height);
+  font-weight: var(--md-sys-typescale-headline-medium-weight);
+  letter-spacing: -.025em;
   font-variant-numeric: tabular-nums;
 }
 
 .ranges {
   display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-soft);
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .ranges button {
-  min-width: 36px;
-  min-height: 27px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--radius-pill);
+  min-width: 40px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-small);
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
-  font-size: 9px;
-  font-weight: 500;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  transition:
+    background var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
+    color var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
+    transform var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial);
 }
 
 .ranges button:hover {
-  color: var(--text-primary);
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+  color: var(--md-sys-color-on-surface);
+}
+
+.ranges button:active {
+  transform: scale(.95);
 }
 
 .ranges button.active {
-  background: var(--surface);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-1);
+  border-color: transparent;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  box-shadow: none;
 }
 
 .stage {
   position: relative;
   height: 390px;
   overflow: hidden;
+  margin: 0 10px 10px;
+  border-radius: var(--md-sys-shape-corner-large);
   background:
-    repeating-linear-gradient(to bottom, transparent 0, transparent calc(25% - 1px), var(--border) 25%, transparent calc(25% + 1px));
-  color: var(--brand);
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(25% - 1px),
+      color-mix(in srgb, var(--md-sys-color-outline-variant) 58%, transparent) 25%,
+      transparent calc(25% + 1px)
+    ),
+    var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-primary);
   cursor: crosshair;
 }
 
@@ -87,67 +110,76 @@
 
 .area {
   fill: currentColor;
-  opacity: .08;
+  opacity: .10;
 }
 
 .line {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.25;
   vector-effect: non-scaling-stroke;
 }
 
 .crosshair {
-  stroke: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+  stroke: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 54%, transparent);
   stroke-width: 1;
   stroke-dasharray: 3 4;
   vector-effect: non-scaling-stroke;
 }
 
 .dot {
-  fill: var(--surface);
+  fill: var(--md-sys-color-surface-container-lowest);
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.25;
   vector-effect: non-scaling-stroke;
 }
 
 .axis {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  bottom: 10px;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
-  color: var(--text-tertiary);
-  font-size: 9px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
   font-variant-numeric: tabular-nums;
 }
 
 .tooltip {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 14px;
+  left: 14px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  color: var(--text-secondary);
-  font-size: 9px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: color-mix(in srgb, var(--md-sys-color-inverse-surface) 94%, transparent);
+  color: var(--md-sys-color-inverse-on-surface);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
   pointer-events: none;
-  box-shadow: var(--shadow-1);
-  backdrop-filter: blur(6px);
+  box-shadow: var(--md-sys-elevation-level2);
+  backdrop-filter: blur(8px);
+  animation: tooltip-in var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial) both;
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .tooltip strong {
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--md-sys-color-inverse-on-surface);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -156,8 +188,9 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  color: var(--text-tertiary);
-  font-size: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
   text-align: center;
 }
 
@@ -174,5 +207,6 @@
   .ranges {
     max-width: 100%;
     overflow-x: auto;
+    padding-bottom: 2px;
   }
 }
