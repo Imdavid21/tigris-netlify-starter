@@ -1,119 +1,141 @@
 .panel {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-extra-large);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-level0);
 }
 
 .head {
-  min-height: 52px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+  border-bottom: 0;
 }
 
 .head strong {
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  line-height: var(--md-sys-typescale-title-medium-line-height);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
 }
 
 .head span {
-  color: var(--text-tertiary);
-  font-size: 9px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
 }
 
 .body {
   min-height: 176px;
+  padding: 0 8px 8px;
 }
 
 .empty {
   margin: 0;
-  padding: 22px 14px;
-  color: var(--text-tertiary);
-  font-size: 10px;
+  padding: 26px 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
 }
 
 .row {
-  min-height: 46px;
+  min-height: 52px;
   display: grid;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
   font-variant-numeric: tabular-nums;
+  transition:
+    background var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
+    transform var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial);
 }
 
-.row:last-child {
-  border-bottom: 0;
+.row:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+.row:active {
+  transform: scale(.994);
 }
 
 .tradeRow {
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
 }
 
 .holderRow {
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
 }
 
 .side {
   width: fit-content;
-  min-height: 22px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 7px;
-  border-radius: var(--radius-pill);
-  font-size: 9px;
-  font-weight: 600;
+  padding: 0 10px;
+  border-radius: var(--md-sys-shape-corner-small);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: 650;
 }
 
 .buy {
-  background: color-mix(in srgb, var(--positive) 9%, var(--surface));
-  color: var(--positive);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 
 .sell {
-  background: color-mix(in srgb, var(--negative) 8%, var(--surface));
-  color: var(--negative);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
 }
 
 .address {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-secondary);
+  color: var(--md-sys-color-on-surface-variant);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .address:hover {
-  color: var(--brand);
+  color: var(--md-sys-color-primary);
 }
 
 .value {
-  color: var(--text-primary);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 560;
   text-align: right;
   white-space: nowrap;
 }
 
 .rank {
-  color: var(--text-tertiary);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: .72;
 }
 
 @media (max-width: 520px) {
+  .head {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
   .row {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .tradeRow {
-    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-columns: 58px minmax(0, 1fr) auto;
   }
 }
