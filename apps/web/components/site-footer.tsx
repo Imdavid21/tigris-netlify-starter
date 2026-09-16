@@ -25,7 +25,6 @@ export function SiteFooter() {
         <strong>Network</strong>
         <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc Explorer</a>
         <a href="/scanner">Scanner</a>
-        <a href="/stocks">Stocks</a>
       </div>
 
       <div className={styles.risk}>
