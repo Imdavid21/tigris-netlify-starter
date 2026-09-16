@@ -1,0 +1,486 @@
+/* Kinetic red/black editorial system inspired by the supplied reference. */
+:root{
+  --u-red:#ff2424;
+  --u-red-dark:#d90f1a;
+  --u-ink:#11141a;
+  --u-ink-2:#15181f;
+  --u-paper:#e9e5dc;
+  --u-line:rgba(255,36,36,.34);
+  --u-line-soft:rgba(255,36,36,.12);
+  --u-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+
+html{background:var(--u-ink)!important;color:var(--u-paper)!important;scroll-behavior:smooth}
+body{margin:0!important;background:var(--u-ink)!important;color:var(--u-paper)!important;overflow-x:hidden}
+::selection{background:var(--u-red);color:var(--u-ink)}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+
+.utopia{
+  --mx:0;
+  --my:0;
+  --scroll:0;
+  width:min(100%,1440px);
+  margin:0 auto;
+  overflow:hidden;
+  background:var(--u-ink);
+  color:var(--u-paper);
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.utopia::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:99;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);
+  mix-blend-mode:soft-light;
+  opacity:.55;
+}
+
+.utopia-microbar{
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 10px;
+  border-bottom:1px solid rgba(17,20,26,.5);
+  font:8px/1 var(--u-mono);
+  letter-spacing:.08em;
+  color:#11141a;
+}
+
+.utopia-hero-red{
+  min-height:680px;
+  position:relative;
+  overflow:hidden;
+  background:var(--u-red);
+  color:var(--u-ink);
+  border-bottom:14px solid var(--u-ink);
+}
+.utopia-hero-red::after{
+  content:"";
+  position:absolute;
+  inset:auto -4% 14px -4%;
+  height:1px;
+  background:rgba(17,20,26,.35);
+}
+
+.utopia-wordmark{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  padding:6px 12px 0;
+  white-space:nowrap;
+  font-size:clamp(74px,13vw,188px);
+  line-height:.76;
+  letter-spacing:-.085em;
+  text-transform:uppercase;
+}
+.utopia-wordmark b{font-weight:900}
+.utopia-wordmark span{
+  font-weight:300;
+  color:transparent;
+  -webkit-text-stroke:2px var(--u-ink);
+  text-stroke:2px var(--u-ink);
+}
+
+.utopia-hero-grid{
+  position:relative;
+  z-index:2;
+  min-height:420px;
+  display:grid;
+  grid-template-columns:1.2fr .9fr .9fr;
+  gap:30px;
+  align-items:center;
+  padding:24px 14px 62px;
+}
+.utopia-triad{
+  align-self:start;
+  margin-top:6px;
+  max-width:560px;
+  font-size:clamp(44px,6vw,88px);
+  line-height:.82;
+  letter-spacing:-.06em;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.utopia-triad::after{
+  content:"";
+  display:block;
+  width:78%;
+  height:1px;
+  margin-top:14px;
+  background:rgba(17,20,26,.55);
+}
+.utopia-hero-copy{
+  align-self:end;
+  max-width:330px;
+  padding:14px 0;
+  border-top:1px solid rgba(17,20,26,.55);
+  border-bottom:1px solid rgba(17,20,26,.55);
+  font:12px/1.35 var(--u-mono);
+}
+.utopia-hero-mask-wrap{
+  position:relative;
+  height:360px;
+  display:grid;
+  place-items:center;
+}
+.utopia-hero-mask{
+  width:210px;
+  transform:translate(calc(var(--mx) * 18px),calc(var(--my) * 14px)) rotate(calc(var(--mx) * 4deg));
+  filter:drop-shadow(0 24px 12px rgba(16,18,23,.14));
+  animation:maskFloat 5.2s ease-in-out infinite;
+}
+.utopia-mask-crosshair{
+  position:absolute;
+  width:280px;
+  height:280px;
+  border:1px solid rgba(17,20,26,.18);
+  border-radius:50%;
+  animation:spin 24s linear infinite;
+}
+.utopia-mask-crosshair::before,.utopia-mask-crosshair::after{content:"";position:absolute;background:rgba(17,20,26,.22)}
+.utopia-mask-crosshair::before{left:50%;top:-34px;width:1px;height:348px}
+.utopia-mask-crosshair::after{top:50%;left:-34px;width:348px;height:1px}
+
+.utopia-hero-links{
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:12px;
+  display:flex;
+  justify-content:flex-end;
+  gap:24px;
+  font:9px/1 var(--u-mono);
+  letter-spacing:.12em;
+}
+.utopia-hero-links a{padding:6px 0;border-bottom:1px solid transparent}
+.utopia-hero-links a:hover{border-color:var(--u-ink)}
+
+.utopia-manifesto{
+  min-height:1680px;
+  position:relative;
+  overflow:hidden;
+  background:var(--u-ink);
+  border-bottom:1px solid var(--u-line);
+}
+.utopia-lines,.utopia-gallery-gridlines,.utopia-void-grid{
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(var(--u-line-soft) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,36,36,.035) 1px,transparent 1px);
+  background-size:100% 48px,48px 100%;
+}
+.utopia-manifesto-copy{
+  position:absolute;
+  left:18px;
+  top:66px;
+  z-index:3;
+  width:min(58%,720px);
+  display:flex;
+  flex-direction:column;
+  color:var(--u-red);
+  font-size:clamp(66px,8.7vw,128px);
+  line-height:.83;
+  letter-spacing:-.075em;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.utopia-manifesto-copy span{
+  transform:translateX(calc(var(--mx) * -10px));
+  transition:transform .3s ease-out;
+}
+.utopia-manifesto-copy span:nth-child(2n){padding-left:6%;}
+.utopia-mask-totem{
+  position:absolute;
+  z-index:4;
+  left:44%;
+  top:70px;
+  width:420px;
+  height:1100px;
+  pointer-events:none;
+}
+.utopia-totem-mask{
+  position:absolute;
+  width:230px;
+  filter:drop-shadow(0 28px 22px rgba(0,0,0,.36));
+  transform-origin:center;
+}
+.utopia-totem-0{top:20px;left:30px;animation:totemA 7s ease-in-out infinite}
+.utopia-totem-1{top:300px;left:88px;animation:totemB 8.4s ease-in-out infinite}
+.utopia-totem-2{top:620px;left:38px;animation:totemA 7.8s ease-in-out infinite reverse}
+.utopia-totem-3{top:890px;left:104px;animation:totemB 8.8s ease-in-out infinite reverse}
+.utopia-kanji{
+  position:absolute;
+  right:12px;
+  top:90px;
+  z-index:2;
+  width:25%;
+  color:transparent;
+  -webkit-text-stroke:2px var(--u-red);
+  font-family:serif;
+  font-size:clamp(120px,17vw,260px);
+  line-height:.78;
+  letter-spacing:-.08em;
+  text-align:center;
+  opacity:.9;
+}
+.utopia-side-note{
+  position:absolute;
+  right:18px;
+  bottom:34px;
+  writing-mode:vertical-rl;
+  transform:rotate(180deg);
+  color:#bb242b;
+  font:8px/1.4 var(--u-mono);
+  letter-spacing:.2em;
+}
+
+.utopia-gallery{
+  min-height:880px;
+  position:relative;
+  overflow:hidden;
+  background:var(--u-ink);
+  border-bottom:1px solid var(--u-line);
+}
+.utopia-gallery-mask{
+  position:absolute;
+  width:90px;
+  display:block;
+  filter:drop-shadow(0 12px 10px rgba(0,0,0,.35));
+  animation:galleryFloat 6s ease-in-out infinite;
+  transition:transform .25s ease,filter .25s ease;
+}
+.utopia-gallery-mask:hover{transform:scale(1.18) rotate(4deg)!important;filter:drop-shadow(0 0 18px rgba(255,36,36,.35))}
+.utopia-gallery-mask svg{width:100%;display:block}
+.utopia-gallery-mask::before,.utopia-gallery-mask::after{content:"";position:absolute;width:10px;height:10px;border-color:#c9c5bb;opacity:.7}
+.utopia-gallery-mask::before{left:-5px;top:-5px;border-left:1px solid;border-top:1px solid}
+.utopia-gallery-mask::after{right:-5px;bottom:-5px;border-right:1px solid;border-bottom:1px solid}
+.g0{left:3%;top:30px}.g1{left:22%;top:54px;animation-delay:-1s}.g2{left:34%;top:58px;animation-delay:-2.3s}.g3{right:4%;top:38px;animation-delay:-.4s}
+.g4{left:7%;top:270px;animation-delay:-3s}.g5{left:50%;top:230px;animation-delay:-2s}.g6{right:19%;top:270px;animation-delay:-1.2s}
+.g7{left:31%;top:440px;animation-delay:-4.1s}.g8{left:54%;top:452px;animation-delay:-.8s}.g9{right:31%;top:452px;animation-delay:-3.3s}.g10{right:7%;top:445px;animation-delay:-1.9s}
+.g11{left:11%;top:620px;animation-delay:-2.6s}.g12{left:71%;top:632px;animation-delay:-4.5s}
+.utopia-gallery-brand{
+  position:absolute;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%);
+  color:#c8c3b9;
+  font:10px/1 var(--u-mono);
+  letter-spacing:.16em;
+}
+
+.utopia-ideogram{
+  min-height:570px;
+  position:relative;
+  display:grid;
+  place-items:center;
+  background:var(--u-ink);
+  border-bottom:1px solid var(--u-line);
+}
+.utopia-orbit{position:absolute;top:38px;color:#b8b3aa;font:9px/1 var(--u-mono);letter-spacing:.2em}
+.utopia-big-kanji{
+  color:var(--u-red);
+  font-family:serif;
+  font-size:clamp(190px,30vw,430px);
+  line-height:.8;
+  letter-spacing:-.16em;
+  transform:translateX(-4%);
+  animation:ideogramPulse 8s ease-in-out infinite;
+}
+.utopia-index-row{
+  position:absolute;
+  left:10px;
+  right:10px;
+  bottom:58px;
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  border-top:1px solid var(--u-line);
+  color:#b9b4ac;
+  font:7px/1 var(--u-mono);
+}
+.utopia-index-row span{padding:8px 4px;border-right:1px solid var(--u-line-soft)}
+.utopia-ideogram p{
+  position:absolute;
+  left:10px;
+  right:10px;
+  bottom:22px;
+  margin:0;
+  color:#a7a39a;
+  font:7px/1.3 var(--u-mono);
+  letter-spacing:.04em;
+}
+
+.utopia-void{
+  min-height:1800px;
+  position:relative;
+  background:var(--u-ink);
+  overflow:hidden;
+}
+.utopia-floating-code{
+  position:absolute;
+  left:12%;top:27%;
+  color:#5f272c;
+  font:8px/1 var(--u-mono);
+  transform:translateY(calc(var(--scroll) * -.02px));
+}
+.utopia-floating-code.two{left:auto;right:18%;top:48%;transform:translateY(calc(var(--scroll) * -.012px))}
+.utopia-floating-code.three{left:40%;top:72%;transform:translateY(calc(var(--scroll) * -.016px))}
+
+.utopia-your-mask{
+  min-height:760px;
+  position:relative;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:#13161d;
+  border-top:1px solid var(--u-line);
+  border-bottom:12px solid var(--u-red);
+}
+.utopia-blurfield{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(rgba(17,20,26,.56),rgba(17,20,26,.86)),
+    radial-gradient(circle at 30% 50%,rgba(255,36,36,.15),transparent 28%),
+    repeating-linear-gradient(90deg,#2a2d35 0 10px,#171a20 10px 28px);
+  filter:blur(6px);
+  transform:scale(1.04);
+}
+.utopia-your-mask h2{
+  position:relative;
+  z-index:3;
+  margin:0;
+  color:#e6e1d8;
+  font-size:clamp(74px,13vw,190px);
+  line-height:.85;
+  letter-spacing:-.07em;
+  text-transform:uppercase;
+  animation:glitchText 5s steps(1,end) infinite;
+}
+.utopia-index-mark{
+  position:absolute;
+  z-index:2;
+  color:transparent;
+  -webkit-text-stroke:1px var(--u-red);
+  font:300 clamp(180px,34vw,500px)/1 Arial,sans-serif;
+  opacity:.62;
+  transform:rotate(-2deg);
+}
+.utopia-rings{position:absolute;z-index:1;width:600px;height:330px}
+.utopia-rings span{position:absolute;inset:0;border:1px solid rgba(255,36,36,.34);border-radius:50%;animation:ringSpin 15s linear infinite}
+.utopia-rings span:nth-child(2){transform:rotate(60deg);animation-duration:21s}.utopia-rings span:nth-child(3){transform:rotate(-60deg);animation-duration:18s}
+.utopia-cta{
+  position:absolute;
+  z-index:5;
+  bottom:68px;
+  padding:12px 18px;
+  border:1px solid var(--u-red);
+  color:var(--u-paper);
+  background:rgba(17,20,26,.55);
+  font:9px/1 var(--u-mono);
+  letter-spacing:.14em;
+}
+.utopia-cta:hover{background:var(--u-red);color:var(--u-ink)}
+
+.utopia-footer{
+  min-height:520px;
+  position:relative;
+  overflow:hidden;
+  background:var(--u-red);
+  color:var(--u-ink);
+  padding:18px 10px 8px;
+}
+.utopia-footer-copy{width:min(48%,520px);font:10px/1.25 var(--u-mono)}
+.utopia-footer-meta{position:absolute;right:12px;top:16px;display:flex;gap:28px;font:7px/1 var(--u-mono)}
+.utopia-footer-masks{
+  height:150px;
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:6px;
+  margin-top:42px;
+  border-top:1px solid rgba(17,20,26,.45);
+  padding-top:8px;
+}
+.utopia-footer-masks svg{width:78px;max-height:122px;animation:footerMasks 5s ease-in-out infinite}
+.utopia-footer-masks svg:nth-child(2n){animation-delay:-1.7s}.utopia-footer-masks svg:nth-child(3n){animation-delay:-3.3s}
+.utopia-footer-wordmark{
+  position:absolute;
+  left:10px;right:10px;bottom:8px;
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  white-space:nowrap;
+  font-size:clamp(74px,13vw,188px);
+  line-height:.75;
+  letter-spacing:-.085em;
+  text-transform:uppercase;
+}
+.utopia-footer-wordmark b{font-weight:900}.utopia-footer-wordmark span{font-weight:300;color:transparent;-webkit-text-stroke:2px var(--u-ink)}
+
+@keyframes maskFloat{0%,100%{transform:translate(calc(var(--mx) * 18px),calc(var(--my) * 14px)) rotate(-2deg)}50%{transform:translate(calc(var(--mx) * 18px),calc(var(--my) * 14px - 12px)) rotate(2deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes totemA{0%,100%{transform:translate3d(0,0,0) rotate(-3deg)}50%{transform:translate3d(12px,-18px,0) rotate(3deg)}}
+@keyframes totemB{0%,100%{transform:translate3d(0,0,0) rotate(2deg)}50%{transform:translate3d(-14px,16px,0) rotate(-4deg)}}
+@keyframes galleryFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-14px) rotate(2deg)}}
+@keyframes ideogramPulse{0%,100%{transform:translateX(-4%) scale(1)}50%{transform:translateX(-4%) scale(1.025)}}
+@keyframes glitchText{0%,92%,100%{text-shadow:none;transform:translateX(0)}93%{text-shadow:-8px 0 var(--u-red);transform:translateX(4px)}94%{text-shadow:8px 0 #fff;transform:translateX(-3px)}95%{text-shadow:none;transform:translateX(0)}}
+@keyframes ringSpin{to{transform:rotate(360deg)}}
+@keyframes footerMasks{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+@media (prefers-reduced-motion:reduce){
+  .utopia *, .utopia *::before,.utopia *::after{animation:none!important;transition:none!important}
+}
+
+@media(max-width:900px){
+  .utopia-wordmark,.utopia-footer-wordmark{font-size:15vw}
+  .utopia-hero-grid{grid-template-columns:1fr 1fr;gap:18px}.utopia-hero-mask-wrap{grid-column:2;grid-row:1/3}.utopia-hero-copy{grid-column:1}
+  .utopia-manifesto-copy{width:72%;font-size:11vw}.utopia-mask-totem{left:52%;transform:scale(.82);transform-origin:top left}.utopia-kanji{opacity:.45}
+  .utopia-footer-masks svg{width:7.5vw}
+}
+@media(max-width:620px){
+  .utopia-hero-red{min-height:760px}.utopia-microbar{font-size:6px}.utopia-wordmark{padding-top:12px;font-size:17vw}
+  .utopia-hero-grid{display:block;padding-top:30px}.utopia-triad{font-size:14vw}.utopia-hero-copy{width:58%;font-size:9px}.utopia-hero-mask-wrap{position:absolute;right:-20px;top:190px;width:48%;height:320px}.utopia-hero-mask{width:160px}.utopia-mask-crosshair{width:210px;height:210px}
+  .utopia-hero-links{justify-content:flex-start;gap:12px;font-size:7px}
+  .utopia-manifesto{min-height:1350px}.utopia-manifesto-copy{left:8px;top:34px;width:76%;font-size:13.5vw}.utopia-mask-totem{left:46%;top:84px;transform:scale(.58)}.utopia-kanji{right:-20px;top:560px;width:55%;font-size:34vw}
+  .utopia-gallery{min-height:760px}.utopia-gallery-mask{width:68px}.g1{left:30%}.g2{left:52%}.g6{right:8%}.g8{left:46%}
+  .utopia-index-row{grid-template-columns:repeat(3,1fr);row-gap:1px}.utopia-void{min-height:1200px}.utopia-your-mask{min-height:620px}.utopia-your-mask h2{font-size:17vw}.utopia-rings{width:390px;height:210px}
+  .utopia-footer{min-height:410px}.utopia-footer-copy{width:78%;font-size:8px}.utopia-footer-meta{display:none}.utopia-footer-masks{margin-top:28px}.utopia-footer-masks svg{width:8.2vw}.utopia-footer-wordmark{font-size:16vw}
+}
+
+/* Extend the red/black language to the functional app without altering behavior. */
+body:not(:has(.utopia)){
+  background:var(--u-ink)!important;
+  color:var(--u-paper)!important;
+}
+.app-shell{
+  max-width:1380px!important;
+  margin:0 auto!important;
+  padding:12px 18px 72px!important;
+  background:var(--u-ink)!important;
+  color:var(--u-paper)!important;
+}
+.topbar,.protocol-status,.market-section,.market-card,.chart-card,.trade-terminal,.form-card,.launch-preview,.metric-card,.analytics-panel,.analytics-hero-card,.profile-summary,.profile-table,.site-footer,.empty-state,.search-modal,.fees-card,.stock-card,.jurisdiction-card,.feature-notice{
+  border-color:var(--u-line)!important;
+  background:var(--u-ink)!important;
+  color:var(--u-paper)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.topbar{min-height:60px!important;border-width:0 0 1px!important;position:relative!important;top:auto!important;padding:0!important}
+.brand,.nav a,.network-chip,.search-trigger,.theme-toggle,.connected-wallet,.header-actions button{font-family:var(--u-mono)!important}
+.brand{color:var(--u-red)!important;text-transform:uppercase!important;letter-spacing:.06em!important}.brand-mark{background:var(--u-red)!important;color:var(--u-ink)!important;border-radius:0!important}
+.nav a{color:#b7b2aa!important;text-transform:uppercase!important;font-size:9px!important}.nav a:hover{color:var(--u-red)!important}
+.network-chip,.search-trigger,.theme-toggle,.connected-wallet,.header-actions button{border:1px solid var(--u-line)!important;background:#171a20!important;color:#b9b4ac!important;border-radius:0!important}
+.primary-link,.launch-cta,.review-trade-button,.profile-connect button,.fees-card>button{background:var(--u-red)!important;color:var(--u-ink)!important;border:1px solid var(--u-red)!important;border-radius:0!important;box-shadow:none!important;font-family:var(--u-mono)!important}
+.secondary-link{background:transparent!important;color:var(--u-paper)!important;border:1px solid var(--u-red)!important;border-radius:0!important}
+input,textarea,select{background:#171a20!important;color:var(--u-paper)!important;border:1px solid var(--u-line)!important;border-radius:0!important;font-family:var(--u-mono)!important}
+.segmented{background:#171a20!important;border-color:var(--u-line)!important;border-radius:0!important}.segmented button{border-radius:0!important}.segmented button.active{background:var(--u-red)!important;color:var(--u-ink)!important}
+.market-card:hover{border-color:var(--u-red)!important;transform:translateY(-2px)}
+.market-progress>div,.progress-track>div,.analytics-bar{background:var(--u-red)!important}
+.phase-pill,.phase-badge,.live-badge,.coming-chip,.market-version{border-color:var(--u-red)!important;color:var(--u-red)!important;background:transparent!important;border-radius:0!important}
+.explore-intro h1,.page-heading h1,.token-title-line h1,.marketing-hero h1{color:var(--u-red)!important;text-transform:uppercase!important;font-family:Arial,Helvetica,sans-serif!important;font-weight:900!important;letter-spacing:-.055em!important}
