@@ -1,11 +1,12 @@
+import { CelestialLogo } from "@/components/celestial-logo";
 import styles from "./SiteFooter.module.css";
 
 export function SiteFooter() {
   return (
     <footer className={styles.footer}>
       <div className={styles.brandBlock}>
-        <a href="/explore" className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+        <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
+          <CelestialLogo className={styles.logo} />
           <span>Celestial</span>
         </a>
         <p>
