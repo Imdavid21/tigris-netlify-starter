@@ -4,29 +4,113 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getAddress, type EIP1193Provider } from "viem";
 import { ensureArcChain } from "@/lib/wallet";
 
+type InjectedProvider = EIP1193Provider & {
+  on?: (event: string, listener: (...args: any[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: any[]) => void) => void;
+};
+
+type WalletOption = {
+  id: string;
+  name: string;
+  icon?: string;
+  rdns?: string;
+  provider: InjectedProvider;
+};
+
+type EIP6963ProviderDetail = {
+  info: {
+    uuid: string;
+    name: string;
+    icon: string;
+    rdns: string;
+  };
+  provider: InjectedProvider;
+};
+
 type WalletContextValue = {
   address?: `0x${string}`;
   connecting: boolean;
   connected: boolean;
-  connect: () => Promise<`0x${string}` | undefined>;
+  wallets: WalletOption[];
+  activeWallet?: WalletOption;
+  provider?: InjectedProvider;
+  connect: (walletId?: string) => Promise<`0x${string}` | undefined>;
+  switchWallet: (walletId: string) => Promise<`0x${string}` | undefined>;
+  changeAccount: () => Promise<`0x${string}` | undefined>;
+  disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
-function injected(): (EIP1193Provider & {
-  on?: (event: string, listener: (...args: any[]) => void) => void;
-  removeListener?: (event: string, listener: (...args: any[]) => void) => void;
-}) | undefined {
-  return (window as Window & { ethereum?: EIP1193Provider }).ethereum as any;
+function browserProvider(): InjectedProvider | undefined {
+  return (window as Window & { ethereum?: InjectedProvider }).ethereum;
 }
 
 export function WalletSessionProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<`0x${string}`>();
   const [connecting, setConnecting] = useState(false);
+  const [wallets, setWallets] = useState<WalletOption[]>([]);
+  const [activeWalletId, setActiveWalletId] = useState<string>();
+
+  useEffect(() => {
+    const announce = (event: Event) => {
+      const detail = (event as CustomEvent<EIP6963ProviderDetail>).detail;
+      if (!detail?.provider || !detail.info?.uuid) return;
+
+      setWallets((current) => {
+        if (current.some((wallet) => wallet.id === detail.info.uuid || wallet.provider === detail.provider)) {
+          return current;
+        }
+        return [
+          ...current,
+          {
+            id: detail.info.uuid,
+            name: detail.info.name || "Injected wallet",
+            icon: detail.info.icon,
+            rdns: detail.info.rdns,
+            provider: detail.provider
+          }
+        ];
+      });
+    };
+
+    window.addEventListener("eip6963:announceProvider", announce as EventListener);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    const fallbackTimer = window.setTimeout(() => {
+      const fallback = browserProvider();
+      if (!fallback) return;
+      setWallets((current) => {
+        if (current.some((wallet) => wallet.provider === fallback)) return current;
+        return [
+          ...current,
+          {
+            id: "legacy-injected",
+            name: "Browser wallet",
+            provider: fallback
+          }
+        ];
+      });
+    }, 120);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      window.removeEventListener("eip6963:announceProvider", announce as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeWalletId && wallets[0]) setActiveWalletId(wallets[0].id);
+  }, [wallets, activeWalletId]);
+
+  const activeWallet = useMemo(
+    () => wallets.find((wallet) => wallet.id === activeWalletId) ?? wallets[0],
+    [wallets, activeWalletId]
+  );
+  const provider = activeWallet?.provider;
 
   const refresh = useCallback(async () => {
-    const provider = injected();
     if (!provider) {
       setAddress(undefined);
       return;
@@ -38,14 +122,45 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
     } catch {
       setAddress(undefined);
     }
-  }, []);
+  }, [provider]);
 
-  const connect = useCallback(async () => {
-    const provider = injected();
-    if (!provider) return undefined;
+  const connect = useCallback(async (walletId?: string) => {
+    const target = walletId
+      ? wallets.find((wallet) => wallet.id === walletId)
+      : activeWallet;
+    if (!target) return undefined;
+
+    setConnecting(true);
+    setActiveWalletId(target.id);
+    try {
+      await ensureArcChain(target.provider);
+      const accounts = (await target.provider.request({ method: "eth_requestAccounts" })) as string[];
+      const next = accounts[0] ? getAddress(accounts[0]) : undefined;
+      setAddress(next);
+      return next;
+    } finally {
+      setConnecting(false);
+    }
+  }, [wallets, activeWallet]);
+
+  const switchWallet = useCallback(async (walletId: string) => {
+    setAddress(undefined);
+    return connect(walletId);
+  }, [connect]);
+
+  const changeAccount = useCallback(async () => {
+    if (!provider) return connect();
 
     setConnecting(true);
     try {
+      try {
+        await provider.request({
+          method: "wallet_requestPermissions",
+          params: [{ eth_accounts: {} }]
+        } as any);
+      } catch {
+        // Some injected wallets do not implement wallet_requestPermissions.
+      }
       await ensureArcChain(provider);
       const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
       const next = accounts[0] ? getAddress(accounts[0]) : undefined;
@@ -54,12 +169,24 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
     } finally {
       setConnecting(false);
     }
-  }, []);
+  }, [provider, connect]);
+
+  const disconnect = useCallback(async () => {
+    if (provider) {
+      try {
+        await provider.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }]
+        } as any);
+      } catch {
+        // Revocation is wallet-specific. Always clear the local session below.
+      }
+    }
+    setAddress(undefined);
+  }, [provider]);
 
   useEffect(() => {
-    refresh();
-
-    const provider = injected();
+    void refresh();
     if (!provider?.on) return;
 
     const onAccountsChanged = (accounts: string[]) => {
@@ -74,17 +201,23 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
       provider.removeListener?.("accountsChanged", onAccountsChanged);
       provider.removeListener?.("disconnect", onDisconnect);
     };
-  }, [refresh]);
+  }, [provider, refresh]);
 
   const value = useMemo(
     () => ({
       address,
       connecting,
       connected: Boolean(address),
+      wallets,
+      activeWallet,
+      provider,
       connect,
+      switchWallet,
+      changeAccount,
+      disconnect,
       refresh
     }),
-    [address, connecting, connect, refresh]
+    [address, connecting, wallets, activeWallet, provider, connect, switchWallet, changeAccount, disconnect, refresh]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
