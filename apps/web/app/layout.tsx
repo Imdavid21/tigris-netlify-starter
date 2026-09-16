@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./utopia.css";
+import "./utopia-app.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
