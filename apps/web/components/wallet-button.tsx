@@ -2,7 +2,7 @@
 
 import { useWalletSession } from "@/components/wallet-session";
 import { M3Button } from "@/components/m3/primitives";
-import { MaterialBusy } from "@/components/m3/material-feedback";
+import { ArcBeaconLoader } from "@/components/dotmatrix/celestial-loaders";
 
 export function WalletButton() {
   const { address, connecting, connect } = useWalletSession();
@@ -28,9 +28,8 @@ export function WalletButton() {
       onClick={() => void connect()}
       aria-busy={connecting}
     >
-      <MaterialBusy busy={connecting} label="Connecting wallet">
-        {connecting ? "Connecting" : "Connect wallet"}
-      </MaterialBusy>
+      {connecting && <ArcBeaconLoader size={18} dotSize={2.3} speed={1.25} ariaLabel="Connecting wallet" />}
+      {connecting ? "Connecting" : "Connect wallet"}
     </M3Button>
   );
 }
