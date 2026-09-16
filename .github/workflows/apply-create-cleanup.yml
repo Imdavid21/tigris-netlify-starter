@@ -1,15 +1,12 @@
 name: Apply create page cleanup
 
-on:
-  push:
-    branches: [feature/create-cleanup-fields]
+on: [push]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.event.head_commit.message == 'chore: stage create page cleanup'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +20,6 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
 
-          # 1. Hide the global launch CTA on the create route only.
           p = Path('apps/web/components/app-header.tsx')
           s = p.read_text()
           if not s.startswith('"use client";'):
@@ -33,65 +29,45 @@ jobs:
           s = s.replace('export function AppHeader() {\n  return (', 'export function AppHeader() {\n  const pathname = usePathname();\n\n  return (')
           old = '''            <a href="/create" className={styles.createLink}>\n              <span aria-hidden="true">＋</span>\n              Launch Token\n            </a>'''
           new = '''            {pathname !== "/create" && (\n              <a href="/create" className={styles.createLink}>\n                <span aria-hidden="true">＋</span>\n                Launch Token\n              </a>\n            )}'''
-          if old not in s:
-              raise SystemExit('AppHeader launch CTA block not found')
-          s = s.replace(old, new)
-          p.write_text(s)
+          if old not in s: raise SystemExit('AppHeader launch CTA block not found')
+          p.write_text(s.replace(old, new))
 
-          # 2. Keep every launch field visible and rename the final CTA.
           p = Path('apps/web/components/create-token-form.tsx')
-          s = p.read_text()
-          s = s.replace('  const [advanced, setAdvanced] = useState(false);\n', '')
+          s = p.read_text().replace('  const [advanced, setAdvanced] = useState(false);\n', '')
           marker = '\n\n            <motion.button\n              type="button"\n              className="text-button"'
           start = s.find(marker)
-          if start < 0:
-              raise SystemExit('Advanced controls button not found')
           section_end = s.find('\n          </motion.section>', start)
-          if section_end < 0:
-              raise SystemExit('Launch economics section end not found')
+          if start < 0 or section_end < 0: raise SystemExit('Advanced controls block not found')
           static_fields = '''\n\n            <div className="advanced-grid always-visible">\n              <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>\n              <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>\n              <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>\n              <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>\n            </div>'''
           s = s[:start] + static_fields + s[section_end:]
           s = s.replace(': "Launch token"}', ': "Let’s Launch"}')
           p.write_text(s)
 
-          # 3. Add launch-protection getters to the client ABI.
           p = Path('apps/web/lib/celestial.ts')
           s = p.read_text()
           needle = '''  {\n    type: "function",\n    name: "holderFeeBps",\n    stateMutability: "view",\n    inputs: [],\n    outputs: [{ name: "", type: "uint256" }]\n  }\n] as const;'''
           replacement = '''  {\n    type: "function",\n    name: "holderFeeBps",\n    stateMutability: "view",\n    inputs: [],\n    outputs: [{ name: "", type: "uint256" }]\n  },\n  {\n    type: "function",\n    name: "maxSnipeBps",\n    stateMutability: "view",\n    inputs: [],\n    outputs: [{ name: "", type: "uint256" }]\n  },\n  {\n    type: "function",\n    name: "snipeDuration",\n    stateMutability: "view",\n    inputs: [],\n    outputs: [{ name: "", type: "uint256" }]\n  }\n] as const;'''
-          if needle not in s:
-              raise SystemExit('Celestial curve ABI tail not found')
-          s = s.replace(needle, replacement)
-          p.write_text(s)
+          if needle not in s: raise SystemExit('Curve ABI tail not found')
+          p.write_text(s.replace(needle, replacement))
 
-          # 4. Expand token pages to expose the launch configuration.
           p = Path('apps/web/components/token-market.tsx')
           s = p.read_text()
           s = s.replace('  const [holderFeeBps, setHolderFeeBps] = useState(0n);\n  const [snipeBps, setSnipeBps] = useState(0n);', '  const [holderFeeBps, setHolderFeeBps] = useState(0n);\n  const [maxSnipeBps, setMaxSnipeBps] = useState(0n);\n  const [snipeDuration, setSnipeDuration] = useState(0n);\n  const [snipeBps, setSnipeBps] = useState(0n);')
           old_reads = '''      const [base, creatorTax, holderFee, snipe] = await Promise.all([\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "feeBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "creatorTaxBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "holderFeeBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "currentSnipeBps", args: [buyer] })\n      ]);\n      setFeeBps(base as bigint);\n      setCreatorTaxBps(creatorTax as bigint);\n      setHolderFeeBps(holderFee as bigint);\n      setSnipeBps(snipe as bigint);'''
           new_reads = '''      const [base, creatorTax, holderFee, maxSnipe, duration, snipe] = await Promise.all([\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "feeBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "creatorTaxBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "holderFeeBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "maxSnipeBps" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "snipeDuration" }),\n        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "currentSnipeBps", args: [buyer] })\n      ]);\n      setFeeBps(base as bigint);\n      setCreatorTaxBps(creatorTax as bigint);\n      setHolderFeeBps(holderFee as bigint);\n      setMaxSnipeBps(maxSnipe as bigint);\n      setSnipeDuration(duration as bigint);\n      setSnipeBps(snipe as bigint);'''
-          if old_reads not in s:
-              raise SystemExit('Celestial fee reads not found')
+          if old_reads not in s: raise SystemExit('Fee read block not found')
           s = s.replace(old_reads, new_reads)
           s = s.replace('      setHolderFeeBps(0n);\n      setSnipeBps(0n);', '      setHolderFeeBps(0n);\n      setMaxSnipeBps(0n);\n      setSnipeDuration(0n);\n      setSnipeBps(0n);')
-
           start = s.find('              <div className="about-grid">')
           end = s.find('\n\n              <AnimatePresence', start)
-          if start < 0 or end < 0:
-              raise SystemExit('Token about grid not found')
+          if start < 0 or end < 0: raise SystemExit('Token about grid not found')
           block = '''              <div className="about-grid">\n                <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>\n                <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>\n                <div><span>Creator</span><strong>{indexed.creator ? indexed.creator.slice(0, 10) + "..." + indexed.creator.slice(-8) : "—"}</strong></div>\n                <div><span>Creator fee wallet</span><strong>{indexed.creator_fee_recipient ? indexed.creator_fee_recipient.slice(0, 10) + "..." + indexed.creator_fee_recipient.slice(-8) : "—"}</strong></div>\n                <div><span>Pair asset</span><strong>{quoteAsset.symbol}</strong></div>\n                <div><span>Supply</span><strong>1,000,000,000</strong></div>\n                <div><span>Graduation target</span><strong>{threshold ? formatUnits(threshold, quoteAsset.decimals) + " " + quoteAsset.symbol : "—"}</strong></div>\n                <div><span>Status</span><strong>{graduated ? "Graduated" : readyToGraduate ? "Graduating" : "Bonding curve"}</strong></div>\n                <div><span>Base trade fee</span><strong>{Number(feeBps) / 100}%</strong></div>\n                <div><span>Creator tax</span><strong>{Number(creatorTaxBps) / 100}%</strong></div>\n                <div><span>Holder fee sharing</span><strong>{Number(holderFeeBps) / 100}%</strong></div>\n                <div><span>Launch protection</span><strong>{isCelestial ? `${snipeDuration}s decay · max ${Number(maxSnipeBps) / 100}%` : "—"}</strong></div>\n                <div><span>Liquidity</span><strong>{graduated ? "Uniswap v4 + locked" : "Reserved + locked"}</strong></div>\n                <div><span>Website</span>{indexed.website ? <a href={indexed.website} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>\n                <div><span>X / Twitter</span>{indexed.twitter ? <a href={indexed.twitter.startsWith("http") ? indexed.twitter : "https://x.com/" + indexed.twitter.replace("@", "")} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>\n                <div><span>Telegram</span>{indexed.telegram ? <a href={indexed.telegram.startsWith("http") ? indexed.telegram : "https://" + indexed.telegram} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>\n              </div>'''
           s = s[:start] + block + s[end:]
+          s = s.replace('<div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>', '<div className="section-title"><strong>Launch details</strong><span>Full launch configuration</span></div>')
           p.write_text(s)
 
-          # 5. Make the About panel read as launch details and show description text.
           p = Path('apps/web/app/token/[address]/TokenPage.module.css')
-          s = p.read_text()
-          s += '''\n\n/* Complete launch configuration */\n.root :global(.section-title strong) {\n  font-size: var(--md-sys-typescale-title-small-size);\n  line-height: var(--md-sys-typescale-title-small-line-height);\n  font-weight: 700;\n}\n.root :global(.section-title strong::after) { content: none; }\n.root :global(.section-title span) {\n  display: inline;\n  color: var(--md-sys-color-on-surface-variant);\n  font-size: var(--md-sys-typescale-label-small-size);\n}\n.root :global(.review-copy) {\n  display: block;\n  margin: 0 0 12px;\n  color: var(--md-sys-color-on-surface-variant);\n  font-size: var(--md-sys-typescale-body-small-size);\n  line-height: var(--md-sys-typescale-body-small-line-height);\n}\n.root :global(.about-grid > div) { min-height: 58px; }\n'''
-          p.write_text(s)
-
-          # Adjust the section heading itself.
-          p = Path('apps/web/components/token-market.tsx')
-          s = p.read_text().replace('<div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>', '<div className="section-title"><strong>Launch details</strong><span>Full launch configuration</span></div>')
+          s = p.read_text() + '''\n\n/* Complete launch configuration */\n.root :global(.section-title strong) {\n  font-size: var(--md-sys-typescale-title-small-size);\n  line-height: var(--md-sys-typescale-title-small-line-height);\n  font-weight: 700;\n}\n.root :global(.section-title strong::after) { content: none; }\n.root :global(.section-title span) {\n  display: inline;\n  color: var(--md-sys-color-on-surface-variant);\n  font-size: var(--md-sys-typescale-label-small-size);\n}\n.root :global(.review-copy) {\n  display: block;\n  margin: 0 0 12px;\n  color: var(--md-sys-color-on-surface-variant);\n  font-size: var(--md-sys-typescale-body-small-size);\n  line-height: var(--md-sys-typescale-body-small-line-height);\n}\n.root :global(.about-grid > div) { min-height: 58px; }\n'''
           p.write_text(s)
           PY
       - run: npm install
