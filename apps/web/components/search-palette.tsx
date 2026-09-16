@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { API_URL } from "@/lib/api";
-import { animateMaterialSpring } from "@/lib/material-motion";
+import { motionSpring } from "@/lib/motion-system";
 
 type Token = {
   address: string;
@@ -15,7 +16,6 @@ export function SearchPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Token[]>([]);
-  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function keydown(e: KeyboardEvent) {
@@ -37,19 +37,6 @@ export function SearchPalette() {
       .catch(() => setItems([]));
   }, [open]);
 
-  useEffect(() => {
-    if (!open || !modalRef.current) return;
-    const animation = animateMaterialSpring(
-      modalRef.current,
-      "spatialDefault",
-      (progress) => ({
-        opacity: Math.min(1, Math.max(0, progress)),
-        transform: `translateY(${(-14 * (1 - progress)).toFixed(3)}px) scale(${(0.965 + 0.035 * progress).toFixed(4)})`
-      })
-    );
-    return () => animation?.cancel();
-  }, [open]);
-
   const q = query.trim().toLowerCase();
   const filtered = items
     .filter((x) => !q || x.name.toLowerCase().includes(q) || x.symbol.toLowerCase().includes(q) || x.address.toLowerCase().includes(q))
@@ -57,26 +44,87 @@ export function SearchPalette() {
 
   return (
     <>
-      <button className="search-trigger" onClick={() => setOpen(true)}>
+      <motion.button
+        className="search-trigger"
+        onClick={() => setOpen(true)}
+        whileTap={{ scale: 0.985 }}
+        transition={motionSpring.spatialFast}
+      >
         <span>Search tokens</span><kbd>⌘K</kbd>
-      </button>
-      {open && (
-        <div className="search-backdrop" onMouseDown={() => setOpen(false)}>
-          <div ref={modalRef} className="search-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search token, ticker, or address" />
-            <div className="search-results">
-              {!filtered.length ? <p>No tokens found.</p> : filtered.map((x) => (
-                <a key={x.address} href={"/token/" + x.address} onClick={() => setOpen(false)}>
-                  <span className="search-avatar">{x.symbol.slice(0,2)}</span>
-                  <span><strong>{x.name}</strong><small>${x.symbol}</small></span>
-                  <em>{x.status === "GRADUATED" ? "Graduated" : "Curve"}</em>
-                </a>
-              ))}
-            </div>
-            <div className="search-help"><span>Enter to open</span><span>Esc to close</span></div>
-          </div>
-        </div>
-      )}
+      </motion.button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="search-backdrop"
+            onMouseDown={() => setOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={motionSpring.effectsFast}
+          >
+            <motion.div
+              className="search-modal"
+              onMouseDown={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, y: -18, scale: 0.955 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.975 }}
+              transition={{
+                ...motionSpring.spatialDefault,
+                opacity: motionSpring.effectsFast
+              }}
+              layout
+            >
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search token, ticker, or address" />
+
+              <LayoutGroup id="search-results">
+                <motion.div className="search-results" layout transition={{ layout: motionSpring.spatialDefault }}>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {!filtered.length ? (
+                      <motion.p
+                        key="empty"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={motionSpring.effectsFast}
+                        layout
+                      >
+                        No tokens found.
+                      </motion.p>
+                    ) : filtered.map((x, index) => (
+                      <motion.a
+                        layout
+                        key={x.address}
+                        href={"/token/" + x.address}
+                        onClick={() => setOpen(false)}
+                        initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -8, scale: 0.985 }}
+                        transition={{
+                          ...motionSpring.spatialFast,
+                          delay: Math.min(index * 0.025, 0.12)
+                        }}
+                        whileHover={{ x: 4 }}
+                        whileTap={{ scale: 0.985 }}
+                      >
+                        <motion.span className="search-avatar" layoutId={`search-avatar-${x.address}`}>
+                          {x.symbol.slice(0,2)}
+                        </motion.span>
+                        <span><strong>{x.name}</strong><small>${x.symbol}</small></span>
+                        <em>{x.status === "GRADUATED" ? "Graduated" : "Curve"}</em>
+                      </motion.a>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </LayoutGroup>
+
+              <motion.div className="search-help" layout="position">
+                <span>Enter to open</span><span>Esc to close</span>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
