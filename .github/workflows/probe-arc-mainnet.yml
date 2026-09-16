@@ -41,6 +41,7 @@ jobs:
           echo "CHAIN_ID=$CHAIN_ID"
           echo "BLOCK=$BLOCK"
           echo "DEPLOYER_NATIVE_BALANCE=$BALANCE"
+          echo "DEPLOYER_NATIVE_BALANCE_DECIMAL=$((16#${BALANCE#0x}))"
 
           test "$CHAIN_ID" = "0x13b2"
           test -n "$BLOCK"
