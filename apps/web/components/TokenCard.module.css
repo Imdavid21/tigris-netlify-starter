@@ -100,8 +100,8 @@
 }
 
 .graduated {
-  background: var(--md-sys-color-tertiary-container);
-  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-positive-container);
+  color: var(--md-sys-color-on-positive-container);
 }
 
 .body {
@@ -165,7 +165,7 @@
   height: 4px;
   overflow: hidden;
   border-radius: var(--md-sys-shape-corner-full);
-  background: var(--md-sys-color-secondary-container);
+  background: var(--md-sys-color-surface-container-highest);
 }
 
 .progress > span {
