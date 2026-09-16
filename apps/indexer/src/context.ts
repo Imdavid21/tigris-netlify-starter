@@ -20,7 +20,7 @@ const arc = defineChain({
 
 const transports = [
   ...(wsUrl ? [webSocket(wsUrl, { reconnect: true })] : []),
-  ...rpcUrls.map((url) => http(url, { retryCount: 2, retryDelay: 750, timeout: 15_000 }))
+  ...rpcUrls.map((url) => http(url, { retryCount: 0, timeout: 15_000 }))
 ];
 
 export const client = createPublicClient({
