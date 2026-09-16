@@ -35,6 +35,16 @@ export function TokenCard({
   progress
 }: TokenCardProps) {
   const safeProgress = progress === undefined ? undefined : Math.max(0, Math.min(100, progress));
+  const normalizedSymbol = symbol.trim().replace(/^\$+/, "").toUpperCase();
+  const displayTicker = normalizedSymbol ? `$${normalizedSymbol}` : "✦";
+  const fallbackFontSize =
+    displayTicker.length > 10
+      ? "clamp(14px, 2vw, 24px)"
+      : displayTicker.length > 7
+        ? "clamp(16px, 2.4vw, 30px)"
+        : displayTicker.length > 5
+          ? "clamp(20px, 3vw, 36px)"
+          : undefined;
 
   return (
     <motion.a
@@ -70,8 +80,8 @@ export function TokenCard({
             transition={motionSpring.effectsDefault}
           />
         ) : (
-          <div className={styles.fallback} aria-hidden="true">
-            {symbol.slice(0, 2).toUpperCase() || "✦"}
+          <div className={styles.fallback} aria-hidden="true" style={{ fontSize: fallbackFontSize }}>
+            {displayTicker}
           </div>
         )}
         <motion.span
@@ -86,7 +96,7 @@ export function TokenCard({
       <motion.div className={styles.body} layout="position">
         <div className={styles.title}>
           <motion.strong layout="position">{name}</motion.strong>
-          <span>${symbol}</span>
+          <span>{displayTicker}</span>
         </div>
 
         <motion.div className={styles.value} layout="position">{value}</motion.div>
