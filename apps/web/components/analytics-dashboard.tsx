@@ -108,50 +108,85 @@ function ArcDashboard({ arc, arcDegraded }: Pick<Props, "arc" | "arcDegraded">) 
   const explorer = arc?.explorerUrl ?? "https://explorer.arc.io";
   const blocks = Array.isArray(arc?.blocks) ? arc.blocks : [];
   const transactions = Array.isArray(arc?.transactions) ? arc.transactions : [];
-  const hourly = Array.isArray(arc?.hourly) ? arc.hourly : [];
+  const recentActivity = Array.isArray(arc?.recentActivity) ? arc.recentActivity : [];
+  const historicalLines = arc?.historicalLines ?? {};
   const contracts = arc?.contracts ?? {};
   const transactionStats = arc?.transactionStats ?? {};
+  const bucketSeconds = Number(arc?.recentBucketSeconds ?? 0);
+  const bucketLabel = bucketSeconds <= 5 ? "5s" : bucketSeconds < 60 ? `${bucketSeconds}s` : bucketSeconds < 3600 ? `${Math.round(bucketSeconds / 60)}m` : `${Math.round(bucketSeconds / 3600)}h`;
 
   const transactionTrend = useMemo<AnalyticsChartPoint[]>(() => (arc?.activity ?? [])
     .map((item: any) => ({ time: toTime(item.date), value: Number(item.transactions ?? 0), label: new Date(item.date).toLocaleDateString() }))
     .filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [arc?.activity]);
 
-  const hourlyTransactions = useMemo<AnalyticsChartPoint[]>(() => hourly.map((item: any) => ({
+  const recentTransactions = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => ({
     time: toTime(item.time), value: Number(item.transactions ?? 0), label: new Date(item.time).toLocaleString()
-  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [hourly]);
+  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);
 
-  const hourlySenders = useMemo<AnalyticsChartPoint[]>(() => hourly.map((item: any) => ({
+  const recentSenders = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => ({
     time: toTime(item.time), value: Number(item.senders ?? 0), label: new Date(item.time).toLocaleString()
-  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [hourly]);
+  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);
 
-  const hourlySuccess = useMemo<AnalyticsChartPoint[]>(() => hourly.map((item: any) => {
+  const recentSuccess = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => {
     const success = Number(item.successful ?? 0);
     const failed = Number(item.failed ?? 0);
     const known = success + failed;
     return { time: toTime(item.time), value: known > 0 ? success / known * 100 : NaN, label: new Date(item.time).toLocaleString() };
-  }).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [hourly]);
+  }).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);
 
-  const blockTxPoints = useMemo<AnalyticsChartPoint[]>(() => [...blocks].reverse().map((block: any) => ({
-    time: toTime(block.timestamp), value: Number(block.transactions ?? 0), label: `#${block.number ?? "—"}`
-  })).filter((point) => point.time > 0 && Number.isFinite(point.value)), [blocks]);
+  const statsLine = (name: string, asPercent = false) => (Array.isArray(historicalLines?.[name]) ? historicalLines[name] : [])
+    .map((item: any) => {
+      const raw = Number(item.value);
+      const value = asPercent && raw >= 0 && raw <= 1 ? raw * 100 : raw;
+      return { time: toTime(item.date), value, label: new Date(item.date).toLocaleDateString() };
+    })
+    .filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value));
 
-  const gasFillPoints = useMemo<AnalyticsChartPoint[]>(() => [...blocks].reverse().map((block: any) => {
-    const used = Number(block.gasUsed);
-    const limit = Number(block.gasLimit);
-    return {
-      time: toTime(block.timestamp),
-      value: Number.isFinite(used) && Number.isFinite(limit) && limit > 0 ? Math.min(100, used / limit * 100) : NaN,
-      label: `#${block.number ?? "—"}`
-    };
-  }).filter((point) => point.time > 0 && Number.isFinite(point.value)), [blocks]);
+  const activeAccountsHistory = statsLine("active_accounts");
+  const successHistory = statsLine("txns_success_rate", true);
+  const newBlocksHistory = statsLine("new_blocks");
+  const avgGasUsedHistory = statsLine("average_gas_used");
 
-  const totals = useMemo(() => hourly.reduce((acc: { tx: number; contract: number; success: number; failed: number }, row: any) => {
+  const activeAccountPoints = activeAccountsHistory.length >= 2 ? activeAccountsHistory : recentSenders;
+  const successPoints = successHistory.length >= 2 ? successHistory : recentSuccess;
+
+  const blockBuckets = useMemo(() => {
+    const grouped = new Map<number, { transactions: number; gasFill: number; gasSamples: number; blocks: number; first: number; last: number }>();
+    for (const block of [...blocks].reverse()) {
+      const second = toTime(block.timestamp);
+      if (!second) continue;
+      const number = Number(block.number ?? 0);
+      const entry = grouped.get(second) ?? { transactions: 0, gasFill: 0, gasSamples: 0, blocks: 0, first: number, last: number };
+      entry.transactions += Number(block.transactions ?? 0);
+      entry.blocks += 1;
+      entry.first = Math.min(entry.first || number, number);
+      entry.last = Math.max(entry.last || number, number);
+      const used = Number(block.gasUsed);
+      const limit = Number(block.gasLimit);
+      if (Number.isFinite(used) && Number.isFinite(limit) && limit > 0) {
+        entry.gasFill += Math.min(100, used / limit * 100);
+        entry.gasSamples += 1;
+      }
+      grouped.set(second, entry);
+    }
+    return [...grouped.entries()].sort((a, b) => a[0] - b[0]);
+  }, [blocks]);
+
+  const blockTxPoints = useMemo<AnalyticsChartPoint[]>(() => blockBuckets.map(([time, row]) => ({
+    time, value: row.blocks ? row.transactions / row.blocks : 0, label: row.first === row.last ? `#${row.first}` : `#${row.first}–${row.last}`
+  })), [blockBuckets]);
+
+  const gasFillPoints = useMemo<AnalyticsChartPoint[]>(() => blockBuckets.filter(([, row]) => row.gasSamples > 0).map(([time, row]) => ({
+    time, value: row.gasFill / row.gasSamples, label: row.first === row.last ? `#${row.first}` : `#${row.first}–${row.last}`
+  })), [blockBuckets]);
+
+  const totals = useMemo(() => recentActivity.reduce((acc: { tx: number; contract: number; success: number; failed: number }, row: any) => {
     acc.tx += Number(row.transactions ?? 0);
     acc.contract += Number(row.contractCalls ?? 0);
     acc.success += Number(row.successful ?? 0);
     acc.failed += Number(row.failed ?? 0);
     return acc;
-  }, { tx: 0, contract: 0, success: 0, failed: 0 }), [hourly]);
+  }, { tx: 0, contract: 0, success: 0, failed: 0 }), [recentActivity]);
 
   const topMethods = useMemo(() => (arc?.topMethods ?? []).map((row: any) => ({ label: String(row.method || "Transfer"), value: Number(row.transactions ?? 0) })), [arc?.topMethods]);
   const hotContracts = useMemo(() => {
@@ -196,12 +231,14 @@ function ArcDashboard({ arc, arcDegraded }: Pick<Props, "arc" | "arcDegraded">) 
       </section>
 
       <section className={styles.chartGrid}>
-        <AnalyticsChart title="Transactions" points={transactionTrend} rangesEnabled defaultRange="30d" />
-        <AnalyticsChart title="Transactions / hour" points={hourlyTransactions} kind="bar" />
-        <AnalyticsChart title="Active senders / hour" points={hourlySenders} />
-        <AnalyticsChart title="Success rate" points={hourlySuccess} format="percent" />
-        <AnalyticsChart title="Transactions / block" points={blockTxPoints} kind="bar" />
-        <AnalyticsChart title="Block utilization" points={gasFillPoints} format="percent" />
+        {transactionTrend.length >= 2 && <AnalyticsChart title="Transactions" points={transactionTrend} rangesEnabled defaultRange="30d" />}
+        {recentTransactions.length >= 2 && <AnalyticsChart title={`Transactions / ${bucketLabel}`} points={recentTransactions} kind="bar" />}
+        {activeAccountPoints.length >= 2 && <AnalyticsChart title={activeAccountsHistory.length >= 2 ? "Active accounts" : `Active senders / ${bucketLabel}`} points={activeAccountPoints} rangesEnabled={activeAccountsHistory.length >= 2} defaultRange="30d" />}
+        {successPoints.length >= 2 && <AnalyticsChart title="Success rate" points={successPoints} format="percent" rangesEnabled={successHistory.length >= 2} defaultRange="30d" />}
+        {blockTxPoints.length >= 2 && <AnalyticsChart title="Transactions / block" points={blockTxPoints} kind="bar" />}
+        {gasFillPoints.length >= 2 && <AnalyticsChart title="Block utilization" points={gasFillPoints} format="percent" />}
+        {newBlocksHistory.length >= 2 && <AnalyticsChart title="New blocks" points={newBlocksHistory} kind="bar" rangesEnabled defaultRange="30d" />}
+        {avgGasUsedHistory.length >= 2 && <AnalyticsChart title="Average gas used" points={avgGasUsedHistory} rangesEnabled defaultRange="30d" />}
       </section>
 
       <section className={styles.insightGrid}>
@@ -220,7 +257,7 @@ function ArcDashboard({ arc, arcDegraded }: Pick<Props, "arc" | "arcDegraded">) 
           </div>
         </div>
         <div className={styles.card}>
-          <CardTitle title="Methods · 24h" />
+          <CardTitle title="Methods" />
           <BarList rows={topMethods} />
         </div>
         <div className={styles.card}>

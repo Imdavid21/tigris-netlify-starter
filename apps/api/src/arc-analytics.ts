@@ -32,6 +32,7 @@ function itemArray(payload: any): any[] {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.items)) return payload.items;
   if (Array.isArray(payload?.chart_data)) return payload.chart_data;
+  if (Array.isArray(payload?.chart)) return payload.chart;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 }
@@ -117,6 +118,18 @@ function normalizeStats(raw: Json) {
       fast: asNumber(gasPrices.fast)
     } : null
   };
+}
+
+function normalizeStatsLine(raw: Json | null) {
+  if (!raw) return [];
+  return itemArray(raw)
+    .map((item) => ({
+      date: asString(item?.date ?? item?.date_from ?? item?.timestamp),
+      dateTo: asString(item?.date_to),
+      value: asNumber(item?.value),
+      approximate: Boolean(item?.is_approximate)
+    }))
+    .filter((item): item is { date: string; dateTo: string | null; value: number; approximate: boolean } => Boolean(item.date) && item.value !== null);
 }
 
 function normalizeActivity(raw: Json) {
@@ -306,6 +319,13 @@ export async function syncArcAnalytics(db: Pool, log?: FastifyInstance["log"]) {
     const contractCountersRaw = await optionalBlockscout("/api/v2/smart-contracts/counters");
     const hotContractsRaw = await optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" });
 
+    const historicalLines: Record<string, ReturnType<typeof normalizeStatsLine>> = {};
+    for (const name of ["active_accounts", "txns_success_rate", "new_blocks", "average_gas_used", "average_gas_limit"]) {
+      const raw = await optionalBlockscout(`/stats-service/api/v1/lines/${name}`, { resolution: "DAY" });
+      const points = normalizeStatsLine(raw);
+      if (points.length) historicalLines[name] = points.slice(-365);
+    }
+
     const stats = normalizeStats(statsRaw);
     const activity = normalizeActivity(activityRaw);
     const transactionStats = normalizeTransactionStats(transactionStatsRaw);
@@ -317,9 +337,9 @@ export async function syncArcAnalytics(db: Pool, log?: FastifyInstance["log"]) {
     await syncDailyActivity(client, activity);
 
     await client.query(
-      `insert into arc_chain_snapshots(captured_at,stats,transaction_stats,contract_counters,hot_contracts)
-       values (now(),$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb)`,
-      [JSON.stringify(stats), JSON.stringify(transactionStats), JSON.stringify(contractCounters), JSON.stringify(hotContracts)]
+      `insert into arc_chain_snapshots(captured_at,stats,transaction_stats,contract_counters,hot_contracts,historical_lines)
+       values (now(),$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5::jsonb)`,
+      [JSON.stringify(stats), JSON.stringify(transactionStats), JSON.stringify(contractCounters), JSON.stringify(hotContracts), JSON.stringify(historicalLines)]
     );
     await client.query("delete from arc_chain_snapshots where captured_at < now() - interval '120 days'");
     await client.query(
@@ -376,21 +396,37 @@ async function loadSupershotComparison(db: Queryable, transactionsToday: number 
 }
 
 async function loadArcOverview(db: Pool) {
-  const [snapshotRes, syncRes, activityRes, blocksRes, txRes, hourlyRes, methodsRes, destinationsRes] = await Promise.all([
+  const [snapshotRes, syncRes, activityRes, blocksRes, txRes, recentRes, methodsRes, destinationsRes] = await Promise.all([
     db.query("select * from arc_chain_snapshots order by captured_at desc limit 1"),
     db.query("select last_synced_at,last_error from arc_sync_state where id='arc' limit 1"),
     db.query("select day,transactions from arc_daily_activity order by day asc limit 365"),
     db.query("select block_number,block_hash,block_time,transactions_count,gas_used::text,gas_limit::text,miner from arc_blocks order by block_number desc limit 40"),
     db.query("select tx_hash,block_number,block_time,status,method,from_address,to_address,created_contract,fee_value,value,gas_used::text,gas_price from arc_transactions order by block_time desc limit 60"),
-    db.query(`select date_trunc('hour',block_time) as bucket,
-                     count(*)::int as transactions,
-                     count(distinct from_address)::int as senders,
-                     count(*) filter (where lower(coalesce(status,'')) in ('ok','success','confirmed'))::int as successful,
-                     count(*) filter (where lower(coalesce(status,'')) in ('error','failed','fail','reverted','revert'))::int as failed,
-                     count(*) filter (where method is not null and method <> '')::int as contract_calls
-              from arc_transactions
-              where block_time > now() - interval '48 hours'
-              group by 1 order by 1 asc`),
+    db.query(`with recent as (
+                select * from arc_transactions where block_time > now() - interval '48 hours'
+              ), bounds as (
+                select extract(epoch from (max(block_time) - min(block_time))) as span_seconds from recent
+              ), params as (
+                select case
+                  when coalesce(span_seconds,0) <= 300 then 5
+                  when span_seconds <= 3600 then 30
+                  when span_seconds <= 21600 then 120
+                  when span_seconds <= 86400 then 600
+                  else 1800
+                end::int as bucket_seconds
+                from bounds
+              ), aggregated as (
+                select to_timestamp(floor(extract(epoch from r.block_time) / p.bucket_seconds) * p.bucket_seconds) as bucket,
+                       p.bucket_seconds,
+                       count(*)::int as transactions,
+                       count(distinct r.from_address)::int as senders,
+                       count(*) filter (where lower(coalesce(r.status,'')) in ('ok','success','confirmed'))::int as successful,
+                       count(*) filter (where lower(coalesce(r.status,'')) in ('error','failed','fail','reverted','revert'))::int as failed,
+                       count(*) filter (where r.method is not null and r.method <> '')::int as contract_calls
+                from recent r cross join params p
+                group by 1,2
+              )
+              select * from (select * from aggregated order by bucket desc limit 240) latest order by bucket asc`),
     db.query(`select coalesce(nullif(regexp_replace(method,'\\(.*$','','g'),''),'Transfer') as method,count(*)::int as transactions
               from arc_transactions where block_time > now() - interval '24 hours'
               group by 1 order by 2 desc limit 8`),
@@ -412,8 +448,10 @@ async function loadArcOverview(db: Pool) {
     transactionStats: snapshot.transaction_stats,
     contracts: snapshot.contract_counters,
     hotContracts: snapshot.hot_contracts ?? [],
+    historicalLines: snapshot.historical_lines ?? {},
     activity: activityRes.rows.map((row) => ({ date: row.day, transactions: asNumber(row.transactions) ?? 0 })),
-    hourly: hourlyRes.rows.map((row) => ({
+    recentBucketSeconds: asNumber(recentRes.rows[0]?.bucket_seconds) ?? null,
+    recentActivity: recentRes.rows.map((row) => ({
       time: row.bucket,
       transactions: asNumber(row.transactions) ?? 0,
       senders: asNumber(row.senders) ?? 0,
