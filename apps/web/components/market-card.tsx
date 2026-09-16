@@ -28,11 +28,13 @@ type Sort = "activity" | "newest" | "graduation" | "volume";
 const QUOTE_DECIMALS: Record<string, number> = {
   "0x3600000000000000000000000000000000000000": 6,
   "0x89b50855aa3be2f677cd6303cec089b5f319d72a": 6,
-  "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf": 8
+  "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf": 8,
 };
 
 function decimals(item: Launch) {
-  return item.quote_asset ? QUOTE_DECIMALS[item.quote_asset.toLowerCase()] ?? 6 : 6;
+  return item.quote_asset
+    ? (QUOTE_DECIMALS[item.quote_asset.toLowerCase()] ?? 6)
+    : 6;
 }
 
 function money(value: bigint | string | undefined, d = 6) {
@@ -68,25 +70,64 @@ function age(value?: string | null) {
 function TokenImage({ item }: { item: Launch }) {
   const [failed, setFailed] = useState(false);
   if (item.image && !failed) {
-    return <img className={ui("market-card-image")} src={item.image.startsWith("ipfs://") ? "https://ipfs.io/ipfs/" + item.image.slice(7) : item.image} alt="" loading="lazy" width={240} height={240} onError={() => setFailed(true)} />;
+    return (
+      <img
+        className={ui("market-card-image")}
+        src={
+          item.image.startsWith("ipfs://")
+            ? "https://ipfs.io/ipfs/" + item.image.slice(7)
+            : item.image
+        }
+        alt=""
+        loading="lazy"
+        width={240}
+        height={240}
+        onError={() => setFailed(true)}
+      />
+    );
   }
   return (
-    <div className={ui("market-card-image market-card-fallback")} aria-hidden="true">
+    <div
+      className={ui("market-card-image market-card-fallback")}
+      aria-hidden="true"
+    >
       {item.symbol?.slice(0, 2).toUpperCase() || "✦"}
     </div>
   );
 }
 
-export function MarketCard({ item, graduated = false }: { item: Launch; graduated?: boolean }) {
+export function MarketCard({
+  item,
+  graduated = false,
+  preview = false,
+}: {
+  item: Launch;
+  graduated?: boolean;
+  preview?: boolean;
+}) {
+  const Tag = preview ? "div" : "a";
   const pct = progress(item);
   const d = decimals(item);
-  const quoteSymbol = item.quote_asset?.toLowerCase() === "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf" ? "cirBTC" : item.quote_asset?.toLowerCase() === "0x89b50855aa3be2f677cd6303cec089b5f319d72a" ? "EURC" : "USDC";
+  const quoteSymbol =
+    item.quote_asset?.toLowerCase() ===
+    "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf"
+      ? "cirBTC"
+      : item.quote_asset?.toLowerCase() ===
+          "0x89b50855aa3be2f677cd6303cec089b5f319d72a"
+        ? "EURC"
+        : "USDC";
   return (
-    <a href={"/token/" + item.address} className={ui("market-card")}>
+    <Tag href={preview ? undefined : "/token/" + item.address} className={ui("market-card")}>
       <div className={ui("market-card-media")}>
         <TokenImage item={item} />
-        <span className={ui("market-version " + (graduated ? "graduated" : ""))}>
-          {graduated ? "Graduated" : item.generation === "CELESTIAL" ? "C" : "V1"}
+        <span
+          className={ui("market-version " + (graduated ? "graduated" : ""))}
+        >
+          {preview ? "Preview" : graduated
+            ? "Graduated"
+            : item.generation === "CELESTIAL"
+              ? "C"
+              : "V1"}
         </span>
       </div>
       <div className={ui("market-card-body")}>
@@ -94,9 +135,14 @@ export function MarketCard({ item, graduated = false }: { item: Launch; graduate
           <strong>{item.name}</strong>
           <span>{item.symbol}</span>
         </div>
-        <div className={ui("market-card-value")}>{money(item.volume_24h ?? "0", d).replace("$", "")} <small>{quoteSymbol}</small></div>
+        <div className={ui("market-card-value")}>
+          {money(item.volume_24h ?? "0", d).replace("$", "")}{" "}
+          <small>{quoteSymbol}</small>
+        </div>
         <div className={ui("market-card-meta")}>
-          <span>24h volume · {Number(item.trades_24h ?? 0).toLocaleString()} trades</span>
+          <span>
+            24h volume · {Number(item.trades_24h ?? 0).toLocaleString()} trades
+          </span>
           <span>{age(item.last_trade_at ?? item.created_at)}</span>
         </div>
         {!graduated && (
@@ -105,11 +151,12 @@ export function MarketCard({ item, graduated = false }: { item: Launch; graduate
           </div>
         )}
         <div className={ui("market-card-foot")}>
-          <span>{item.address.slice(0, 6)}...{item.address.slice(-4)}</span>
-          <span>{graduated ? "DEX" : pct ? pct.toFixed(0) + "%" : "Live"}</span>
+          <span>
+            {preview ? "Contract assigned at launch" : item.address.slice(0, 6) + "..." + item.address.slice(-4)}
+          </span>
+          <span>{preview ? "" : graduated ? "DEX" : pct ? pct.toFixed(0) + "%" : "Live"}</span>
         </div>
       </div>
-    </a>
+    </Tag>
   );
 }
-

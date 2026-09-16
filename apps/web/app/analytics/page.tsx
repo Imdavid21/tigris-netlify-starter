@@ -7,10 +7,10 @@ import { API_URL } from "@/lib/api";
 async function loadData() {
   try {
     const [statsRes, dailyRes, buybacksRes, venuesRes] = await Promise.all([
-      fetch(API_URL + "/stats", { cache: "no-store" }),
-      fetch(API_URL + "/analytics/daily", { cache: "no-store" }),
-      fetch(API_URL + "/buybacks", { cache: "no-store" }),
-      fetch(API_URL + "/analytics/venues", { cache: "no-store" })
+      fetch(API_URL + "/stats", { cache: "no-store", signal: AbortSignal.timeout(12000) }),
+      fetch(API_URL + "/analytics/daily", { cache: "no-store", signal: AbortSignal.timeout(12000) }),
+      fetch(API_URL + "/buybacks", { cache: "no-store", signal: AbortSignal.timeout(12000) }),
+      fetch(API_URL + "/analytics/venues", { cache: "no-store", signal: AbortSignal.timeout(12000) })
     ]);
     return {
       stats: statsRes.ok ? await statsRes.json() : null,
@@ -76,10 +76,10 @@ export default async function AnalyticsPage() {
         <div className={ui("analytics-title-row")}>
           <div>
             <h1>Protocol analytics</h1>
-            <p>Indexed onchain reporting for Celestial markets on Arc.</p>
+            <p>Trading, launches, and protocol activity on Arc.</p>
           </div>
           <div className={ui("analytics-actions")}>
-            <span className={ui("phase-pill")}>Live index</span>
+            <span className={ui("phase-pill")}>{degraded ? "Data delayed" : "Indexed data"}</span>
             <a className={ui("secondary-link compact-link")} href="/explore">View markets</a>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default async function AnalyticsPage() {
           <Metric label="24h launches" value={String(stats?.launches_24h ?? "—")} />
           <Metric label="Unique creators" value={String(stats?.unique_creators ?? "—")} note="Lifetime indexed" />
         </div>
-        <p className={ui("analytics-source-note")}>Values are derived from indexed onchain activity. Multi-asset markets are not combined into a fake USD total where conversion data is unavailable.</p>
+        <p className={ui("analytics-source-note")}>Values are derived from indexed onchain activity. Volumes are reported in their original quote asset.</p>
       </section>
 
       <section className={ui("analytics-panel")}>

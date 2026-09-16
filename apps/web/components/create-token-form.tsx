@@ -329,7 +329,7 @@ export function CreateTokenForm() {
 
       <aside className={ui("launch-preview")}>
         <p className={ui("preview-caption")}>Live preview</p>
-        <MarketCard item={{address: "0x0000000000000000000000000000000000000000", curve_address: "0x0000000000000000000000000000000000000000", name: name || "Your token", symbol: previewSymbol, status: "CURVE", generation: "CELESTIAL", image, quote_asset: quoteAssets.find(q => q.symbol === quoteSymbol)?.address}} />
+        <MarketCard preview item={{address: "0x0000000000000000000000000000000000000000", curve_address: "0x0000000000000000000000000000000000000000", name: name || "Your token", symbol: previewSymbol, status: "CURVE", generation: "CELESTIAL", image, quote_asset: quoteAssets.find(q => q.symbol === quoteSymbol)?.address}} />
         <p className={ui("preview-description")}>{description || "Add a token description."}</p>
 
         <div className={ui("preview-rule")} />

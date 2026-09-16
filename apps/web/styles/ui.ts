@@ -6,5 +6,10 @@ import dashboard from "./dashboard.module.css";
 const modules = [shell, discovery, market, forms, dashboard];
 /** Resolve shared semantic class names to locally scoped CSS modules. */
 export function ui(value: string): string {
-  return value.split(/\s+/).flatMap(name => modules.flatMap(module => module[name] ? [module[name]] : [])).join(" ");
+  return value
+    .split(/\s+/)
+    .flatMap((name) =>
+      modules.flatMap((module) => (module[name] ? [module[name]] : [])),
+    )
+    .join(" ");
 }

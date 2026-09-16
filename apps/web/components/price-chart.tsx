@@ -23,14 +23,17 @@ function priceOf(trade: IndexedTrade, decimals: number) {
 
 export function PriceChart({ token, quoteDecimals = 6, quoteSymbol = "USDC" }: { token: string; quoteDecimals?: number; quoteSymbol?: string }) {
   const [hover, setHover] = useState<number>();
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [trades, setTrades] = useState<IndexedTrade[]>([]);
   const [range, setRange] = useState<Range>("1h");
 
   useEffect(() => {
-    fetch(API_URL + "/tokens/" + token)
-      .then((r) => (r.ok ? r.json() : null))
+    setLoading(true); setFailed(false);
+    fetch(API_URL + "/tokens/" + token, {signal: AbortSignal.timeout(12000)})
+      .then((r) => {if (!r.ok) throw new Error(); return r.json();})
       .then((data) => setTrades(data?.trades ?? []))
-      .catch(() => {});
+      .catch(() => setFailed(true)).finally(() => setLoading(false));
   }, [token]);
 
   const points = useMemo(() => {
@@ -114,7 +117,7 @@ export function PriceChart({ token, quoteDecimals = 6, quoteSymbol = "USDC" }: {
           </svg>
         ) : (
           <div className={ui("chart-empty")}>
-            Price history appears after at least two indexed trades.
+            {loading ? "Loading price history…" : failed ? "Price history is temporarily unavailable." : "No trades in this range. Try All for earlier activity."}
           </div>
         )}
         {hover !== undefined && points[hover] && <div className={ui("chart-tooltip")}>{points[hover].price.toPrecision(5)} {quoteSymbol}<br />{new Date(points[hover].time).toLocaleString()}</div>}
