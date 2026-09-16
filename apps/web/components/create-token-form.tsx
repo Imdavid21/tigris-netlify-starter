@@ -79,7 +79,6 @@ export function CreateTokenForm() {
   const [creatorTax, setCreatorTax] = useState("0");
   const [holderFee, setHolderFee] = useState("0");
   const [snipeExemptions, setSnipeExemptions] = useState("");
-  const [advanced, setAdvanced] = useState(false);
 
   const previewSymbol = useMemo(() => symbol.trim().toUpperCase() || "TOKEN", [symbol]);
   const selectedQuote = quoteAssets.find((q) => q.symbol === quoteSymbol) ?? quoteAssets[0];
@@ -365,37 +364,12 @@ export function CreateTokenForm() {
               <div><span>Liquidity</span><strong>Reserved + locked</strong></div>
             </motion.div>
 
-            <motion.button
-              type="button"
-              className="text-button"
-              onClick={() => setAdvanced(!advanced)}
-              whileTap={{ scale: 0.97 }}
-              transition={motionSpring.spatialFast}
-            >
-              {advanced ? "Hide" : "Show"} advanced controls
-            </motion.button>
-
-            <AnimatePresence initial={false} mode="popLayout">
-              {advanced && (
-                <motion.div
-                  className="advanced-grid"
-                  layout
-                  initial={{ opacity: 0, height: 0, y: -8 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -6 }}
-                  transition={{
-                    ...motionSpring.spatialDefault,
-                    opacity: motionSpring.effectsFast
-                  }}
-                  style={{ overflow: "hidden" }}
-                >
-                  <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>
-                  <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-                  <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-                  <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="advanced-grid always-visible">
+              <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>
+              <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
+              <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
+              <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
+            </div>
           </motion.section>
 
           <motion.section className="form-card review-card" layout transition={{ layout: motionSpring.spatialDefault }}>
@@ -424,7 +398,7 @@ export function CreateTokenForm() {
                   exit={{ opacity: 0, y: -4 }}
                   transition={motionSpring.effectsFast}
                 >
-                  {status === "uploading" ? "Uploading image" : status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
+                  {status === "uploading" ? "Uploading image" : status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Let’s Launch"}
                 </motion.span>
               </AnimatePresence>
             </motion.button>

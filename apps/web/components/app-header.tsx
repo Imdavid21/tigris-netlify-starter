@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { WalletButton } from "@/components/wallet-button";
 import { SearchPalette } from "@/components/search-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -13,6 +16,8 @@ const primaryItems = [
 ];
 
 export function AppHeader() {
+  const pathname = usePathname();
+
   return (
     <>
       <div className={styles.statusWrap}>
@@ -41,10 +46,12 @@ export function AppHeader() {
             <div className={styles.search}>
               <SearchPalette />
             </div>
-            <a href="/create" className={styles.createLink}>
-              <span aria-hidden="true">＋</span>
-              Launch Token
-            </a>
+            {pathname !== "/create" && (
+              <a href="/create" className={styles.createLink}>
+                <span aria-hidden="true">＋</span>
+                Launch Token
+              </a>
+            )}
           </div>
         </div>
       </header>
