@@ -1,0 +1,117 @@
+.footer {
+  width: min(calc(100% - 48px), var(--content-max));
+  margin: 24px auto 40px;
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(140px, 1fr));
+  gap: 28px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.brandBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.brandMark {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface-active);
+  color: var(--brand);
+  font-size: 13px;
+}
+
+.brandBlock p,
+.risk p {
+  max-width: 360px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.column,
+.risk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.column strong,
+.risk strong {
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.column a {
+  color: var(--text-secondary);
+  font-size: 11px;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.column a:hover {
+  color: var(--brand);
+}
+
+.bottom {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.bottomLinks {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bottomLinks a:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+  .footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .footer {
+    width: min(calc(100% - 28px), var(--content-max));
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .bottom {
+    grid-column: auto;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
