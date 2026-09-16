@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
 import { createDatabasePool, prepareDatabaseSchema, databaseSchema } from "./database.js";
 import { schemaSql } from "./schema.js";
@@ -7,7 +8,7 @@ await prepareDatabaseSchema();
 const db = createDatabasePool();
 await db.query(schemaSql);
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 8 * 1024 * 1024 });
 
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(",") ?? true
@@ -18,6 +19,43 @@ app.get("/", async () => ({ service: "arc-launchpad-api", ok: true, databaseSche
 app.get("/health", async () => {
   const result = await db.query("select now() as now");
   return { ok: true, databaseTime: result.rows[0].now, databaseSchema };
+});
+
+const allowedImageTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const maxImageBytes = 5 * 1024 * 1024;
+const uploadWindows = new Map<string, { count: number; resetAt: number }>();
+
+app.post("/uploads/images", async (request, reply) => {
+  const now = Date.now();
+  const key = request.ip;
+  const window = uploadWindows.get(key);
+  if (!window || window.resetAt <= now) {
+    uploadWindows.set(key, { count: 1, resetAt: now + 60 * 60 * 1000 });
+  } else {
+    if (window.count >= 20) return reply.code(429).send({ error: "Too many image uploads. Try again later." });
+    window.count += 1;
+  }
+
+  const body = request.body as { dataUrl?: string } | undefined;
+  const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(body?.dataUrl ?? "");
+  if (!match || !allowedImageTypes.has(match[1])) return reply.code(400).send({ error: "Use a PNG, JPG, WebP, or GIF image." });
+
+  const data = Buffer.from(match[2], "base64");
+  if (!data.length || data.length > maxImageBytes) return reply.code(400).send({ error: "Token images must be 5 MB or smaller." });
+
+  const id = randomUUID();
+  await db.query("insert into token_images(id,mime_type,data,size_bytes) values ($1,$2,$3,$4)", [id, match[1], data, data.length]);
+  return reply.code(201).send({ id, path: `/uploads/images/${id}` });
+});
+
+app.get("/uploads/images/:id", async (request, reply) => {
+  const { id } = request.params as { id: string };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return reply.code(400).send({ error: "invalid image id" });
+  const result = await db.query("select mime_type,data from token_images where id=$1 limit 1", [id]);
+  if (!result.rowCount) return reply.code(404).send({ error: "not found" });
+  reply.header("Cache-Control", "public, max-age=31536000, immutable");
+  reply.header("X-Content-Type-Options", "nosniff");
+  return reply.type(result.rows[0].mime_type).send(result.rows[0].data);
 });
 
 app.get("/stats", async () => {
