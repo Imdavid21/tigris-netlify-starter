@@ -1,0 +1,55 @@
+name: Probe Arc Mainnet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/probe-arc-mainnet.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rpc:
+          - https://rpc.mainnet.arc.io
+          - https://rpc.arc-scan.org
+          - https://niorfun.com/api/rpc
+    steps:
+      - name: Probe RPC
+        env:
+          RPC_URL: ${{ matrix.rpc }}
+          USDC: "0x3600000000000000000000000000000000000000"
+          POOL_MANAGER: "0x8366a39CC670B4001A1121B8F6A443A643e40951"
+          DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+        run: |
+          set -euo pipefail
+          rpc() {
+            curl --fail --silent --show-error --max-time 15 \
+              -H 'content-type: application/json' \
+              --data "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"$1\",\"params\":$2}" \
+              "$RPC_URL" | jq -r '.result // empty'
+          }
+
+          CHAIN_ID=$(rpc eth_chainId '[]')
+          BLOCK=$(rpc eth_blockNumber '[]')
+          USDC_CODE=$(rpc eth_getCode "[\"$USDC\",\"latest\"]")
+          V4_CODE=$(rpc eth_getCode "[\"$POOL_MANAGER\",\"latest\"]")
+          BALANCE=$(rpc eth_getBalance "[\"$DEPLOYER\",\"latest\"]")
+
+          echo "RPC=$RPC_URL"
+          echo "CHAIN_ID=$CHAIN_ID"
+          echo "BLOCK=$BLOCK"
+          echo "USDC_CODE_BYTES=$(( (${#USDC_CODE} - 2) / 2 ))"
+          echo "V4_POOL_MANAGER_CODE_BYTES=$(( (${#V4_CODE} - 2) / 2 ))"
+          echo "DEPLOYER_NATIVE_BALANCE=$BALANCE"
+
+          test "$CHAIN_ID" = "0x13b2"
+          test -n "$BLOCK"
+          test "$USDC_CODE" != "0x"
+          test "$V4_CODE" != "0x"
