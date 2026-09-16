@@ -2,6 +2,7 @@
 
 import { useWalletSession } from "@/components/wallet-session";
 import { M3Button } from "@/components/m3/primitives";
+import { MaterialBusy } from "@/components/m3/material-feedback";
 
 export function WalletButton() {
   const { address, connecting, connect } = useWalletSession();
@@ -25,8 +26,11 @@ export function WalletButton() {
       variant="tonal"
       disabled={connecting}
       onClick={() => void connect()}
+      aria-busy={connecting}
     >
-      {connecting ? "Connecting..." : "Connect wallet"}
+      <MaterialBusy busy={connecting} label="Connecting wallet">
+        {connecting ? "Connecting" : "Connect wallet"}
+      </MaterialBusy>
     </M3Button>
   );
 }
