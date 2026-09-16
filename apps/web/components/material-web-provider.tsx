@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { motionSpring } from "@/lib/motion-system";
+import { PulseLadderLoader } from "@/components/dotmatrix/celestial-loaders";
 
 const MaterialWebContext = createContext(false);
 
@@ -43,30 +44,31 @@ export function MaterialWebProvider({ children }: { children: React.ReactNode })
         <AnimatePresence>
           {!ready && (
             <motion.div
-              aria-hidden="true"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={motionSpring.effectsFast}
+              role="status"
+              aria-label="Preparing interface"
+              initial={{ opacity: 0, y: -8, scale: .96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: .97 }}
+              transition={motionSpring.spatialFast}
               style={{
                 position: "fixed",
-                insetInline: 0,
-                top: 0,
-                height: 2,
+                top: 12,
+                right: 12,
                 zIndex: 9999,
                 pointerEvents: "none",
-                overflow: "hidden"
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                minHeight: 38,
+                padding: "6px 10px",
+                borderRadius: "var(--md-sys-shape-corner-full)",
+                background: "var(--md-sys-color-surface-container-high)",
+                color: "var(--md-sys-color-on-surface-variant)",
+                boxShadow: "var(--md-sys-elevation-level1)"
               }}
             >
-              <motion.div
-                initial={{ x: "-35%", width: "30%" }}
-                animate={{ x: ["-35%", "135%"] }}
-                transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  height: "100%",
-                  background: "var(--md-sys-color-primary)"
-                }}
-              />
+              <PulseLadderLoader size={24} dotSize={2.7} speed={1.2} ariaLabel="Preparing Material interface" />
+              <span className="md-typescale-label-small">Preparing interface</span>
             </motion.div>
           )}
         </AnimatePresence>
