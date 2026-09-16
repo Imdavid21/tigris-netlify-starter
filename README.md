@@ -6,7 +6,8 @@ Current product surfaces include discovery, token creation, bonding-curve tradin
 
 Start here before modifying the product:
 
-- `docs/PROJECT_SOURCE_OF_TRUTH.md` — current design system, routes, architecture, deployments, completed work, superseded design experiments, known debt, and remaining gates
+- `docs/PROJECT_SOURCE_OF_TRUTH.md` — current product architecture, routes, deployments, completed work, superseded experiments, known debt, and remaining gates
+- `docs/MATERIAL_3_FRONTEND.md` — canonical Material 3 foundations, components, motion system, responsive behavior, and React/Next implementation rules
 - `AGENTS.md` — engineering handoff and protocol configuration
 - `docs/PONS_REVERSE_ENGINEERING.md` — benchmark research and product blueprint
 - `docs/AUDIT.md` — internal functionality and security review
