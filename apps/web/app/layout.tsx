@@ -6,7 +6,12 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Celestial on Arc",
-  description: "Permissionless token launches and onchain markets on Arc"
+  description: "Permissionless token launches and onchain markets on Arc",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg"
+  }
 };
 
 const themeScript = `
