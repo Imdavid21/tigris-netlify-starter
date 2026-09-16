@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import {
   createWalletClient,
   custom,
@@ -30,6 +31,7 @@ import { API_URL } from "@/lib/api";
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
 import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { motionSpring } from "@/lib/motion-system";
 
 function injected(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -119,8 +121,6 @@ export function TokenMarket({ token }: { token: Address }) {
     let celestial = indexedToken.generation === "CELESTIAL";
     let curveAddress = indexedToken.curve_address;
 
-    // Indexed data improves discovery/history, but market resolution must work
-    // directly from Arc so an indexer delay cannot make a live market unusable.
     if (!curveAddress && celestialAddresses.factory) {
       const celestialCurve = await client.readContract({
         address: celestialAddresses.factory,
@@ -301,7 +301,6 @@ export function TokenMarket({ token }: { token: Address }) {
 
     const timer = setTimeout(async () => {
       try {
-
         let output: bigint;
 
         if (graduated) {
@@ -313,11 +312,7 @@ export function TokenMarket({ token }: { token: Address }) {
             address: celestialAddresses.dexAdapter,
             abi: dexAdapterAbi,
             functionName: "quoteExactInput",
-            args: [
-              indexed.pool_address,
-              side === "buy" ? quoteAsset.address : token,
-              input
-            ],
+            args: [indexed.pool_address, side === "buy" ? quoteAsset.address : token, input],
             account: walletAddress ?? zeroAddress
           });
           output = simulation.result as bigint;
@@ -351,21 +346,7 @@ export function TokenMarket({ token }: { token: Address }) {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [
-    amount,
-    side,
-    curve,
-    graduated,
-    mode,
-    client,
-    walletAddress,
-    isCelestial,
-    indexed.pool_address,
-    quoteAsset.address,
-    quoteAsset.decimals,
-    token,
-    readyToGraduate
-  ]);
+  }, [amount, side, curve, graduated, mode, client, walletAddress, isCelestial, indexed.pool_address, quoteAsset.address, quoteAsset.decimals, token, readyToGraduate]);
 
   async function accountAndWallet() {
     const provider = injected();
@@ -375,48 +356,22 @@ export function TokenMarket({ token }: { token: Address }) {
     if (!account) throw new Error("No wallet account available.");
     return {
       account,
-      wallet: createWalletClient({
-        account,
-        chain: arcTestnet,
-        transport: custom(provider)
-      })
+      wallet: createWalletClient({ account, chain: arcTestnet, transport: custom(provider) })
     };
   }
 
-  async function ensureAllowance(
-    asset: Address,
-    spender: Address,
-    input: bigint,
-    label: string
-  ) {
+  async function ensureAllowance(asset: Address, spender: Address, input: bigint, label: string) {
     const { account, wallet } = await accountAndWallet();
     const [allowance, balance] = await Promise.all([
-      client.readContract({
-        address: asset,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [account, spender]
-      }),
-      client.readContract({
-        address: asset,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [account]
-      })
+      client.readContract({ address: asset, abi: erc20Abi, functionName: "allowance", args: [account, spender] }),
+      client.readContract({ address: asset, abi: erc20Abi, functionName: "balanceOf", args: [account] })
     ]) as [bigint, bigint];
 
-    if (balance < input) {
-      throw new Error("Insufficient balance for this trade.");
-    }
+    if (balance < input) throw new Error("Insufficient balance for this trade.");
 
     if (allowance < input) {
       setStatus(label);
-      const hash = await wallet.writeContract({
-        address: asset,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, input]
-      });
+      const hash = await wallet.writeContract({ address: asset, abi: erc20Abi, functionName: "approve", args: [spender, input] });
       await client.waitForTransactionReceipt({ hash });
     }
 
@@ -429,98 +384,38 @@ export function TokenMarket({ token }: { token: Address }) {
 
     try {
       setStatus("Preparing");
-      const input = safeParseUnits(
-        amount,
-        side === "buy" ? quoteAsset.decimals : 18
-      );
-      if (input === undefined || input === 0n) {
-        throw new Error("Enter a valid trade amount.");
-      }
-      if (!graduated && isCelestial && readyToGraduate && side === "sell") {
-        throw new Error("Bonding curve trading is closed while this market graduates.");
-      }
-      const minOut =
-        quote *
-        BigInt(
-          10000 -
-            Math.max(0, Math.min(5000, Math.round(Number(slippage) * 100)))
-        ) /
-        10000n;
+      const input = safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18);
+      if (input === undefined || input === 0n) throw new Error("Enter a valid trade amount.");
+      if (!graduated && isCelestial && readyToGraduate && side === "sell") throw new Error("Bonding curve trading is closed while this market graduates.");
 
+      const minOut = quote * BigInt(10000 - Math.max(0, Math.min(5000, Math.round(Number(slippage) * 100)))) / 10000n;
       const asset = side === "buy" ? quoteAsset.address : token;
-
       let accountForRefresh: Address | undefined;
 
       if (graduated) {
-        if (
-          !isCelestial ||
-          !indexed.pool_address ||
-          !celestialAddresses.dexAdapter
-        ) {
-          throw new Error(
-            "Post-graduation trading is waiting for the configured Arc DEX connector."
-          );
-        }
+        if (!isCelestial || !indexed.pool_address || !celestialAddresses.dexAdapter) throw new Error("Post-graduation trading is waiting for the configured Arc DEX connector.");
 
-        const { account, wallet } = await ensureAllowance(
-          asset,
-          celestialAddresses.dexAdapter,
-          input,
-          "Approve asset"
-        );
+        const { account, wallet } = await ensureAllowance(asset, celestialAddresses.dexAdapter, input, "Approve asset");
         accountForRefresh = account;
-
         setStatus("Confirm trade");
         const hash = await wallet.writeContract({
           address: celestialAddresses.dexAdapter,
           abi: dexAdapterAbi,
           functionName: "swapExactInput",
-          args: [
-            indexed.pool_address,
-            asset,
-            input,
-            minOut,
-            account
-          ]
+          args: [indexed.pool_address, asset, input, minOut, account]
         });
         await client.waitForTransactionReceipt({ hash });
       } else {
-        const { account, wallet } = await ensureAllowance(
-          asset,
-          curve,
-          input,
-          side === "buy" ? "Approve " + quoteAsset.symbol : "Approve token"
-        );
+        const { account, wallet } = await ensureAllowance(asset, curve, input, side === "buy" ? "Approve " + quoteAsset.symbol : "Approve token");
         accountForRefresh = account;
-
         setStatus("Confirm trade");
         const hash = isCelestial
           ? side === "buy"
-            ? await wallet.writeContract({
-                address: curve,
-                abi: celestialCurveAbi,
-                functionName: "buy",
-                args: [input, minOut]
-              })
-            : await wallet.writeContract({
-                address: curve,
-                abi: celestialCurveAbi,
-                functionName: "sell",
-                args: [input, minOut]
-              })
+            ? await wallet.writeContract({ address: curve, abi: celestialCurveAbi, functionName: "buy", args: [input, minOut] })
+            : await wallet.writeContract({ address: curve, abi: celestialCurveAbi, functionName: "sell", args: [input, minOut] })
           : side === "buy"
-            ? await wallet.writeContract({
-                address: curve,
-                abi: curveAbi,
-                functionName: "buy",
-                args: [input, minOut]
-              })
-            : await wallet.writeContract({
-                address: curve,
-                abi: curveAbi,
-                functionName: "sell",
-                args: [input, minOut]
-              });
+            ? await wallet.writeContract({ address: curve, abi: curveAbi, functionName: "buy", args: [input, minOut] })
+            : await wallet.writeContract({ address: curve, abi: curveAbi, functionName: "sell", args: [input, minOut] });
 
         setStatus("Confirming");
         await client.waitForTransactionReceipt({ hash });
@@ -539,52 +434,21 @@ export function TokenMarket({ token }: { token: Address }) {
 
   async function placeLimitOrder() {
     setError(undefined);
-    if (
-      !isCelestial ||
-      !curve ||
-      !celestialAddresses.orderBook ||
-      !amount ||
-      !limitReceive
-    ) return;
+    if (!isCelestial || !curve || !celestialAddresses.orderBook || !amount || !limitReceive) return;
 
     try {
-      if (readyToGraduate) {
-        throw new Error("Limit orders are closed while this market graduates.");
-      }
-      const input = safeParseUnits(
-        amount,
-        side === "buy" ? quoteAsset.decimals : 18
-      );
-      const minOutput = safeParseUnits(
-        limitReceive,
-        side === "buy" ? 18 : quoteAsset.decimals
-      );
-      if (input === undefined || input === 0n || minOutput === undefined || minOutput === 0n) {
-        throw new Error("Enter valid limit order amounts.");
-      }
+      if (readyToGraduate) throw new Error("Limit orders are closed while this market graduates.");
+      const input = safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18);
+      const minOutput = safeParseUnits(limitReceive, side === "buy" ? 18 : quoteAsset.decimals);
+      if (input === undefined || input === 0n || minOutput === undefined || minOutput === 0n) throw new Error("Enter valid limit order amounts.");
       const asset = side === "buy" ? quoteAsset.address : token;
 
-      const { account, wallet } = await ensureAllowance(
-        asset,
-        celestialAddresses.orderBook,
-        input,
-        side === "buy" ? "Approve " + quoteAsset.symbol : "Approve token"
-      );
+      const { account, wallet } = await ensureAllowance(asset, celestialAddresses.orderBook, input, side === "buy" ? "Approve " + quoteAsset.symbol : "Approve token");
 
       setStatus("Place order");
       const hash = side === "buy"
-        ? await wallet.writeContract({
-            address: celestialAddresses.orderBook,
-            abi: orderBookAbi,
-            functionName: "placeBuyOrder",
-            args: [curve, input, minOutput]
-          })
-        : await wallet.writeContract({
-            address: celestialAddresses.orderBook,
-            abi: orderBookAbi,
-            functionName: "placeSellOrder",
-            args: [curve, input, minOutput]
-          });
+        ? await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeBuyOrder", args: [curve, input, minOutput] })
+        : await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeSellOrder", args: [curve, input, minOutput] });
 
       await client.waitForTransactionReceipt({ hash });
       setStatus("Order placed");
@@ -603,12 +467,7 @@ export function TokenMarket({ token }: { token: Address }) {
     try {
       const { account, wallet } = await accountAndWallet();
       setStatus("Cancel order");
-      const hash = await wallet.writeContract({
-        address: celestialAddresses.orderBook,
-        abi: orderBookAbi,
-        functionName: "cancel",
-        args: [BigInt(orderId)]
-      });
+      const hash = await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "cancel", args: [BigInt(orderId)] });
       await client.waitForTransactionReceipt({ hash });
       setStatus("Cancelled");
       await refreshOrders(account);
@@ -623,11 +482,7 @@ export function TokenMarket({ token }: { token: Address }) {
     try {
       const { account, wallet } = await accountAndWallet();
       setStatus("Claim rewards");
-      const hash = await wallet.writeContract({
-        address: token,
-        abi: celestialTokenAbi,
-        functionName: "claimHolderRewards"
-      });
+      const hash = await wallet.writeContract({ address: token, abi: celestialTokenAbi, functionName: "claimHolderRewards" });
       await client.waitForTransactionReceipt({ hash });
       setStatus("Rewards claimed");
       await refreshWalletState(account);
@@ -637,247 +492,224 @@ export function TokenMarket({ token }: { token: Address }) {
     }
   }
 
-  const progress =
-    threshold === 0n
-      ? 0
-      : Math.min(100, Number((raised * 10000n) / threshold) / 100);
-
-  const inputUnits =
-    safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18) ?? 0n;
-
-  const totalTradeBps =
-    feeBps +
-    creatorTaxBps +
-    holderFeeBps +
-    (side === "buy" ? snipeBps : 0n);
-
-  const feeEstimate =
-    side === "buy"
-      ? inputUnits * totalTradeBps / 10000n
-      : quote !== undefined
-        ? quote * totalTradeBps / (10000n - totalTradeBps)
-        : 0n;
-
-  const minimum =
-    quote !== undefined
-      ? quote *
-        BigInt(
-          10000 -
-            Math.max(0, Math.min(5000, Math.round(Number(slippage) * 100)))
-        ) /
-        10000n
-      : undefined;
-
+  const progress = threshold === 0n ? 0 : Math.min(100, Number((raised * 10000n) / threshold) / 100);
+  const inputUnits = safeParseUnits(amount, side === "buy" ? quoteAsset.decimals : 18) ?? 0n;
+  const totalTradeBps = feeBps + creatorTaxBps + holderFeeBps + (side === "buy" ? snipeBps : 0n);
+  const feeEstimate = side === "buy" ? inputUnits * totalTradeBps / 10000n : quote !== undefined ? quote * totalTradeBps / (10000n - totalTradeBps) : 0n;
+  const minimum = quote !== undefined ? quote * BigInt(10000 - Math.max(0, Math.min(5000, Math.round(Number(slippage) * 100)))) / 10000n : undefined;
   const outputDecimals = side === "buy" ? 18 : quoteAsset.decimals;
   const outputSymbol = side === "buy" ? symbol : quoteAsset.symbol;
+  const actionLabel = status || (mode === "limit" ? "Place limit order" : quote === undefined ? "Enter amount" : graduated ? "Trade on Arc DEX" : "Review trade");
 
   return (
-    <main className="app-shell">
-      <AppHeader />
+    <LayoutGroup id={`token-market-${token.toLowerCase()}`}>
+      <motion.main className="app-shell" layout transition={{ layout: motionSpring.spatialDefault }}>
+        <AppHeader />
 
-      <div className="token-breadcrumb">
-        <a href="/explore">Explore</a><span>/</span><span>{symbol || "Token"}</span>
-      </div>
+        <motion.div className="token-breadcrumb" layout="position">
+          <a href="/explore">Explore</a><span>/</span><span>{symbol || "Token"}</span>
+        </motion.div>
 
-      <section className="token-hero">
-        <div className="token-identity">
-          <div className="token-avatar large">
-            {indexed.image ? <img src={indexed.image} alt="" /> : (symbol || "AR").slice(0, 2)}
-          </div>
-          <div>
-            <div className="token-title-line">
-              <h1>{name || "Token"}</h1>
-              {symbol && <span>{"$" + symbol}</span>}
-              <span className={"phase-badge " + (graduated ? "done" : "")}>
-                {graduated ? "Graduated" : "Curve"}
-              </span>
-            </div>
-            <div className="token-links">
-              <a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">
-                {token.slice(0, 8)}...{token.slice(-6)}
-              </a>
-              {indexed.creator && <span>Creator {indexed.creator.slice(0, 7)}...{indexed.creator.slice(-5)}</span>}
-              {indexed.website && <a href={indexed.website} target="_blank" rel="noreferrer">Website</a>}
-              {indexed.twitter && <a href={indexed.twitter.startsWith("http") ? indexed.twitter : "https://x.com/" + indexed.twitter.replace("@", "")} target="_blank" rel="noreferrer">X</a>}
-              {indexed.telegram && <a href={indexed.telegram.startsWith("http") ? indexed.telegram : "https://" + indexed.telegram} target="_blank" rel="noreferrer">Telegram</a>}
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-metrics">
-          <div><span>Raised</span><strong>{Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString()} {quoteAsset.symbol}</strong></div>
-          <div><span>Graduation</span><strong>{progress.toFixed(1)}%</strong></div>
-          <div><span>Pair</span><strong>{quoteAsset.symbol}</strong></div>
-          <div><span>Market</span><strong>{graduated ? "Uniswap v4" : "Bonding curve"}</strong></div>
-        </div>
-      </section>
-
-      <section className="graduation-strip">
-        <div className="graduation-copy">
-          <span>{graduated ? "Graduated" : "Graduation progress"}</span>
-          <strong>
-            {graduated
-              ? "Curve closed"
-              : Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString() +
-                " / " +
-                Number(formatUnits(threshold, quoteAsset.decimals)).toLocaleString() +
-                " " +
-                quoteAsset.symbol}
-          </strong>
-        </div>
-        <div className="progress-track"><div style={{ width: progress + "%" }} /></div>
-        <span>{progress.toFixed(1)}%</span>
-      </section>
-
-      <div className="market-layout">
-        <section className="market-main">
-          <PriceChart token={token} />
-
-          <div className="market-data-grid">
-            <RecentTrades token={token} />
-            <Holders token={token} />
-          </div>
-
-          <section className="about-panel">
-            <div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>
-            {indexed.description && <p className="review-copy">{indexed.description}</p>}
-            <div className="about-grid">
-              <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
-              <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
-              <div><span>Supply</span><strong>1B fixed</strong></div>
-              <div><span>Base fee</span><strong>{Number(feeBps) / 100}%</strong></div>
-              <div><span>Creator tax</span><strong>{Number(creatorTaxBps) / 100}%</strong></div>
-              <div><span>Holder sharing</span><strong>{Number(holderFeeBps) / 100}%</strong></div>
-            </div>
-
-            {isCelestial && walletAddress && (
-              <div className="v2-about">
-                <span>Holder rewards</span>
-                <p>{formatUnits(holderRewards, quoteAsset.decimals)} {quoteAsset.symbol} claimable from trading fees.</p>
-                <button onClick={() => void claimHolderRewards()} disabled={holderRewards === 0n}>Claim rewards</button>
+        <motion.section className="token-hero" layout transition={{ layout: motionSpring.spatialDefault }}>
+          <div className="token-identity">
+            <motion.div
+              className="token-avatar large"
+              layoutId={`token-media-/token/${token.toLowerCase()}`}
+              transition={motionSpring.spatialDefault}
+            >
+              {indexed.image ? <img src={indexed.image} alt="" /> : (symbol || "AR").slice(0, 2)}
+            </motion.div>
+            <div>
+              <motion.div className="token-title-line" layout="position">
+                <h1>{name || "Token"}</h1>
+                {symbol && <span>{"$" + symbol}</span>}
+                <motion.span className={"phase-badge " + (graduated ? "done" : "")} layout transition={motionSpring.spatialFast}>
+                  {graduated ? "Graduated" : "Curve"}
+                </motion.span>
+              </motion.div>
+              <div className="token-links">
+                <a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 8)}...{token.slice(-6)}</a>
+                {indexed.creator && <span>Creator {indexed.creator.slice(0, 7)}...{indexed.creator.slice(-5)}</span>}
+                {indexed.website && <a href={indexed.website} target="_blank" rel="noreferrer">Website</a>}
+                {indexed.twitter && <a href={indexed.twitter.startsWith("http") ? indexed.twitter : "https://x.com/" + indexed.twitter.replace("@", "")} target="_blank" rel="noreferrer">X</a>}
+                {indexed.telegram && <a href={indexed.telegram.startsWith("http") ? indexed.telegram : "https://" + indexed.telegram} target="_blank" rel="noreferrer">Telegram</a>}
               </div>
-            )}
-          </section>
-        </section>
-
-        <aside className="trade-terminal">
-          <div className="trade-modes">
-            <button className={mode === "market" ? "active" : ""} onClick={() => setMode("market")}>Market</button>
-            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")} disabled={!isCelestial || graduated || readyToGraduate}>Limit</button>
-            <button className={mode === "orders" ? "active" : ""} onClick={() => setMode("orders")} disabled={!isCelestial}>Orders</button>
+            </div>
           </div>
 
-          {mode === "orders" ? (
-            <div className="terminal-empty">
-              <strong>Open orders</strong>
-              {!walletAddress ? (
-                <button onClick={() => void connect()}>Connect wallet</button>
-              ) : !orders.length ? (
-                <p>No orders for this market.</p>
-              ) : (
-                orders.map((order) => (
-                  <div className="trade-review" key={order.order_id}>
-                    <div><span>{order.side}</span><strong>{order.status}</strong></div>
-                    <div><span>Input</span><strong>{order.amount_in}</strong></div>
-                    <div><span>Minimum output</span><strong>{order.min_amount_out}</strong></div>
-                    {order.status === "OPEN" && <button onClick={() => void cancelOrder(order.order_id)}>Cancel</button>}
-                  </div>
-                ))
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="side-toggle">
-                <button className={side === "buy" ? "active buy" : ""} onClick={() => { setSide("buy"); setAmount(""); }}>Buy</button>
-                <button className={side === "sell" ? "active sell" : ""} onClick={() => { setSide("sell"); setAmount(""); }}>Sell</button>
+          <motion.div className="hero-metrics" layout>
+            <div><span>Raised</span><strong>{Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString()} {quoteAsset.symbol}</strong></div>
+            <div><span>Graduation</span><strong>{progress.toFixed(1)}%</strong></div>
+            <div><span>Pair</span><strong>{quoteAsset.symbol}</strong></div>
+            <div><span>Market</span><strong>{graduated ? "Uniswap v4" : "Bonding curve"}</strong></div>
+          </motion.div>
+        </motion.section>
+
+        <motion.section className="graduation-strip" layout>
+          <div className="graduation-copy">
+            <span>{graduated ? "Graduated" : "Graduation progress"}</span>
+            <strong>{graduated ? "Curve closed" : Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString() + " / " + Number(formatUnits(threshold, quoteAsset.decimals)).toLocaleString() + " " + quoteAsset.symbol}</strong>
+          </div>
+          <div className="progress-track">
+            <motion.div animate={{ width: progress + "%" }} transition={motionSpring.spatialDefault} />
+          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span key={progress.toFixed(1)} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={motionSpring.effectsFast}>{progress.toFixed(1)}%</motion.span>
+          </AnimatePresence>
+        </motion.section>
+
+        <motion.div className="market-layout" layout transition={{ layout: motionSpring.spatialDefault }}>
+          <section className="market-main">
+            <PriceChart token={token} />
+
+            <motion.div className="market-data-grid" layout>
+              <RecentTrades token={token} />
+              <Holders token={token} />
+            </motion.div>
+
+            <motion.section className="about-panel" layout>
+              <div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>
+              <AnimatePresence initial={false}>
+                {indexed.description && <motion.p className="review-copy" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>{indexed.description}</motion.p>}
+              </AnimatePresence>
+              <div className="about-grid">
+                <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
+                <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
+                <div><span>Supply</span><strong>1B fixed</strong></div>
+                <div><span>Base fee</span><strong>{Number(feeBps) / 100}%</strong></div>
+                <div><span>Creator tax</span><strong>{Number(creatorTaxBps) / 100}%</strong></div>
+                <div><span>Holder sharing</span><strong>{Number(holderFeeBps) / 100}%</strong></div>
               </div>
 
-              <div className="amount-box">
-                <div className="amount-label">
-                  <span>{side === "buy" ? "You pay" : "You sell"}</span>
-                  <span>
-                    {side === "buy" ? quoteAsset.symbol : symbol}
-                    {walletAddress ? " · Balance " + formatUnits(side === "buy" ? quoteBalance : tokenBalance, side === "buy" ? quoteAsset.decimals : 18) : ""}
-                  </span>
-                </div>
-                <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
-                {side === "buy" ? (
-                  <div className="quick-amounts">
-                    {["10", "50", "100", "500"].map((v) => <button type="button" key={v} onClick={() => setAmount(v)}>{v}</button>)}
-                  </div>
-                ) : (
-                  <div className="quick-amounts">
-                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 4n, 18))}>25%</button>
-                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 2n, 18))}>50%</button>
-                    <button type="button" onClick={() => setAmount(formatUnits((tokenBalance * 3n) / 4n, 18))}>75%</button>
-                    <button type="button" onClick={() => setAmount(formatUnits(tokenBalance, 18))} disabled={tokenBalance === 0n}>Sell all</button>
-                  </div>
+              <AnimatePresence initial={false} mode="popLayout">
+                {isCelestial && walletAddress && (
+                  <motion.div className="v2-about" layout initial={{ opacity: 0, y: 8, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} exit={{ opacity: 0, y: -5, height: 0 }} transition={motionSpring.spatialDefault}>
+                    <span>Holder rewards</span>
+                    <p>{formatUnits(holderRewards, quoteAsset.decimals)} {quoteAsset.symbol} claimable from trading fees.</p>
+                    <motion.button onClick={() => void claimHolderRewards()} disabled={holderRewards === 0n} whileTap={{ scale: .96 }}>Claim rewards</motion.button>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
+            </motion.section>
+          </section>
 
-              {mode === "limit" && (
-                <div className="amount-box">
-                  <div className="amount-label"><span>Minimum receive</span><span>{outputSymbol}</span></div>
-                  <input value={limitReceive} onChange={(e) => setLimitReceive(e.target.value)} inputMode="decimal" placeholder="0.00" />
-                  <p className="terminal-footnote">The order executes permissionlessly when the bonding curve can return at least this amount.</p>
-                </div>
+          <motion.aside className="trade-terminal" layout transition={{ layout: motionSpring.spatialDefault }}>
+            <motion.div className="trade-modes" layout>
+              {(["market", "limit", "orders"] as const).map((value) => {
+                const disabled = value === "limit" ? !isCelestial || graduated || readyToGraduate : value === "orders" ? !isCelestial : false;
+                return <motion.button key={value} className={mode === value ? "active" : ""} onClick={() => setMode(value)} disabled={disabled} whileTap={disabled ? undefined : { scale: .92 }} transition={motionSpring.spatialFast}>{value[0].toUpperCase() + value.slice(1)}</motion.button>;
+              })}
+            </motion.div>
+
+            <AnimatePresence mode="wait" initial={false}>
+              {mode === "orders" ? (
+                <motion.div key="orders" className="terminal-empty" layout initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={motionSpring.spatialDefault}>
+                  <strong>Open orders</strong>
+                  {!walletAddress ? (
+                    <motion.button onClick={() => void connect()} whileTap={{ scale: .96 }}>Connect wallet</motion.button>
+                  ) : !orders.length ? (
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}>No orders for this market.</motion.p>
+                  ) : (
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {orders.map((order) => (
+                        <motion.div className="trade-review" key={order.order_id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -8 }} transition={motionSpring.spatialFast}>
+                          <div><span>{order.side}</span><strong>{order.status}</strong></div>
+                          <div><span>Input</span><strong>{order.amount_in}</strong></div>
+                          <div><span>Minimum output</span><strong>{order.min_amount_out}</strong></div>
+                          {order.status === "OPEN" && <motion.button onClick={() => void cancelOrder(order.order_id)} whileTap={{ scale: .96 }}>Cancel</motion.button>}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div key="trade" layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={motionSpring.spatialDefault}>
+                  <motion.div className="side-toggle" layout>
+                    <motion.button className={side === "buy" ? "active buy" : ""} onClick={() => { setSide("buy"); setAmount(""); }} whileTap={{ scale: .94 }}>Buy</motion.button>
+                    <motion.button className={side === "sell" ? "active sell" : ""} onClick={() => { setSide("sell"); setAmount(""); }} whileTap={{ scale: .94 }}>Sell</motion.button>
+                  </motion.div>
+
+                  <motion.div className="amount-box" layout transition={{ layout: motionSpring.spatialDefault }}>
+                    <div className="amount-label">
+                      <span>{side === "buy" ? "You pay" : "You sell"}</span>
+                      <span>{side === "buy" ? quoteAsset.symbol : symbol}{walletAddress ? " · Balance " + formatUnits(side === "buy" ? quoteBalance : tokenBalance, side === "buy" ? quoteAsset.decimals : 18) : ""}</span>
+                    </div>
+                    <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
+                    <AnimatePresence mode="wait" initial={false}>
+                      {side === "buy" ? (
+                        <motion.div key="buy-quick" className="quick-amounts" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
+                          {["10", "50", "100", "500"].map((v) => <motion.button type="button" key={v} onClick={() => setAmount(v)} whileTap={{ scale: .9 }}>{v}</motion.button>)}
+                        </motion.div>
+                      ) : (
+                        <motion.div key="sell-quick" className="quick-amounts" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
+                          <motion.button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 4n, 18))} whileTap={{ scale: .9 }}>25%</motion.button>
+                          <motion.button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 2n, 18))} whileTap={{ scale: .9 }}>50%</motion.button>
+                          <motion.button type="button" onClick={() => setAmount(formatUnits((tokenBalance * 3n) / 4n, 18))} whileTap={{ scale: .9 }}>75%</motion.button>
+                          <motion.button type="button" onClick={() => setAmount(formatUnits(tokenBalance, 18))} disabled={tokenBalance === 0n} whileTap={{ scale: .9 }}>Sell all</motion.button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {mode === "limit" && (
+                      <motion.div className="amount-box" layout initial={{ opacity: 0, height: 0, y: -8 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: -6 }} transition={motionSpring.spatialDefault} style={{ overflow: "hidden" }}>
+                        <div className="amount-label"><span>Minimum receive</span><span>{outputSymbol}</span></div>
+                        <input value={limitReceive} onChange={(e) => setLimitReceive(e.target.value)} inputMode="decimal" placeholder="0.00" />
+                        <p className="terminal-footnote">The order executes permissionlessly when the bonding curve can return at least this amount.</p>
+                      </motion.div>
+                    )}
+
+                    {mode === "market" && (
+                      <motion.div className="trade-settings" layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={motionSpring.spatialFast}>
+                        <span>Slippage</span>
+                        <div>
+                          {["0.5", "1", "2"].map((v) => <motion.button key={v} className={slippage === v ? "active" : ""} onClick={() => setSlippage(v)} whileTap={{ scale: .9 }}>{v}%</motion.button>)}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {quote !== undefined && (
+                      <motion.div className="trade-review" layout initial={{ opacity: 0, height: 0, y: 6 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: -4 }} transition={{ ...motionSpring.spatialDefault, opacity: motionSpring.effectsFast }} style={{ overflow: "hidden" }}>
+                        <div><span>Estimated receive</span><strong>{formatUnits(quote, outputDecimals)} {outputSymbol}</strong></div>
+                        {mode === "market" && <div><span>Minimum received</span><strong>{minimum !== undefined ? formatUnits(minimum, outputDecimals) : "—"} {outputSymbol}</strong></div>}
+                        {!graduated && <div><span>Estimated fees</span><strong>{formatUnits(feeEstimate, quoteAsset.decimals)} {quoteAsset.symbol}</strong></div>}
+                        {side === "buy" && snipeBps > 0n && <div><span>Launch protection</span><strong>{Number(snipeBps) / 100}%</strong></div>}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <motion.button
+                    className="review-trade-button"
+                    layout
+                    onClick={() => void (mode === "limit" ? placeLimitOrder() : marketTrade())}
+                    disabled={mode === "limit" ? !amount || !limitReceive || !celestialAddresses.orderBook || readyToGraduate : quote === undefined || (side === "sell" && walletAddress !== undefined && inputUnits > tokenBalance) || (side === "buy" && walletAddress !== undefined && inputUnits > quoteBalance) || (!graduated && isCelestial && readyToGraduate && side === "sell")}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: .975, y: 0 }}
+                    transition={motionSpring.spatialFast}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span key={actionLabel} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={motionSpring.effectsFast}>{actionLabel}</motion.span>
+                    </AnimatePresence>
+                  </motion.button>
+
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {!graduated && isCelestial && readyToGraduate && <motion.p className="terminal-footnote" layout initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>Bonding curve trading is closed while this market moves into graduation.</motion.p>}
+                    {graduated && (!celestialAddresses.dexAdapter || !indexed.pool_address) && <motion.p className="terminal-footnote" layout initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>The market is graduated, but the production Arc DEX connector is not configured yet.</motion.p>}
+                  </AnimatePresence>
+                  <p className="terminal-footnote">Quotes and execution are read directly from Arc. Indexed data is never in the trade path.</p>
+                </motion.div>
               )}
+            </AnimatePresence>
 
-              {mode === "market" && (
-                <div className="trade-settings">
-                  <span>Slippage</span>
-                  <div>
-                    {["0.5", "1", "2"].map((v) => (
-                      <button key={v} className={slippage === v ? "active" : ""} onClick={() => setSlippage(v)}>{v}%</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {quote !== undefined && (
-                <div className="trade-review">
-                  <div><span>Estimated receive</span><strong>{formatUnits(quote, outputDecimals)} {outputSymbol}</strong></div>
-                  {mode === "market" && <div><span>Minimum received</span><strong>{minimum !== undefined ? formatUnits(minimum, outputDecimals) : "—"} {outputSymbol}</strong></div>}
-                  {!graduated && <div><span>Estimated fees</span><strong>{formatUnits(feeEstimate, quoteAsset.decimals)} {quoteAsset.symbol}</strong></div>}
-                  {side === "buy" && snipeBps > 0n && <div><span>Launch protection</span><strong>{Number(snipeBps) / 100}%</strong></div>}
-                </div>
-              )}
-
-              <button
-                className="review-trade-button"
-                onClick={() => void (mode === "limit" ? placeLimitOrder() : marketTrade())}
-                disabled={
-                  mode === "limit"
-                    ? !amount || !limitReceive || !celestialAddresses.orderBook || readyToGraduate
-                    : quote === undefined ||
-                      (side === "sell" && walletAddress !== undefined && inputUnits > tokenBalance) ||
-                      (side === "buy" && walletAddress !== undefined && inputUnits > quoteBalance) ||
-                      (!graduated && isCelestial && readyToGraduate && side === "sell")
-                }
-              >
-                {status ||
-                  (mode === "limit"
-                    ? "Place limit order"
-                    : quote === undefined
-                      ? "Enter amount"
-                      : graduated
-                        ? "Trade on Arc DEX"
-                        : "Review trade")}
-              </button>
-
-              {!graduated && isCelestial && readyToGraduate && (
-                <p className="terminal-footnote">Bonding curve trading is closed while this market moves into graduation.</p>
-              )}
-              {graduated && (!celestialAddresses.dexAdapter || !indexed.pool_address) && (
-                <p className="terminal-footnote">The market is graduated, but the production Arc DEX connector is not configured yet.</p>
-              )}
-              <p className="terminal-footnote">Quotes and execution are read directly from Arc. Indexed data is never in the trade path.</p>
-            </>
-          )}
-
-          {error && <p className="form-error">{error}</p>}
-        </aside>
-      </div>
-    </main>
+            <AnimatePresence initial={false} mode="popLayout">
+              {error && <motion.p className="form-error" layout initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={motionSpring.effectsDefault}>{error}</motion.p>}
+            </AnimatePresence>
+          </motion.aside>
+        </motion.div>
+      </motion.main>
+    </LayoutGroup>
   );
 }
