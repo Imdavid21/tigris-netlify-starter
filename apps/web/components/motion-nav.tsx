@@ -42,7 +42,8 @@ export function MotionNav({
                   inset: 0,
                   zIndex: -1,
                   borderRadius: "var(--md-sys-shape-corner-full)",
-                  background: "var(--md-sys-color-secondary-container)"
+                  background: "var(--md-sys-color-surface-container-lowest)",
+                  boxShadow: "var(--md-sys-elevation-level1)"
                 }}
               />
             )}
