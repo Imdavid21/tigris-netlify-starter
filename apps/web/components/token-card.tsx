@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { MaterialLinearProgress } from "@/components/m3/material-feedback";
 import { motionSpring } from "@/lib/motion-system";
 import styles from "./TokenCard.module.css";
 
@@ -99,17 +100,15 @@ export function TokenCard({
           {safeProgress !== undefined && !graduated && (
             <motion.div
               className={styles.progress}
-              aria-label={`${safeProgress.toFixed(0)}% to graduation`}
               initial={{ opacity: 0, scaleX: 0.92 }}
               animate={{ opacity: 1, scaleX: 1 }}
               exit={{ opacity: 0, scaleX: 0.96 }}
               transition={motionSpring.effectsFast}
               style={{ transformOrigin: "left center" }}
             >
-              <motion.span
-                initial={false}
-                animate={{ width: `${safeProgress}%` }}
-                transition={motionSpring.spatialDefault}
+              <MaterialLinearProgress
+                value={safeProgress / 100}
+                ariaLabel={`${safeProgress.toFixed(0)}% to graduation`}
               />
             </motion.div>
           )}
