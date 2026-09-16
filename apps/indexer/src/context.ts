@@ -6,6 +6,7 @@ const rpcUrls = [
   ...(process.env.ARC_RPC_FALLBACKS ?? "").split(",")
 ].map((value) => value?.trim()).filter((value): value is string => Boolean(value));
 const wsUrl = process.env.ARC_WS_URL;
+const rpcMinRequestGapMs = Math.max(0, Number(process.env.ARC_RPC_MIN_REQUEST_GAP_MS ?? "500"));
 
 if (!rpcUrls.length) {
   throw new Error("ARC_RPC_URL is required");
@@ -18,9 +19,32 @@ const arc = defineChain({
   rpcUrls: { default: { http: rpcUrls } }
 });
 
+function pacedHttp(url: string): ReturnType<typeof http> {
+  const base = http(url, { retryCount: 0, timeout: 15_000 });
+  let queue: Promise<void> = Promise.resolve();
+  let lastRequestAt = 0;
+
+  return ((config: any) => {
+    const transport = base(config);
+    const request = transport.request;
+    const pacedRequest = ((args: any) => {
+      const run = queue.then(async () => {
+        const waitMs = Math.max(0, lastRequestAt + rpcMinRequestGapMs - Date.now());
+        if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+        lastRequestAt = Date.now();
+        return request(args);
+      });
+      queue = run.then(() => undefined, () => undefined);
+      return run;
+    }) as typeof request;
+
+    return { ...transport, request: pacedRequest };
+  }) as ReturnType<typeof http>;
+}
+
 const transports = [
   ...(wsUrl ? [webSocket(wsUrl, { reconnect: true })] : []),
-  ...rpcUrls.map((url) => http(url, { retryCount: 0, timeout: 15_000 }))
+  ...rpcUrls.map((url) => pacedHttp(url))
 ];
 
 export const client = createPublicClient({
