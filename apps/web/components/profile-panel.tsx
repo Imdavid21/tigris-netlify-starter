@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { createWalletClient, custom, formatUnits, getAddress, type EIP1193Provider } from "viem";
 import { addresses, arcTestnet } from "@/lib/arc";
 import { feeEscrowAbi } from "@/lib/abi";
@@ -8,6 +9,7 @@ import { celestialAddresses, celestialFeeEscrowAbi, orderBookAbi, quoteAssets } 
 import { API_URL } from "@/lib/api";
 import { useWalletSession } from "@/components/wallet-session";
 import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { flowContainer, flowItem, motionSpring } from "@/lib/motion-system";
 
 type Activity = { tx_hash:string; token:string; side:string; quote_amount:string; block_time:string };
 type Launch = { address:string; name:string; symbol:string; status:string; created_at:string };
@@ -68,7 +70,6 @@ export function ProfilePanel() {
     }catch(e){setStatus("");setError(friendlyChainError(e,"Claim failed."));}
   }
 
-
   async function claimCelestial(symbol:string){
     if(!address||!celestialAddresses.feeEscrow)return;
     const asset=quoteAssets.find((q)=>q.symbol===symbol);
@@ -112,85 +113,84 @@ export function ProfilePanel() {
   useEffect(()=>{ if(address) void refresh(address); },[address]);
 
   if(!address){
-    return <div className="profile-connect">
-      <div className="profile-connect-mark">A</div>
+    return <motion.div
+      className="profile-connect"
+      initial={{ opacity: 0, y: 14, scale: .985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={motionSpring.spatialDefault}
+    >
+      <motion.div className="profile-connect-mark" animate={{ rotate: [0, 4, -3, 0] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 2 }}>A</motion.div>
       <h2>Connect your wallet</h2>
       <p>See your launches, positions, creator fees, and indexed activity.</p>
-      <button disabled={connecting} onClick={()=>void connect()}>{connecting?"Connecting...":"Connect wallet"}</button>
-      {error&&<span className="form-error">{error}</span>}
-    </div>;
+      <motion.button disabled={connecting} onClick={()=>void connect()} whileTap={{ scale: .97 }} transition={motionSpring.spatialFast}>{connecting?"Connecting...":"Connect wallet"}</motion.button>
+      <AnimatePresence>{error&&<motion.span className="form-error" initial={{opacity:0,y:-4}} animate={{opacity:1,y:0}} exit={{opacity:0}}>{error}</motion.span>}</AnimatePresence>
+    </motion.div>;
   }
 
-  return <div className="profile-layout">
-    <section className="profile-summary">
-      <div><span className="kicker">Wallet</span><strong>{address.slice(0,7)}...{address.slice(-5)}</strong></div>
-      <div className="profile-summary-stat"><span>Launches</span><strong>{launches.length}</strong></div>
-      <div className="profile-summary-stat"><span>Positions</span><strong>{positions.length}</strong></div>
-      <button onClick={()=>refresh(address)}>Refresh</button>
-    </section>
+  const rows = tab === "launches"
+    ? launches.map((x) => ({ key:x.address, node:<a href={"/token/"+x.address} className="profile-row"><div><strong>{x.name}</strong><span>{"$"+x.symbol}</span></div><span>{x.status==="GRADUATED"?"Graduated":"Curve"}</span><span>{new Date(x.created_at).toLocaleDateString()}</span></a> }))
+    : tab === "positions"
+      ? positions.map((x) => ({ key:x.token, node:<a href={"/token/"+x.token} className="profile-row"><div><strong>{x.name}</strong><span>{"$"+x.symbol}</span></div><span>{Number(formatUnits(BigInt(x.balance),18)).toLocaleString(undefined,{maximumFractionDigits:0})}</span><span>{x.status==="GRADUATED"?"Graduated":"Curve"}</span></a> }))
+      : tab === "orders"
+        ? orders.map((x) => ({ key:x.order_id, node:<div className="profile-row"><div><strong>{x.side} order</strong><span>#{x.order_id}</span></div><span>{x.status}</span><span>{x.status==="OPEN"&&celestialAddresses.orderBook?<button onClick={()=>void cancelOrder(x.order_id)}>Cancel</button>:new Date(x.created_at??Date.now()).toLocaleDateString()}</span></div> }))
+        : activity.map((x) => ({ key:x.tx_hash, node:<a href={"/token/"+x.token} className="profile-row"><div><strong>{x.side}</strong><span>{x.token.slice(0,8)}...{x.token.slice(-6)}</span></div><span>{"$"+Number(formatUnits(BigInt(x.quote_amount),6)).toLocaleString(undefined,{maximumFractionDigits:2})}</span><span>{new Date(x.block_time).toLocaleDateString()}</span></a> }));
 
-    <section className="fees-card">
-      <div>
-        <span className="kicker">Creator fees</span>
-        <h2>{Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})} USDC</h2>
-        <p>Legacy and Celestial creator-tax revenue remains non-custodial until claimed.</p>
-      </div>
-      <button onClick={claim} disabled={claimable===0n||status==="Confirming"}>{status||"Claim legacy USDC"}</button>
-    </section>
+  const emptyText = tab === "launches" ? "No launches from this wallet yet." : tab === "positions" ? "No indexed token positions yet." : tab === "orders" ? "No indexed limit orders yet." : "No indexed activity yet.";
 
-    {celestialAddresses.feeEscrow && (
-      <section className="metric-grid">
-        {quoteAssets.map((asset)=>(
-          <div className="metric-card" key={asset.symbol}>
-            <span>{asset.symbol} creator fees</span>
-            <strong>{Number(formatUnits(celestialClaims[asset.symbol]??0n,asset.decimals)).toLocaleString(undefined,{maximumFractionDigits:6})}</strong>
-            <button onClick={()=>void claimCelestial(asset.symbol)} disabled={(celestialClaims[asset.symbol]??0n)===0n}>Claim {asset.symbol}</button>
-          </div>
-        ))}
-      </section>
-    )}
+  return <LayoutGroup id="portfolio">
+    <motion.div className="profile-layout" layout transition={{layout:motionSpring.spatialDefault}}>
+      <motion.section className="profile-summary" layout>
+        <div><span className="kicker">Wallet</span><strong>{address.slice(0,7)}...{address.slice(-5)}</strong></div>
+        <div className="profile-summary-stat"><span>Launches</span><motion.strong key={launches.length} initial={{opacity:0,y:3}} animate={{opacity:1,y:0}}>{launches.length}</motion.strong></div>
+        <div className="profile-summary-stat"><span>Positions</span><motion.strong key={positions.length} initial={{opacity:0,y:3}} animate={{opacity:1,y:0}}>{positions.length}</motion.strong></div>
+        <motion.button onClick={()=>refresh(address)} whileTap={{scale:.95,rotate:-2}} transition={motionSpring.spatialFast}>Refresh</motion.button>
+      </motion.section>
 
-    <div className="profile-tabs">
-      <button className={tab==="launches"?"active":""} onClick={()=>setTab("launches")}>My launches</button>
-      <button className={tab==="positions"?"active":""} onClick={()=>setTab("positions")}>Positions</button>
-      <button className={tab==="orders"?"active":""} onClick={()=>setTab("orders")}>Orders</button>
-      <button className={tab==="activity"?"active":""} onClick={()=>setTab("activity")}>Activity</button>
-    </div>
-
-    <section className="profile-table">
-      {tab==="launches" && (launches.length?launches.map(x=>
-        <a href={"/token/"+x.address} className="profile-row" key={x.address}>
-          <div><strong>{x.name}</strong><span>{"$"+x.symbol}</span></div>
-          <span>{x.status==="GRADUATED"?"Graduated":"Curve"}</span>
-          <span>{new Date(x.created_at).toLocaleDateString()}</span>
-        </a>
-      ):<div className="profile-empty">No launches from this wallet yet.</div>)}
-
-      {tab==="positions" && (positions.length?positions.map(x=>
-        <a href={"/token/"+x.token} className="profile-row" key={x.token}>
-          <div><strong>{x.name}</strong><span>{"$"+x.symbol}</span></div>
-          <span>{Number(formatUnits(BigInt(x.balance),18)).toLocaleString(undefined,{maximumFractionDigits:0})}</span>
-          <span>{x.status==="GRADUATED"?"Graduated":"Curve"}</span>
-        </a>
-      ):<div className="profile-empty">No indexed token positions yet.</div>)}
-
-      {tab==="orders" && (orders.length?orders.map(x=>
-        <div className="profile-row" key={x.order_id}>
-          <div><strong>{x.side} order</strong><span>#{x.order_id}</span></div>
-          <span>{x.status}</span>
-          <span>{x.status==="OPEN"&&celestialAddresses.orderBook?<button onClick={()=>void cancelOrder(x.order_id)}>Cancel</button>:new Date(x.created_at??Date.now()).toLocaleDateString()}</span>
+      <motion.section className="fees-card" layout>
+        <div>
+          <span className="kicker">Creator fees</span>
+          <motion.h2 layout>{Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})} USDC</motion.h2>
+          <p>Legacy and Celestial creator-tax revenue remains non-custodial until claimed.</p>
         </div>
-      ):<div className="profile-empty">No indexed limit orders yet.</div>)}
+        <motion.button onClick={claim} disabled={claimable===0n||status==="Confirming"} whileTap={{scale:.97}} transition={motionSpring.spatialFast}>{status||"Claim legacy USDC"}</motion.button>
+      </motion.section>
 
-      {tab==="activity" && (activity.length?activity.map(x=>
-        <a href={"/token/"+x.token} className="profile-row" key={x.tx_hash}>
-          <div><strong>{x.side}</strong><span>{x.token.slice(0,8)}...{x.token.slice(-6)}</span></div>
-          <span>{"$"+Number(formatUnits(BigInt(x.quote_amount),6)).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
-          <span>{new Date(x.block_time).toLocaleDateString()}</span>
-        </a>
-      ):<div className="profile-empty">No indexed activity yet.</div>)}
-    </section>
+      {celestialAddresses.feeEscrow && (
+        <motion.section className="metric-grid" layout variants={flowContainer} initial="hidden" animate="show">
+          {quoteAssets.map((asset)=>(
+            <motion.div className="metric-card" key={asset.symbol} variants={flowItem} layout>
+              <span>{asset.symbol} creator fees</span>
+              <strong>{Number(formatUnits(celestialClaims[asset.symbol]??0n,asset.decimals)).toLocaleString(undefined,{maximumFractionDigits:6})}</strong>
+              <motion.button onClick={()=>void claimCelestial(asset.symbol)} disabled={(celestialClaims[asset.symbol]??0n)===0n} whileTap={{scale:.96}}>Claim {asset.symbol}</motion.button>
+            </motion.div>
+          ))}
+        </motion.section>
+      )}
 
-    {error&&<p className="form-error">{error}</p>}
-  </div>;
+      <motion.div className="profile-tabs" layout>
+        {(["launches","positions","orders","activity"] as const).map((value)=><motion.button
+          key={value}
+          className={tab===value?"active":""}
+          onClick={()=>setTab(value)}
+          whileTap={{scale:.94}}
+          transition={motionSpring.spatialFast}
+        >{value === "launches" ? "My launches" : value[0].toUpperCase()+value.slice(1)}</motion.button>)}
+      </motion.div>
+
+      <motion.section className="profile-table" layout transition={{layout:motionSpring.spatialDefault}}>
+        <AnimatePresence mode="popLayout" initial={false}>
+          {rows.length ? rows.map(({key,node},index)=><motion.div
+            key={`${tab}-${key}`}
+            layout
+            initial={{opacity:0,y:8,scale:.992}}
+            animate={{opacity:1,y:0,scale:1}}
+            exit={{opacity:0,x:-10,scale:.99}}
+            transition={{...motionSpring.spatialFast,delay:Math.min(index*.018,.12)}}
+          >{node}</motion.div>) : <motion.div key={`${tab}-empty`} className="profile-empty" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={motionSpring.effectsDefault}>{emptyText}</motion.div>}
+        </AnimatePresence>
+      </motion.section>
+
+      <AnimatePresence initial={false}>{error&&<motion.p className="form-error" layout initial={{opacity:0,y:-4}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}}>{error}</motion.p>}</AnimatePresence>
+    </motion.div>
+  </LayoutGroup>;
 }
