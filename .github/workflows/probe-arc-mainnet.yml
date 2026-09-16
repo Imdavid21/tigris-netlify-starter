@@ -13,19 +13,16 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rpc:
-          - https://rpc.mainnet.arc.io
-          - https://rpc.arc-scan.org
-          - https://niorfun.com/api/rpc
     steps:
-      - name: Probe RPC
+      - name: Probe Arc mainnet production dependencies
         env:
-          RPC_URL: ${{ matrix.rpc }}
+          RPC_URL: "https://rpc.mainnet.arc.io"
           USDC: "0x3600000000000000000000000000000000000000"
           POOL_MANAGER: "0x8366a39CC670B4001A1121B8F6A443A643e40951"
+          POSITION_MANAGER: "0x6049c9a0e26405C0985f9E3685C87d0aE917f82B"
+          QUOTER: "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94"
+          UNIVERSAL_ROUTER: "0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1"
+          PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3"
           DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
         run: |
           set -euo pipefail
@@ -38,18 +35,32 @@ jobs:
 
           CHAIN_ID=$(rpc eth_chainId '[]')
           BLOCK=$(rpc eth_blockNumber '[]')
-          USDC_CODE=$(rpc eth_getCode "[\"$USDC\",\"latest\"]")
-          V4_CODE=$(rpc eth_getCode "[\"$POOL_MANAGER\",\"latest\"]")
           BALANCE=$(rpc eth_getBalance "[\"$DEPLOYER\",\"latest\"]")
 
           echo "RPC=$RPC_URL"
           echo "CHAIN_ID=$CHAIN_ID"
           echo "BLOCK=$BLOCK"
-          echo "USDC_CODE_BYTES=$(( (${#USDC_CODE} - 2) / 2 ))"
-          echo "V4_POOL_MANAGER_CODE_BYTES=$(( (${#V4_CODE} - 2) / 2 ))"
           echo "DEPLOYER_NATIVE_BALANCE=$BALANCE"
 
           test "$CHAIN_ID" = "0x13b2"
           test -n "$BLOCK"
-          test "$USDC_CODE" != "0x"
-          test "$V4_CODE" != "0x"
+
+          for ENTRY in \
+            "USDC:$USDC" \
+            "V4_POOL_MANAGER:$POOL_MANAGER" \
+            "V4_POSITION_MANAGER:$POSITION_MANAGER" \
+            "V4_QUOTER:$QUOTER" \
+            "V4_UNIVERSAL_ROUTER:$UNIVERSAL_ROUTER" \
+            "PERMIT2:$PERMIT2"; do
+            NAME=${ENTRY%%:*}
+            ADDRESS=${ENTRY#*:}
+            CODE=$(rpc eth_getCode "[\"$ADDRESS\",\"latest\"]")
+            BYTES=$(( (${#CODE} - 2) / 2 ))
+            echo "$NAME=$ADDRESS CODE_BYTES=$BYTES"
+            test "$CODE" != "0x"
+          done
+
+          # decimals() selector = 0x313ce567. Arc USDC must expose the standard 6-decimal ERC-20 interface.
+          DECIMALS=$(rpc eth_call "[{\"to\":\"$USDC\",\"data\":\"0x313ce567\"},\"latest\"]")
+          echo "USDC_DECIMALS_RAW=$DECIMALS"
+          test "$DECIMALS" = "0x0000000000000000000000000000000000000000000000000000000000000006"
