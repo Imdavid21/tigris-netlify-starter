@@ -1,4 +1,4 @@
-name: Arc Mainnet Web Build
+name: supershot.fun Arc Mainnet Web Build
 
 on:
   push:
@@ -34,5 +34,5 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Build Celestial-only Arc Mainnet frontend
-        run: npm --workspace @arc-launchpad/web run build
+      - name: Build supershot.fun Arc Mainnet frontend
+        run: npm --workspace @supershot/web run build
