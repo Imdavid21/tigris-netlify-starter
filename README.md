@@ -1,13 +1,16 @@
-# Arc Launchpad
+# Celestial
 
-Dollar-native permissionless token launchpad for Circle Arc.
+Non-custodial token launchpad and market terminal built for Arc.
 
-Initial development scope:
-- USDC bonding curves
-- fixed-supply launches
-- permissionless trading
-- graduation into Arc DEX liquidity
-- permanently locked LP
-- event-indexed discovery and analytics
+Current product surfaces include discovery, token creation, bonding-curve trading, limit orders, wallet portfolio, scanner, analytics, creator/holder economics, buyback and burn, and the graduation path into permanently locked DEX liquidity.
 
-Development begins on Arc Testnet. Economic constants remain provisional until simulation and invariant testing are complete.
+Start here before modifying the product:
+
+- `docs/PROJECT_SOURCE_OF_TRUTH.md` — current design system, routes, architecture, deployments, completed work, superseded design experiments, known debt, and remaining gates
+- `AGENTS.md` — engineering handoff and protocol configuration
+- `docs/PONS_REVERSE_ENGINEERING.md` — benchmark research and product blueprint
+- `docs/AUDIT.md` — internal functionality and security review
+- `docs/QA_REPORT.md` — QA and staging matrix
+- `docs/UNISWAP_V4_INTEGRATION.md` — intended post-graduation DEX architecture
+
+Development is currently on Arc Testnet. Production DEX addresses, production RPC infrastructure, governance hardening, and independent security review remain external gates before real-fund mainnet use.
