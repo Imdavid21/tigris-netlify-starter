@@ -40,7 +40,15 @@ export function TokenCard({
       href={href}
       className={styles.card}
       layout
-      transition={{ layout: motionSpring.spatialDefault }}
+      initial={{ opacity: 0, y: 12, scale: 0.975 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.965 }}
+      transition={{
+        layout: motionSpring.spatialDefault,
+        opacity: motionSpring.effectsFast,
+        y: motionSpring.spatialDefault,
+        scale: motionSpring.spatialDefault
+      }}
       whileHover={{ y: -4, scale: 1.008 }}
       whileTap={{ y: 0, scale: 0.985 }}
       whileFocus={{ scale: 1.006 }}
