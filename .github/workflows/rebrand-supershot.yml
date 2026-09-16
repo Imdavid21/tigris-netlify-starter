@@ -43,17 +43,14 @@ jobs:
               'packages/contracts/test/',
               'packages/contracts/script/',
               'scripts/deploy-celestial-',
-              '.github/workflows/deploy-celestial-',
-              '.github/workflows/simulate-celestial-',
+              '.github/workflows/',
           )
 
           for path in root.rglob('*'):
               if not path.is_file() or path.suffix not in text_exts:
                   continue
               rel = path.as_posix()
-              if rel.startswith('.git/') or rel == '.github/workflows/rebrand-supershot.yml':
-                  continue
-              if rel.startswith(skip_prefixes):
+              if rel.startswith('.git/') or rel.startswith(skip_prefixes):
                   continue
 
               try:
