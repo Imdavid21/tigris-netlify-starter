@@ -1,4 +1,4 @@
-import { arcTestnet } from "./arc";
+import { arcTestnet, arcExplorerUrl } from "./arc";
 import type { EIP1193Provider } from "viem";
 
 export async function ensureArcChain(provider: EIP1193Provider) {
@@ -18,7 +18,7 @@ export async function ensureArcChain(provider: EIP1193Provider) {
             process.env.NEXT_PUBLIC_ARC_RPC_URL ??
             arcTestnet.rpcUrls.default.http[0]
         ],
-        blockExplorerUrls: ["https://testnet.arcscan.app"]
+        blockExplorerUrls: [arcExplorerUrl]
       }]
     });
     await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId }] });
