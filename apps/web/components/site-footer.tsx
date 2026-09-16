@@ -1,47 +1,68 @@
+"use client";
+
+import { motion } from "motion/react";
 import { CelestialLogo } from "@/components/celestial-logo";
+import { flowContainer, flowItem, motionSpring } from "@/lib/motion-system";
 import styles from "./SiteFooter.module.css";
 
 export function SiteFooter() {
   return (
-    <footer className={styles.footer}>
-      <div className={styles.brandBlock}>
-        <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
-          <CelestialLogo className={styles.logo} />
+    <motion.footer
+      className={styles.footer}
+      variants={flowContainer}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.12 }}
+      layout
+      transition={{ layout: motionSpring.spatialDefault }}
+    >
+      <motion.div className={styles.brandBlock} variants={flowItem}>
+        <motion.a
+          href="/explore"
+          className={styles.brand}
+          aria-label="Celestial Explore"
+          whileHover={{ x: 2 }}
+          whileTap={{ scale: 0.98 }}
+          transition={motionSpring.spatialFast}
+        >
+          <motion.span whileHover={{ rotate: 8, scale: 1.05 }} transition={motionSpring.spatialFast}>
+            <CelestialLogo className={styles.logo} />
+          </motion.span>
           <span>Celestial</span>
-        </a>
+        </motion.a>
         <p>
           Non-custodial token launches and onchain markets on Arc. Your wallet signs every transaction.
         </p>
-      </div>
+      </motion.div>
 
-      <div className={styles.column}>
+      <motion.div className={styles.column} variants={flowItem}>
         <strong>Product</strong>
-        <a href="/explore">Explore</a>
-        <a href="/analytics">Analytics</a>
-        <a href="/create">Create</a>
-        <a href="/portfolio">Portfolio</a>
-      </div>
+        <motion.a href="/explore" whileHover={{ x: 3 }}>Explore</motion.a>
+        <motion.a href="/analytics" whileHover={{ x: 3 }}>Analytics</motion.a>
+        <motion.a href="/create" whileHover={{ x: 3 }}>Create</motion.a>
+        <motion.a href="/portfolio" whileHover={{ x: 3 }}>Portfolio</motion.a>
+      </motion.div>
 
-      <div className={styles.column}>
+      <motion.div className={styles.column} variants={flowItem}>
         <strong>Network</strong>
-        <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc Explorer</a>
-        <a href="/scanner">Scanner</a>
-      </div>
+        <motion.a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer" whileHover={{ x: 3 }}>Arc Explorer</motion.a>
+        <motion.a href="/scanner" whileHover={{ x: 3 }}>Scanner</motion.a>
+      </motion.div>
 
-      <div className={styles.risk}>
+      <motion.div className={styles.risk} variants={flowItem}>
         <strong>Risk</strong>
         <p>
           Transactions are irreversible. Token markets can be volatile and may lose all value.
         </p>
-      </div>
+      </motion.div>
 
-      <div className={styles.bottom}>
+      <motion.div className={styles.bottom} variants={flowItem} layout="position">
         <span>© Celestial · Arc Testnet</span>
         <div className={styles.bottomLinks}>
-          <a href="/analytics">Protocol data</a>
-          <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc</a>
+          <motion.a href="/analytics" whileHover={{ y: -1 }}>Protocol data</motion.a>
+          <motion.a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer" whileHover={{ y: -1 }}>Arc</motion.a>
         </div>
-      </div>
-    </footer>
+      </motion.div>
+    </motion.footer>
   );
 }
