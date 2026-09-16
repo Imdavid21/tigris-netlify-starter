@@ -45,18 +45,26 @@ jobs:
 
       - name: Bootstrap API mainnet schema
         run: |
+          set -euo pipefail
           DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=mainnet PORT=3002 \
             npm --workspace @arc-launchpad/api run start > /tmp/api-mainnet.log 2>&1 &
           echo $! > /tmp/api-mainnet.pid
+
+          : > /tmp/api-health.json
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3002/health > /tmp/api-health.json; then
               break
             fi
             sleep 1
           done
+
+          test -s /tmp/api-health.json
           test "$(jq -r '.ok' /tmp/api-health.json)" = "true"
           test "$(jq -r '.databaseSchema' /tmp/api-health.json)" = "mainnet"
-          test "$(docker exec arc-mainnet-postgres psql -U postgres -d arc_launchpad -Atc \"select count(*) from information_schema.tables where table_schema='mainnet' and table_name='tokens'\")" = "1"
+
+          SCHEMA_TABLE=$(docker exec arc-mainnet-postgres psql -U postgres -d arc_launchpad -Atc \
+            "select count(*) from information_schema.tables where table_schema='mainnet' and table_name='tokens';")
+          test "$SCHEMA_TABLE" = "1"
 
       - name: Verify indexer mainnet search path
         run: |
