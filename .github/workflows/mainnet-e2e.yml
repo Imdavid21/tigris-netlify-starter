@@ -1,0 +1,114 @@
+name: Capped Supershot Mainnet E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/contracts/script/RunMainnetE2E.s.sol
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type RUN CAPPED E2E
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supershot-mainnet-e2e
+  cancel-in-progress: false
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ARC_RPC_URL: https://rpc.mainnet.arc.io
+      RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+      EXPECTED_WALLET: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+      FACTORY: "0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423"
+      ORDER_BOOK: "0xED7b5904e272d3DF891179D916D2E3A939ed1471"
+      USDC: "0x3600000000000000000000000000000000000000"
+      MAX_TOTAL_SPEND_USDC: "5"
+      MAX_TEST_NOTIONAL_USDC: "2"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Require explicit manual confirmation when dispatched
+        if: github.event_name == 'workflow_dispatch'
+        run: test "${{ inputs.confirm }}" = "RUN CAPPED E2E"
+
+      - name: Install dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Validate wallet, network, contracts, and budget
+        run: |
+          set -euo pipefail
+          test -n "$RAW_PRIVATE_KEY"
+          case "$RAW_PRIVATE_KEY" in
+            0x*) PRIVATE_KEY="$RAW_PRIVATE_KEY" ;;
+            *) PRIVATE_KEY="0x$RAW_PRIVATE_KEY" ;;
+          esac
+          echo "PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+
+          WALLET=$(cast wallet address --private-key "$PRIVATE_KEY")
+          test "${WALLET,,}" = "${EXPECTED_WALLET,,}"
+          test "$(cast chain-id --rpc-url "$ARC_RPC_URL")" = "5042"
+
+          for TARGET in "$FACTORY" "$ORDER_BOOK" "$USDC"; do
+            test "$(cast code "$TARGET" --rpc-url "$ARC_RPC_URL")" != "0x"
+          done
+
+          BALANCE=$(cast balance "$WALLET" --rpc-url "$ARC_RPC_URL")
+          test "$BALANCE" -ge 5000000
+          echo "START_BALANCE=$BALANCE" >> "$GITHUB_ENV"
+          echo "Wallet balance before run: $BALANCE micro-USDC" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build before broadcasting
+        run: forge build
+
+      - name: Simulate capped lifecycle
+        run: |
+          forge script packages/contracts/script/RunMainnetE2E.s.sol:RunMainnetE2E \
+            --rpc-url "$ARC_RPC_URL" -vvvv
+
+      - name: Broadcast capped lifecycle
+        run: |
+          set -o pipefail
+          forge script packages/contracts/script/RunMainnetE2E.s.sol:RunMainnetE2E \
+            --rpc-url "$ARC_RPC_URL" --broadcast --slow -vvvv 2>&1 | tee /tmp/supershot-mainnet-e2e.log
+
+      - name: Enforce final wallet-loss cap
+        if: always()
+        run: |
+          set -euo pipefail
+          END_BALANCE=$(cast balance "$EXPECTED_WALLET" --rpc-url "$ARC_RPC_URL")
+          if [ -n "${START_BALANCE:-}" ]; then
+            if [ "$START_BALANCE" -gt "$END_BALANCE" ]; then
+              LOSS=$((START_BALANCE - END_BALANCE))
+            else
+              LOSS=0
+            fi
+            test "$LOSS" -le 5000000
+            {
+              echo "Wallet balance after run: $END_BALANCE micro-USDC"
+              echo "Net wallet loss: $LOSS micro-USDC"
+              echo "Configured cap: 5000000 micro-USDC"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload E2E logs and broadcasts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supershot-mainnet-e2e
+          path: |
+            /tmp/supershot-mainnet-e2e.log
+            broadcast/
