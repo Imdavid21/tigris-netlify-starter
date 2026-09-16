@@ -1,0 +1,452 @@
+.page {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+.page :global(.page-heading.compact),
+.page :global(.create-grid) {
+  width: min(calc(100% - 48px), var(--content-max));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page :global(.page-heading.compact) {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 12px;
+}
+
+.page :global(.page-heading.compact h1) {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.page :global(.page-heading.compact p) {
+  display: none;
+}
+
+.page :global(.create-grid) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.page :global(.create-main) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page :global(.form-card),
+.page :global(.launch-preview) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.page :global(.form-card) {
+  padding: 18px;
+}
+
+.page :global(.form-section-head) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page :global(.form-section-head > div) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page :global(.step-index) {
+  min-width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.form-section-head h2) {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.page :global(.live-badge) {
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border));
+  border-radius: var(--radius-pill);
+  background: var(--surface-active);
+  color: var(--brand);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.page :global(.field-grid.two),
+.page :global(.advanced-grid) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.page :global(.form-card > label),
+.page :global(.field-grid label),
+.page :global(.advanced-grid label) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.page :global(.field-grid > label),
+.page :global(.advanced-grid > label) {
+  margin-top: 0;
+}
+
+.page :global(.form-card label > span) {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.page :global(.form-card input),
+.page :global(.form-card textarea),
+.page :global(.form-card select) {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  transition: border-color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+
+.page :global(.form-card input),
+.page :global(.form-card select) {
+  height: 42px;
+  padding: 0 11px;
+}
+
+.page :global(.form-card textarea) {
+  min-height: 92px;
+  resize: vertical;
+  padding: 11px;
+  line-height: 1.45;
+}
+
+.page :global(.form-card input:focus),
+.page :global(.form-card textarea:focus),
+.page :global(.form-card select:focus) {
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--border));
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, .08);
+}
+
+.page :global(.form-card input::placeholder),
+.page :global(.form-card textarea::placeholder) {
+  color: var(--text-tertiary);
+}
+
+.page :global(.economics-table) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.page :global(.economics-table > div) {
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 11px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.page :global(.economics-table > div:nth-child(3n)) {
+  border-right: 0;
+}
+
+.page :global(.economics-table > div:nth-last-child(-n+3)) {
+  border-bottom: 0;
+}
+
+.page :global(.economics-table span),
+.page :global(.preview-stat span) {
+  color: var(--text-tertiary);
+  font-size: 9px;
+}
+
+.page :global(.economics-table strong),
+.page :global(.preview-stat strong) {
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.text-button) {
+  min-height: 32px;
+  margin-top: 12px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.page :global(.text-button:hover) {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--surface-soft);
+}
+
+.page :global(.advanced-grid) {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.page :global(.advanced-grid .full) {
+  grid-column: 1 / -1;
+}
+
+.page :global(.review-card) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+}
+
+.page :global(.review-card .form-section-head),
+.page :global(.review-card .review-copy) {
+  grid-column: 1;
+}
+
+.page :global(.review-card .form-section-head) {
+  margin-bottom: 0;
+}
+
+.page :global(.review-copy) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.page :global(.launch-cta) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 150px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.page :global(.launch-cta:hover:not(:disabled)) {
+  border-color: var(--brand-600);
+  background: var(--brand-600);
+}
+
+.page :global(.launch-cta:disabled) {
+  cursor: default;
+  opacity: .45;
+}
+
+.page :global(.tx-hash),
+.page :global(.form-error) {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+.page :global(.tx-hash) {
+  color: var(--text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.page :global(.form-error) {
+  color: var(--negative);
+}
+
+.page :global(.launch-preview) {
+  position: sticky;
+  top: 80px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.page :global(.launch-preview .token-avatar) {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--surface-active);
+  color: var(--brand);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.page :global(.launch-preview h3) {
+  margin: 12px 0 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.preview-symbol) {
+  margin: 3px 0 0;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.page :global(.preview-description) {
+  min-height: 32px;
+  margin: 9px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.page :global(.preview-rule) {
+  height: 1px;
+  margin: 12px 0 4px;
+  background: var(--border);
+}
+
+.page :global(.preview-stat) {
+  min-height: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page :global(.preview-stat strong) {
+  text-align: right;
+}
+
+.page :global(.preview-note) {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 12px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.page :global(.preview-note .status-dot) {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--positive);
+}
+
+@media (max-width: 900px) {
+  .page :global(.create-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  .page :global(.launch-preview) {
+    position: static;
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 700px) {
+  .page :global(.page-heading.compact),
+  .page :global(.create-grid) {
+    width: min(calc(100% - 28px), var(--content-max));
+  }
+
+  .page :global(.page-heading.compact h1) {
+    font-size: 22px;
+  }
+
+  .page :global(.field-grid.two),
+  .page :global(.advanced-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  .page :global(.advanced-grid .full) {
+    grid-column: auto;
+  }
+
+  .page :global(.economics-table) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page :global(.economics-table > div),
+  .page :global(.economics-table > div:nth-child(3n)),
+  .page :global(.economics-table > div:nth-last-child(-n+3)) {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page :global(.economics-table > div:nth-child(2n)) {
+    border-right: 0;
+  }
+
+  .page :global(.economics-table > div:nth-last-child(-n+2)) {
+    border-bottom: 0;
+  }
+
+  .page :global(.review-card) {
+    grid-template-columns: 1fr;
+  }
+
+  .page :global(.launch-cta) {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+  }
+}
