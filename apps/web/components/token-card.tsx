@@ -1,3 +1,7 @@
+"use client";
+
+import { AnimatePresence, motion } from "motion/react";
+import { motionSpring } from "@/lib/motion-system";
 import styles from "./TokenCard.module.css";
 
 type TokenCardProps = {
@@ -32,44 +36,82 @@ export function TokenCard({
   const safeProgress = progress === undefined ? undefined : Math.max(0, Math.min(100, progress));
 
   return (
-    <a href={href} className={styles.card}>
-      <div className={styles.media}>
+    <motion.a
+      href={href}
+      className={styles.card}
+      layout
+      transition={{ layout: motionSpring.spatialDefault }}
+      whileHover={{ y: -4, scale: 1.008 }}
+      whileTap={{ y: 0, scale: 0.985 }}
+      whileFocus={{ scale: 1.006 }}
+    >
+      <motion.div
+        className={styles.media}
+        layoutId={`token-media-${href}`}
+        transition={motionSpring.spatialDefault}
+      >
         {image ? (
-          <img className={styles.image} src={image} alt="" loading="lazy" />
+          <motion.img
+            className={styles.image}
+            src={image}
+            alt=""
+            loading="lazy"
+            initial={{ scale: 1.025, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={motionSpring.effectsDefault}
+          />
         ) : (
           <div className={styles.fallback} aria-hidden="true">
             {symbol.slice(0, 2).toUpperCase() || "✦"}
           </div>
         )}
-        <span className={`${styles.badge} ${graduated ? styles.graduated : ""}`}>
+        <motion.span
+          className={`${styles.badge} ${graduated ? styles.graduated : ""}`}
+          layout
+          transition={motionSpring.spatialFast}
+        >
           {badge}
-        </span>
-      </div>
+        </motion.span>
+      </motion.div>
 
-      <div className={styles.body}>
+      <motion.div className={styles.body} layout="position">
         <div className={styles.title}>
-          <strong>{name}</strong>
+          <motion.strong layout="position">{name}</motion.strong>
           <span>${symbol}</span>
         </div>
 
-        <div className={styles.value}>{value}</div>
+        <motion.div className={styles.value} layout="position">{value}</motion.div>
 
         <div className={styles.meta}>
           <span>{metaLeft}</span>
           <span>{metaRight}</span>
         </div>
 
-        {safeProgress !== undefined && !graduated && (
-          <div className={styles.progress} aria-label={`${safeProgress.toFixed(0)}% to graduation`}>
-            <span style={{ width: `${safeProgress}%` }} />
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {safeProgress !== undefined && !graduated && (
+            <motion.div
+              className={styles.progress}
+              aria-label={`${safeProgress.toFixed(0)}% to graduation`}
+              initial={{ opacity: 0, scaleX: 0.92 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0.96 }}
+              transition={motionSpring.effectsFast}
+              style={{ transformOrigin: "left center" }}
+            >
+              <motion.span
+                initial={false}
+                animate={{ width: `${safeProgress}%` }}
+                transition={motionSpring.spatialDefault}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className={styles.foot}>
           <span>{footLeft}</span>
           <span>{footRight}</span>
         </div>
-      </div>
-    </a>
+      </motion.div>
+    </motion.a>
   );
 }
