@@ -1,0 +1,25 @@
+.fix :global(.market-layout) {
+  grid-auto-rows: max-content;
+  align-items: start;
+}
+
+.fix :global(.trade-terminal) {
+  position: relative !important;
+  top: auto !important;
+  align-self: start;
+  height: auto;
+  max-height: none;
+  z-index: 1;
+}
+
+.fix :global(.about-panel),
+.fix :global(.market-data-grid) {
+  position: relative;
+  z-index: 0;
+}
+
+@media (max-width: 900px) {
+  .fix :global(.trade-terminal) {
+    position: static !important;
+  }
+}
