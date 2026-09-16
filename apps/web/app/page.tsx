@@ -1,5 +1,5 @@
-import { UtopiaLanding } from "@/components/utopia-landing";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <UtopiaLanding />;
+  redirect("/explore");
 }
