@@ -2,6 +2,7 @@ import { formatUnits, getAddress, isAddress } from "viem";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FlowDiv, FlowSection } from "@/components/viewport-flow";
 import { API_URL } from "@/lib/api";
 import { quoteAssets } from "@/lib/celestial";
 import styles from "./ScannerPage.module.css";
@@ -82,12 +83,12 @@ export default async function ScannerPage({ params }: Props) {
 
       <div className={styles.canvas}>
         {degraded && (
-          <div className={styles.notice}>
+          <FlowDiv className={styles.notice}>
             Indexed scanner data may be incomplete. Use Arc Explorer for contract-native verification.
-          </div>
+          </FlowDiv>
         )}
 
-        <div className={styles.head}>
+        <FlowDiv className={styles.head}>
           <div className={styles.identity}>
             <div className={styles.avatar}>
               {token?.image ? <img src={token.image} alt="" /> : (token?.symbol || "AR").slice(0, 2)}
@@ -106,9 +107,9 @@ export default async function ScannerPage({ params }: Props) {
             <a href={`https://testnet.arcscan.app/address/${tokenAddress}`} target="_blank" rel="noreferrer">Arc Explorer</a>
             {token && <a href={`/token/${tokenAddress}`} className={styles.primary}>Open market</a>}
           </div>
-        </div>
+        </FlowDiv>
 
-        <section className={styles.metrics}>
+        <FlowSection className={styles.metrics} delay={0.03}>
           <div className={styles.metric}><span>Holders</span><strong>{holders.length.toLocaleString()}</strong></div>
           <div className={styles.metric}><span>Indexed trades</span><strong>{trades.length.toLocaleString()}</strong></div>
           <div className={styles.metric}><span>Status</span><strong>{token?.status || "—"}</strong></div>
@@ -116,10 +117,10 @@ export default async function ScannerPage({ params }: Props) {
           <div className={styles.metric}><span>Quote asset</span><strong>{quoteSymbol}</strong></div>
           <div className={styles.metric}><span>Creator</span><strong>{short(token?.creator)}</strong></div>
           <div className={styles.metric}><span>Indexed supply held</span><strong>{Number(formatUnits(totalHolderBalance, 18)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
-        </section>
+        </FlowSection>
 
         <div className={styles.grid}>
-          <section className={styles.panel}>
+          <FlowSection className={styles.panel} delay={0.05}>
             <div className={styles.panelHead}>
               <h2>Contract details</h2>
               <span>Indexed + explorer links</span>
@@ -142,9 +143,9 @@ export default async function ScannerPage({ params }: Props) {
                 {token?.pool_address ? <a href={`https://testnet.arcscan.app/address/${token.pool_address}`} target="_blank" rel="noreferrer">{token.pool_address}</a> : <strong>—</strong>}
               </div>
             </div>
-          </section>
+          </FlowSection>
 
-          <section className={styles.panel}>
+          <FlowSection className={styles.panel} delay={0.07}>
             <div className={styles.panelHead}>
               <h2>Top holders</h2>
               <span>{holders.length} indexed</span>
@@ -164,9 +165,9 @@ export default async function ScannerPage({ params }: Props) {
                 <span className={styles.value}>{Number(formatUnits(BigInt(holder.balance), 18)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               </a>
             ))}
-          </section>
+          </FlowSection>
 
-          <section className={`${styles.panel} ${styles.full}`}>
+          <FlowSection className={`${styles.panel} ${styles.full}`} delay={0.09}>
             <div className={styles.panelHead}>
               <h2>Recent activity</h2>
               <span>{trades.length} indexed trades</span>
@@ -186,7 +187,7 @@ export default async function ScannerPage({ params }: Props) {
                 <span className={styles.value}>{Number(formatUnits(BigInt(trade.quote_amount), quoteDecimals)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {quoteSymbol}</span>
               </a>
             ))}
-          </section>
+          </FlowSection>
         </div>
       </div>
 
