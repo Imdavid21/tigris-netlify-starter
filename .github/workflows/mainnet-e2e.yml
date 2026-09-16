@@ -1,10 +1,6 @@
 name: Capped Supershot Mainnet E2E
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - packages/contracts/script/RunMainnetE2E.s.sol
   workflow_dispatch:
     inputs:
       confirm:
@@ -100,17 +96,13 @@ jobs:
           set -euo pipefail
           END_BALANCE=$(arc-cast balance "$EXPECTED_WALLET" --rpc-url "$ARC_RPC_URL")
           if [ -n "${START_BALANCE:-}" ]; then
-            if [ "$START_BALANCE" -gt "$END_BALANCE" ]; then
-              LOSS=$((START_BALANCE - END_BALANCE))
-            else
-              LOSS=0
-            fi
-            test "$LOSS" -le 5000000000000000000
+            LOSS=$(node -e 'const a=BigInt(process.argv[1]),b=BigInt(process.argv[2]); console.log((a>b?a-b:0n).toString())' "$START_BALANCE" "$END_BALANCE")
             {
-              echo "Wallet balance after run: $END_BALANCE native micro-USDC units"
-              echo "Net wallet loss: $LOSS native micro-USDC units"
+              echo "Wallet balance after run: $END_BALANCE native units"
+              echo "Net wallet loss: $LOSS native units"
               echo "Configured cap: 5 USDC-equivalent"
             } >> "$GITHUB_STEP_SUMMARY"
+            node -e 'if (BigInt(process.argv[1]) > 5000000000000000000n) process.exit(1)' "$LOSS"
           fi
 
       - name: Upload E2E logs and broadcasts
