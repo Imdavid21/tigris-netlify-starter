@@ -54,6 +54,10 @@ function displayTime(value: string | number) {
   });
 }
 
+function arcscanAddress(value: string) {
+  return `https://testnet.arcscan.app/address/${value}`;
+}
+
 export function RecentTrades({ token }: { token: string }) {
   const [tab, setTab] = useState<DataTab>("trades");
   const [details, setDetails] = useState<TokenDetails>({});
@@ -174,7 +178,7 @@ export function RecentTrades({ token }: { token: string }) {
                 <motion.a
                   layout
                   key={item.holder}
-                  href={`https://testnet.arcscan.app/address/${item.holder}`}
+                  href={arcscanAddress(item.holder)}
                   target="_blank"
                   rel="noreferrer"
                   className={`${styles.row} ${styles.holderColumns}`}
@@ -198,13 +202,13 @@ export function RecentTrades({ token }: { token: string }) {
             </motion.div>
           ) : (
             <motion.div key="details" className={styles.detailGrid} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={motionSpring.effectsDefault}>
-              <div><span>Token contract</span><a href={`https://testnet.arcscan.app/address/${token}`} target="_blank" rel="noreferrer">{short(token, 10, 8)} ↗</a></div>
-              <div><span>Curve</span><strong>{details.curve_address ? short(details.curve_address, 10, 8) : "—"}</strong></div>
-              <div><span>Creator</span><strong>{short(details.creator, 10, 8)}</strong></div>
-              <div><span>DEX pool</span><strong>{short(details.pool_address, 10, 8)}</strong></div>
+              <div><span>Token contract</span><a href={arcscanAddress(token)} target="_blank" rel="noreferrer">{short(token, 10, 8)} ↗</a></div>
+              <div><span>Curve</span>{details.curve_address ? <a href={arcscanAddress(details.curve_address)} target="_blank" rel="noreferrer">{short(details.curve_address, 10, 8)} ↗</a> : <strong>—</strong>}</div>
+              <div><span>Creator</span>{details.creator ? <a href={arcscanAddress(details.creator)} target="_blank" rel="noreferrer">{short(details.creator, 10, 8)} ↗</a> : <strong>—</strong>}</div>
+              <div><span>DEX pool</span>{details.pool_address ? <a href={arcscanAddress(details.pool_address)} target="_blank" rel="noreferrer">{short(details.pool_address, 10, 8)} ↗</a> : <strong>—</strong>}</div>
               <div><span>Generation</span><strong>{details.generation || "—"}</strong></div>
               <div><span>Status</span><strong>{details.status || "—"}</strong></div>
-              <div><span>Quote asset</span><strong>{quoteAsset.symbol}</strong></div>
+              <div><span>Quote asset</span><a href={arcscanAddress(quoteAsset.address)} target="_blank" rel="noreferrer">{quoteAsset.symbol} ↗</a></div>
               <div><span>Indexed holders</span><strong>{holders.length.toLocaleString()}</strong></div>
             </motion.div>
           )}
