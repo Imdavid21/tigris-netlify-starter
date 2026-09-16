@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
+import { animateMaterialSpring } from "@/lib/material-motion";
 
 type Token = {
   address: string;
@@ -14,6 +15,7 @@ export function SearchPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Token[]>([]);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function keydown(e: KeyboardEvent) {
@@ -35,6 +37,19 @@ export function SearchPalette() {
       .catch(() => setItems([]));
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !modalRef.current) return;
+    const animation = animateMaterialSpring(
+      modalRef.current,
+      "spatialDefault",
+      (progress) => ({
+        opacity: Math.min(1, Math.max(0, progress)),
+        transform: `translateY(${(-14 * (1 - progress)).toFixed(3)}px) scale(${(0.965 + 0.035 * progress).toFixed(4)})`
+      })
+    );
+    return () => animation?.cancel();
+  }, [open]);
+
   const q = query.trim().toLowerCase();
   const filtered = items
     .filter((x) => !q || x.name.toLowerCase().includes(q) || x.symbol.toLowerCase().includes(q) || x.address.toLowerCase().includes(q))
@@ -47,7 +62,7 @@ export function SearchPalette() {
       </button>
       {open && (
         <div className="search-backdrop" onMouseDown={() => setOpen(false)}>
-          <div className="search-modal" onMouseDown={(e) => e.stopPropagation()}>
+          <div ref={modalRef} className="search-modal" onMouseDown={(e) => e.stopPropagation()}>
             <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search token, ticker, or address" />
             <div className="search-results">
               {!filtered.length ? <p>No tokens found.</p> : filtered.map((x) => (
