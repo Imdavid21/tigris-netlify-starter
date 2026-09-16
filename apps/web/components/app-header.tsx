@@ -3,34 +3,48 @@ import { SearchPalette } from "@/components/search-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProtocolStatus } from "@/components/protocol-status";
 import { CelestialLogo } from "@/components/celestial-logo";
+import styles from "./AppHeader.module.css";
 
 export function AppHeader() {
   return (
     <>
-      <ProtocolStatus />
-      <header className="topbar avenue-topbar">
-        <a href="/" className="brand avenue-brand">
-          <CelestialLogo className="avenue-brand-logo" />
-          <span>Celestial</span>
-        </a>
+      <div className={styles.statusWrap}>
+        <ProtocolStatus />
+      </div>
 
-        <nav className="nav avenue-nav">
-          <a href="/explore">Launchpad</a>
-          <a href="/trade">Markets</a>
-          <a href="/analytics">Analytics</a>
-          <a href="/portfolio">Portfolio</a>
-        </nav>
-
-        <div className="avenue-header-search">
-          <SearchPalette />
-        </div>
-
-        <div className="header-actions avenue-header-actions">
-          <a className="network-chip" href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">
-            <span className="status-dot" /> Arc Testnet
+      <header className={styles.header}>
+        <div className={styles.inner}>
+          <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
+            <CelestialLogo className={styles.logo} />
+            <span>Celestial</span>
           </a>
-          <ThemeToggle />
-          <WalletButton />
+
+          <nav className={styles.nav} aria-label="Primary navigation">
+            <a href="/explore">Explore</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/portfolio">Portfolio</a>
+          </nav>
+
+          <div className={styles.search}>
+            <SearchPalette />
+          </div>
+
+          <div className={styles.actions}>
+            <nav className={styles.utilityNav} aria-label="Product actions">
+              <a href="/stocks">Stocks</a>
+              <a href="/create" className={styles.createLink}>Create</a>
+            </nav>
+            <a
+              className={styles.network}
+              href="https://testnet.arcscan.app"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className={styles.dot} /> Arc Testnet
+            </a>
+            <ThemeToggle />
+            <WalletButton />
+          </div>
         </div>
       </header>
     </>
