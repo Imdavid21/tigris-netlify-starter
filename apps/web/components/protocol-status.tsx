@@ -1,4 +1,6 @@
 "use client";
+import { ui } from "@/styles/ui";
+
 
 import { useEffect, useState } from "react";
 
@@ -42,8 +44,8 @@ export function ProtocolStatus() {
         : "Some indexed services are degraded.";
 
   return (
-    <div className="protocol-status" role="status">
-      <span className="protocol-status-dot" />
+    <div className={ui("protocol-status")} role="status">
+      <span className={ui("protocol-status-dot")} />
       <strong>Degraded performance</strong>
       <span>{detail} Trading still reads critical state from contracts.</span>
     </div>

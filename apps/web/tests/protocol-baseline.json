@@ -1,0 +1,25 @@
+{
+  "token-market.tsx": {
+    "injected": "2771792eb9eaed942034fd2e838851e6f4ea65d7349f95ec327e299156180ff4",
+    "safeParseUnits": "c8fd587ddb663cdf4f62eb112d9e6c6f1e3c1e9a14bb5bc2baa8ab37a806fa98",
+    "refresh": "0a13a6e4472b4754023673faae39cc3a3d104a902c3d16e8ed0793881603f8fc",
+    "refreshWalletState": "b6e085984a7c8ef65bde84e77f6b61b2aa05700988aea82190b0aec921e46152",
+    "refreshOrders": "0acda6c95dca7fdf39e4f4188d2135821091cf22fc9e42cfd3a98ca1f91464d7",
+    "accountAndWallet": "d01df3c4ae9d7b74a08870f7f08f477f3a46598ea97ffd4856f85865e48dd52a",
+    "ensureAllowance": "36b0a27085b72da065afd0d4b2675fea86a539920aa895c929840898489b0bd2",
+    "marketTrade": "be5b535df18085c54d890185d700f2d939f86abfedd5f3473778cc1d47b5dc53",
+    "placeLimitOrder": "f7f0d6de6fc01d28cf5f65eadca16452291eb784a7de9b2d1b1cf454332704d8",
+    "cancelOrder": "076bc43aa7ffde224e1d54d2d9d668a9795dcf0fc749ea47566a158e4f583338",
+    "claimHolderRewards": "1058e9af54bf8b96b85504712b106b704d924bb97eab9559ce278f12d51d4850"
+  },
+  "create-token-form.tsx": {
+    "getProvider": "27ab9d1633f9bf49f9466855cd7e378a881b3c51d2fbc9d4e100316e21119a09",
+    "submit": "f6cc8919fde994753a6a2a20dda20bc8e0906ee18e06005478f3284e85a4f248"
+  },
+  "profile-panel.tsx": {
+    "refresh": "adcf1d6ad13e443f0d786308315c652aa2cacc7d410bf62386f60e3671dd7669",
+    "claim": "f450fbf120a036ccf758a8a05ff8b0f34e595cd4cecc56291f24ac39fde20383",
+    "claimCelestial": "367123aec22c1543f79d7d18dd57d76b2617df40d56f1fe08ee3833a2656b5ed",
+    "cancelOrder": "173614f77317be2d2369d653766f65f4c4f01cb870a4f03968595671257465ec"
+  }
+}

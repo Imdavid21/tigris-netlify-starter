@@ -1,4 +1,6 @@
 "use client";
+import { ui } from "@/styles/ui";
+
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -672,27 +674,27 @@ export function TokenMarket({ token }: { token: Address }) {
   const outputSymbol = side === "buy" ? symbol : quoteAsset.symbol;
 
   return (
-    <main className="app-shell">
+    <main className={ui("app-shell")}>
       <AppHeader />
 
-      <div className="token-breadcrumb">
+      <div className={ui("token-breadcrumb")}>
         <a href="/explore">Explore</a><span>/</span><span>{symbol || "Token"}</span>
       </div>
 
-      <section className="token-hero">
-        <div className="token-identity">
-          <div className="token-avatar large">
+      <section className={ui("token-hero")}>
+        <div className={ui("token-identity")}>
+          <div className={ui("token-avatar large")}>
             {indexed.image ? <img src={indexed.image} alt="" /> : (symbol || "AR").slice(0, 2)}
           </div>
           <div>
-            <div className="token-title-line">
+            <div className={ui("token-title-line")}>
               <h1>{name || "Token"}</h1>
               {symbol && <span>{"$" + symbol}</span>}
-              <span className={"phase-badge " + (graduated ? "done" : "")}>
+              <span className={ui("phase-badge " + (graduated ? "done" : ""))}>
                 {graduated ? "Graduated" : "Curve"}
               </span>
             </div>
-            <div className="token-links">
+            <div className={ui("token-links")}><a href={"/scanner/" + token}>Scanner ↗</a>
               <a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">
                 {token.slice(0, 8)}...{token.slice(-6)}
               </a>
@@ -704,7 +706,7 @@ export function TokenMarket({ token }: { token: Address }) {
           </div>
         </div>
 
-        <div className="hero-metrics">
+        <div className={ui("hero-metrics")}>
           <div><span>Raised</span><strong>{Number(formatUnits(raised, quoteAsset.decimals)).toLocaleString()} {quoteAsset.symbol}</strong></div>
           <div><span>Graduation</span><strong>{progress.toFixed(1)}%</strong></div>
           <div><span>Pair</span><strong>{quoteAsset.symbol}</strong></div>
@@ -712,8 +714,8 @@ export function TokenMarket({ token }: { token: Address }) {
         </div>
       </section>
 
-      <section className="graduation-strip">
-        <div className="graduation-copy">
+      <section className={ui("graduation-strip")}>
+        <div className={ui("graduation-copy")}>
           <span>{graduated ? "Graduated" : "Graduation progress"}</span>
           <strong>
             {graduated
@@ -725,23 +727,23 @@ export function TokenMarket({ token }: { token: Address }) {
                 quoteAsset.symbol}
           </strong>
         </div>
-        <div className="progress-track"><div style={{ width: progress + "%" }} /></div>
+        <div className={ui("progress-track")}><div style={{ width: progress + "%" }} /></div>
         <span>{progress.toFixed(1)}%</span>
       </section>
 
-      <div className="market-layout">
-        <section className="market-main">
-          <PriceChart token={token} />
+      <div className={ui("market-layout")}>
+        <section className={ui("market-main")}>
+          <PriceChart token={token} quoteDecimals={quoteAsset.decimals} quoteSymbol={quoteAsset.symbol} />
 
-          <div className="market-data-grid">
-            <RecentTrades token={token} />
+          <div className={ui("market-data-grid")}>
+            <RecentTrades token={token} quoteDecimals={quoteAsset.decimals} quoteSymbol={quoteAsset.symbol} />
             <Holders token={token} />
           </div>
 
-          <section className="about-panel">
-            <div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>
-            {indexed.description && <p className="review-copy">{indexed.description}</p>}
-            <div className="about-grid">
+          <section className={ui("about-panel")}>
+            <div className={ui("section-title")}><strong>About</strong><span>Onchain launch data</span></div>
+            {indexed.description && <p className={ui("review-copy")}>{indexed.description}</p>}
+            <div className={ui("about-grid")}>
               <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
               <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
               <div><span>Supply</span><strong>1B fixed</strong></div>
@@ -751,7 +753,7 @@ export function TokenMarket({ token }: { token: Address }) {
             </div>
 
             {isCelestial && walletAddress && (
-              <div className="v2-about">
+              <div className={ui("v2-about")}>
                 <span>Holder rewards</span>
                 <p>{formatUnits(holderRewards, quoteAsset.decimals)} {quoteAsset.symbol} claimable from trading fees.</p>
                 <button onClick={() => void claimHolderRewards()} disabled={holderRewards === 0n}>Claim rewards</button>
@@ -760,15 +762,15 @@ export function TokenMarket({ token }: { token: Address }) {
           </section>
         </section>
 
-        <aside className="trade-terminal">
-          <div className="trade-modes">
-            <button className={mode === "market" ? "active" : ""} onClick={() => setMode("market")}>Market</button>
-            <button className={mode === "limit" ? "active" : ""} onClick={() => setMode("limit")} disabled={!isCelestial || graduated || readyToGraduate}>Limit</button>
-            <button className={mode === "orders" ? "active" : ""} onClick={() => setMode("orders")} disabled={!isCelestial}>Orders</button>
+        <aside className={ui("trade-terminal")}>
+          <div className={ui("trade-modes")}>
+            <button className={ui(mode === "market" ? "active" : "")} onClick={() => setMode("market")}>Market</button>
+            <button className={ui(mode === "limit" ? "active" : "")} onClick={() => setMode("limit")} disabled={!isCelestial || graduated || readyToGraduate}>Limit</button>
+            <button className={ui(mode === "orders" ? "active" : "")} onClick={() => setMode("orders")} disabled={!isCelestial}>Orders</button>
           </div>
 
           {mode === "orders" ? (
-            <div className="terminal-empty">
+            <div className={ui("terminal-empty")}>
               <strong>Open orders</strong>
               {!walletAddress ? (
                 <button onClick={() => void connect()}>Connect wallet</button>
@@ -776,7 +778,7 @@ export function TokenMarket({ token }: { token: Address }) {
                 <p>No orders for this market.</p>
               ) : (
                 orders.map((order) => (
-                  <div className="trade-review" key={order.order_id}>
+                  <div className={ui("trade-review")} key={order.order_id}>
                     <div><span>{order.side}</span><strong>{order.status}</strong></div>
                     <div><span>Input</span><strong>{order.amount_in}</strong></div>
                     <div><span>Minimum output</span><strong>{order.min_amount_out}</strong></div>
@@ -787,26 +789,26 @@ export function TokenMarket({ token }: { token: Address }) {
             </div>
           ) : (
             <>
-              <div className="side-toggle">
-                <button className={side === "buy" ? "active buy" : ""} onClick={() => { setSide("buy"); setAmount(""); }}>Buy</button>
-                <button className={side === "sell" ? "active sell" : ""} onClick={() => { setSide("sell"); setAmount(""); }}>Sell</button>
+              <div className={ui("side-toggle")}>
+                <button className={ui(side === "buy" ? "active buy" : "")} onClick={() => { setSide("buy"); setAmount(""); }}>Buy</button>
+                <button className={ui(side === "sell" ? "active sell" : "")} onClick={() => { setSide("sell"); setAmount(""); }}>Sell</button>
               </div>
 
-              <div className="amount-box">
-                <div className="amount-label">
+              <div className={ui("amount-box")}>
+                <div className={ui("amount-label")}>
                   <span>{side === "buy" ? "You pay" : "You sell"}</span>
                   <span>
                     {side === "buy" ? quoteAsset.symbol : symbol}
                     {walletAddress ? " · Balance " + formatUnits(side === "buy" ? quoteBalance : tokenBalance, side === "buy" ? quoteAsset.decimals : 18) : ""}
                   </span>
                 </div>
-                <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
+                <input aria-label="Trade amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
                 {side === "buy" ? (
-                  <div className="quick-amounts">
+                  <div className={ui("quick-amounts")}>
                     {["10", "50", "100", "500"].map((v) => <button type="button" key={v} onClick={() => setAmount(v)}>{v}</button>)}
                   </div>
                 ) : (
-                  <div className="quick-amounts">
+                  <div className={ui("quick-amounts")}>
                     <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 4n, 18))}>25%</button>
                     <button type="button" onClick={() => setAmount(formatUnits(tokenBalance / 2n, 18))}>50%</button>
                     <button type="button" onClick={() => setAmount(formatUnits((tokenBalance * 3n) / 4n, 18))}>75%</button>
@@ -816,26 +818,26 @@ export function TokenMarket({ token }: { token: Address }) {
               </div>
 
               {mode === "limit" && (
-                <div className="amount-box">
-                  <div className="amount-label"><span>Minimum receive</span><span>{outputSymbol}</span></div>
-                  <input value={limitReceive} onChange={(e) => setLimitReceive(e.target.value)} inputMode="decimal" placeholder="0.00" />
-                  <p className="terminal-footnote">The order executes permissionlessly when the bonding curve can return at least this amount.</p>
+                <div className={ui("amount-box")}>
+                  <div className={ui("amount-label")}><span>Minimum receive</span><span>{outputSymbol}</span></div>
+                  <input aria-label="Minimum receive" value={limitReceive} onChange={(e) => setLimitReceive(e.target.value)} inputMode="decimal" placeholder="0.00" />
+                  <p className={ui("terminal-footnote")}>The order executes permissionlessly when the bonding curve can return at least this amount.</p>
                 </div>
               )}
 
               {mode === "market" && (
-                <div className="trade-settings">
+                <div className={ui("trade-settings")}>
                   <span>Slippage</span>
                   <div>
                     {["0.5", "1", "2"].map((v) => (
-                      <button key={v} className={slippage === v ? "active" : ""} onClick={() => setSlippage(v)}>{v}%</button>
+                      <button key={v} className={ui(slippage === v ? "active" : "")} onClick={() => setSlippage(v)}>{v}%</button>
                     ))}
                   </div>
                 </div>
               )}
 
               {quote !== undefined && (
-                <div className="trade-review">
+                <div className={ui("trade-review")}>
                   <div><span>Estimated receive</span><strong>{formatUnits(quote, outputDecimals)} {outputSymbol}</strong></div>
                   {mode === "market" && <div><span>Minimum received</span><strong>{minimum !== undefined ? formatUnits(minimum, outputDecimals) : "—"} {outputSymbol}</strong></div>}
                   {!graduated && <div><span>Estimated fees</span><strong>{formatUnits(feeEstimate, quoteAsset.decimals)} {quoteAsset.symbol}</strong></div>}
@@ -844,7 +846,7 @@ export function TokenMarket({ token }: { token: Address }) {
               )}
 
               <button
-                className="review-trade-button"
+                className={ui("review-trade-button")}
                 onClick={() => void (mode === "limit" ? placeLimitOrder() : marketTrade())}
                 disabled={
                   mode === "limit"
@@ -866,18 +868,19 @@ export function TokenMarket({ token }: { token: Address }) {
               </button>
 
               {!graduated && isCelestial && readyToGraduate && (
-                <p className="terminal-footnote">Bonding curve trading is closed while this market moves into graduation.</p>
+                <p className={ui("terminal-footnote")}>Bonding curve trading is closed while this market moves into graduation.</p>
               )}
               {graduated && (!celestialAddresses.dexAdapter || !indexed.pool_address) && (
-                <p className="terminal-footnote">The market is graduated, but the production Arc DEX connector is not configured yet.</p>
+                <p className={ui("terminal-footnote")}>The market is graduated, but the production Arc DEX connector is not configured yet.</p>
               )}
-              <p className="terminal-footnote">Quotes and execution are read directly from Arc. Indexed data is never in the trade path.</p>
+              <p className={ui("terminal-footnote")}>Quotes and execution are read directly from Arc. Indexed data is never in the trade path.</p>
             </>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className={ui("form-error")}>{error}</p>}
         </aside>
       </div>
+      <SiteFooter />
     </main>
   );
 }

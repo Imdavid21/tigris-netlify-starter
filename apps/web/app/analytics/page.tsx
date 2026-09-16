@@ -1,3 +1,5 @@
+
+import { ui } from "@/styles/ui";
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
 import { API_URL } from "@/lib/api";
@@ -34,19 +36,19 @@ function Bars({ rows, keyName }: { rows: any[]; keyName: string }) {
   const values = rows.map((x) => Number(x[keyName] ?? 0));
   const max = Math.max(1, ...values);
   return (
-    <div className="analytics-bars upgraded">
+    <div className={ui("analytics-bars upgraded")}>
       {rows.length ? rows.map((row, i) => (
-        <div key={String(row.day ?? i)} className="analytics-bar-col" title={String(row.day ?? "")}>
-          <div className="analytics-bar" style={{ height: Math.max(5, (Number(row[keyName] ?? 0) / max) * 100) + "%" }} />
+        <div key={String(row.day ?? i)} className={ui("analytics-bar-col")} title={String(row.day ?? "")}>
+          <div className={ui("analytics-bar")} style={{ height: Math.max(5, (Number(row[keyName] ?? 0) / max) * 100) + "%" }} />
         </div>
-      )) : <div className="analytics-empty">No indexed history yet.</div>}
+      )) : <div className={ui("analytics-empty")}>No indexed history yet.</div>}
     </div>
   );
 }
 
 function Metric({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="analytics-kpi">
+    <div className={ui("analytics-kpi")}>
       <span>{label}</span>
       <strong>{value}</strong>
       {note && <small>{note}</small>}
@@ -60,44 +62,44 @@ export default async function AnalyticsPage() {
   const v4Venue = venues.find((item: any) => item.venue === "UNISWAP_V4");
 
   return (
-    <main className="app-shell analytics-page">
+    <main className={ui("app-shell analytics-page")}>
       <AppHeader />
 
       {degraded && (
-        <div className="system-notice analytics-notice">
+        <div className={ui("system-notice analytics-notice")}>
           <strong>Analytics degraded</strong>
           <span>Indexed data may be delayed. Market execution remains contract-native.</span>
         </div>
       )}
 
-      <section className="analytics-hero-card">
-        <div className="analytics-title-row">
+      <section className={ui("analytics-hero-card")}>
+        <div className={ui("analytics-title-row")}>
           <div>
             <h1>Protocol analytics</h1>
             <p>Indexed onchain reporting for Celestial markets on Arc.</p>
           </div>
-          <div className="analytics-actions">
-            <span className="phase-pill">Live index</span>
-            <a className="secondary-link compact-link" href="/explore">View markets</a>
+          <div className={ui("analytics-actions")}>
+            <span className={ui("phase-pill")}>Live index</span>
+            <a className={ui("secondary-link compact-link")} href="/explore">View markets</a>
           </div>
         </div>
 
-        <div className="analytics-kpi-grid">
+        <div className={ui("analytics-kpi-grid")}>
           <Metric label="24h trades" value={String(daily?.volume?.at(-1)?.trades ?? stats?.traders_24h ?? "—")} />
           <Metric label="24h launches" value={String(stats?.launches_24h ?? "—")} />
           <Metric label="Unique creators" value={String(stats?.unique_creators ?? "—")} note="Lifetime indexed" />
         </div>
-        <p className="analytics-source-note">Values are derived from indexed onchain activity. Multi-asset markets are not combined into a fake USD total where conversion data is unavailable.</p>
+        <p className={ui("analytics-source-note")}>Values are derived from indexed onchain activity. Multi-asset markets are not combined into a fake USD total where conversion data is unavailable.</p>
       </section>
 
-      <section className="analytics-panel">
-        <div className="analytics-panel-head">
+      <section className={ui("analytics-panel")}>
+        <div className={ui("analytics-panel-head")}>
           <div>
             <h2>Protocol activity</h2>
             <p>Market creation, trading, graduation, and order activity.</p>
           </div>
         </div>
-        <div className="analytics-kpi-grid analytics-kpi-grid-four">
+        <div className={ui("analytics-kpi-grid analytics-kpi-grid-four")}>
           <Metric label="Unique traders" value={String(stats?.unique_traders ?? "—")} />
           <Metric label="Launches" value={String(stats?.launches ?? "—")} />
           <Metric label="Graduated" value={String(stats?.graduated ?? "—")} />
@@ -110,14 +112,14 @@ export default async function AnalyticsPage() {
         </div>
       </section>
 
-      <section className="analytics-panel">
-        <div className="analytics-panel-head">
+      <section className={ui("analytics-panel")}>
+        <div className={ui("analytics-panel-head")}>
           <div>
             <h2>Trading venues</h2>
             <p>Celestial keeps one market page while execution moves from the bonding curve to Uniswap v4 after graduation.</p>
           </div>
         </div>
-        <div className="analytics-kpi-grid analytics-kpi-grid-four">
+        <div className={ui("analytics-kpi-grid analytics-kpi-grid-four")}>
           <Metric label="Curve trades" value={String(curveVenue?.trades ?? "—")} />
           <Metric label="Curve traders" value={String(curveVenue?.traders ?? "—")} />
           <Metric label="Uniswap v4 trades" value={String(v4Venue?.trades ?? "—")} />
@@ -125,8 +127,8 @@ export default async function AnalyticsPage() {
         </div>
       </section>
 
-      <section className="analytics-panel">
-        <div className="analytics-panel-head">
+      <section className={ui("analytics-panel")}>
+        <div className={ui("analytics-panel-head")}>
           <div>
             <h2>Buyback and burn</h2>
             <p>Protocol-funded executions indexed from the Celestial buyback vault.</p>
@@ -135,11 +137,11 @@ export default async function AnalyticsPage() {
         </div>
 
         {!buybacks.length ? (
-          <div className="analytics-empty-block">No buyback executions have been indexed yet.</div>
+          <div className={ui("analytics-empty-block")}>No buyback executions have been indexed yet.</div>
         ) : (
-          <div className="buyback-table">
+          <div className={ui("buyback-table")}>
             {buybacks.slice(0, 8).map((item: any) => (
-              <a href={"/token/" + item.token} className="buyback-row" key={item.tx_hash}>
+              <a href={"/token/" + item.token} className={ui("buyback-row")} key={item.tx_hash}>
                 <div>
                   <strong>{item.post_graduation ? "DEX buyback" : "Curve buyback"}</strong>
                   <span>{item.token.slice(0, 8)}...{item.token.slice(-6)}</span>
@@ -152,16 +154,16 @@ export default async function AnalyticsPage() {
         )}
       </section>
 
-      <section className="analytics-chart-grid">
-        <div className="analytics-panel chart-panel">
-          <div className="analytics-panel-head">
+      <section className={ui("analytics-chart-grid")}>
+        <div className={ui("analytics-panel chart-panel")}>
+          <div className={ui("analytics-panel-head")}>
             <div><h2>Trading activity</h2><p>Recent daily indexed trades.</p></div>
             <strong>{String(daily?.volume?.at(-1)?.trades ?? "—")}</strong>
           </div>
           <Bars rows={daily?.volume ?? []} keyName="trades" />
         </div>
-        <div className="analytics-panel chart-panel">
-          <div className="analytics-panel-head">
+        <div className={ui("analytics-panel chart-panel")}>
+          <div className={ui("analytics-panel-head")}>
             <div><h2>Token launches</h2><p>Recent daily market creation.</p></div>
             <strong>{stats?.launches_24h ?? "—"}</strong>
           </div>
