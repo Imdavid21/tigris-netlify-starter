@@ -103,6 +103,8 @@ export function TokenMarket({ token }: { token: Address }) {
   const [feeBps, setFeeBps] = useState(100n);
   const [creatorTaxBps, setCreatorTaxBps] = useState(0n);
   const [holderFeeBps, setHolderFeeBps] = useState(0n);
+  const [maxSnipeBps, setMaxSnipeBps] = useState(0n);
+  const [snipeDuration, setSnipeDuration] = useState(0n);
   const [snipeBps, setSnipeBps] = useState(0n);
 
   const isCelestial = indexed.generation === "CELESTIAL";
@@ -205,21 +207,27 @@ export function TokenMarket({ token }: { token: Address }) {
       }).catch(() => false);
       setReadyToGraduate(Boolean(ready));
       const buyer = walletAddress ?? zeroAddress;
-      const [base, creatorTax, holderFee, snipe] = await Promise.all([
+      const [base, creatorTax, holderFee, maxSnipe, duration, snipe] = await Promise.all([
         client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "feeBps" }),
         client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "creatorTaxBps" }),
         client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "holderFeeBps" }),
+        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "maxSnipeBps" }),
+        client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "snipeDuration" }),
         client.readContract({ address: curveAddress, abi: celestialCurveAbi, functionName: "currentSnipeBps", args: [buyer] })
       ]);
       setFeeBps(base as bigint);
       setCreatorTaxBps(creatorTax as bigint);
       setHolderFeeBps(holderFee as bigint);
+      setMaxSnipeBps(maxSnipe as bigint);
+      setSnipeDuration(duration as bigint);
       setSnipeBps(snipe as bigint);
     } else {
       setReadyToGraduate(false);
       setFeeBps(100n);
       setCreatorTaxBps(0n);
       setHolderFeeBps(0n);
+      setMaxSnipeBps(0n);
+      setSnipeDuration(0n);
       setSnipeBps(0n);
     }
   }
@@ -568,17 +576,27 @@ export function TokenMarket({ token }: { token: Address }) {
             </motion.div>
 
             <motion.section className="about-panel" layout>
-              <div className="section-title"><strong>About</strong><span>Onchain launch data</span></div>
+              <div className="section-title"><strong>Launch details</strong><span>Full launch configuration</span></div>
               <AnimatePresence initial={false}>
                 {indexed.description && <motion.p className="review-copy" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>{indexed.description}</motion.p>}
               </AnimatePresence>
               <div className="about-grid">
                 <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
                 <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
-                <div><span>Supply</span><strong>1B fixed</strong></div>
-                <div><span>Base fee</span><strong>{Number(feeBps) / 100}%</strong></div>
+                <div><span>Creator</span><strong>{indexed.creator ? indexed.creator.slice(0, 10) + "..." + indexed.creator.slice(-8) : "—"}</strong></div>
+                <div><span>Creator fee wallet</span><strong>{indexed.creator_fee_recipient ? indexed.creator_fee_recipient.slice(0, 10) + "..." + indexed.creator_fee_recipient.slice(-8) : "—"}</strong></div>
+                <div><span>Pair asset</span><strong>{quoteAsset.symbol}</strong></div>
+                <div><span>Supply</span><strong>1,000,000,000</strong></div>
+                <div><span>Graduation target</span><strong>{threshold ? formatUnits(threshold, quoteAsset.decimals) + " " + quoteAsset.symbol : "—"}</strong></div>
+                <div><span>Status</span><strong>{graduated ? "Graduated" : readyToGraduate ? "Graduating" : "Bonding curve"}</strong></div>
+                <div><span>Base trade fee</span><strong>{Number(feeBps) / 100}%</strong></div>
                 <div><span>Creator tax</span><strong>{Number(creatorTaxBps) / 100}%</strong></div>
-                <div><span>Holder sharing</span><strong>{Number(holderFeeBps) / 100}%</strong></div>
+                <div><span>Holder fee sharing</span><strong>{Number(holderFeeBps) / 100}%</strong></div>
+                <div><span>Launch protection</span><strong>{isCelestial ? `${snipeDuration}s decay · max ${Number(maxSnipeBps) / 100}%` : "—"}</strong></div>
+                <div><span>Liquidity</span><strong>{graduated ? "Uniswap v4 + locked" : "Reserved + locked"}</strong></div>
+                <div><span>Website</span>{indexed.website ? <a href={indexed.website} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>
+                <div><span>X / Twitter</span>{indexed.twitter ? <a href={indexed.twitter.startsWith("http") ? indexed.twitter : "https://x.com/" + indexed.twitter.replace("@", "")} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>
+                <div><span>Telegram</span>{indexed.telegram ? <a href={indexed.telegram.startsWith("http") ? indexed.telegram : "https://" + indexed.telegram} target="_blank" rel="noreferrer">Open</a> : <strong>Not set</strong>}</div>
               </div>
 
               <AnimatePresence initial={false} mode="popLayout">

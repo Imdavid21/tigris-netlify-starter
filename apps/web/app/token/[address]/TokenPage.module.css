@@ -822,3 +822,25 @@
     padding-right: 12px;
   }
 }
+
+
+/* Complete launch configuration */
+.root :global(.section-title strong) {
+  font-size: var(--md-sys-typescale-title-small-size);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  font-weight: 700;
+}
+.root :global(.section-title strong::after) { content: none; }
+.root :global(.section-title span) {
+  display: inline;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+}
+.root :global(.review-copy) {
+  display: block;
+  margin: 0 0 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
+}
+.root :global(.about-grid > div) { min-height: 58px; }

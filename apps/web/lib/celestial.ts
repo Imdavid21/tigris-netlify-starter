@@ -357,6 +357,20 @@ export const celestialCurveAbi = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "maxSnipeBps",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  },
+  {
+    type: "function",
+    name: "snipeDuration",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
   }
 ] as const;
 
