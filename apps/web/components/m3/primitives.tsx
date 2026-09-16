@@ -7,7 +7,9 @@ import styles from "./M3.module.css";
 
 type ButtonVariant = "filled" | "tonal" | "outlined" | "text" | "elevated";
 
-type MotionButtonProps = ComponentPropsWithoutRef<typeof motion.button>;
+type MotionButtonProps = Omit<ComponentPropsWithoutRef<typeof motion.button>, "children"> & {
+  children?: ReactNode;
+};
 
 type M3ButtonProps = MotionButtonProps & {
   variant?: ButtonVariant;
