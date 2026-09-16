@@ -1,12 +1,10 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import pg from "pg";
+import { createDatabasePool, prepareDatabaseSchema, databaseSchema } from "./database.js";
 import { schemaSql } from "./schema.js";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL is required");
-
-const db = new pg.Pool({ connectionString: databaseUrl });
+await prepareDatabaseSchema();
+const db = createDatabasePool();
 await db.query(schemaSql);
 
 const app = Fastify({ logger: true });
@@ -15,11 +13,11 @@ await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(",") ?? true
 });
 
-app.get("/", async () => ({ service: "arc-launchpad-api", ok: true }));
+app.get("/", async () => ({ service: "arc-launchpad-api", ok: true, databaseSchema }));
 
 app.get("/health", async () => {
   const result = await db.query("select now() as now");
-  return { ok: true, databaseTime: result.rows[0].now };
+  return { ok: true, databaseTime: result.rows[0].now, databaseSchema };
 });
 
 app.get("/stats", async () => {
@@ -45,8 +43,6 @@ app.get("/stats", async () => {
   );
   return result.rows[0];
 });
-
-
 
 app.get("/analytics/daily", async () => {
   const volume = await db.query(
@@ -208,8 +204,6 @@ app.get("/tokens/:address", async (request, reply) => {
   return { ...result.rows[0], trades: trades.rows };
 });
 
-
-
 app.get("/tokens/:address/holders", async (request, reply) => {
   const { address } = request.params as { address: string };
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
@@ -240,8 +234,6 @@ app.get("/tokens/:address/holders", async (request, reply) => {
 
   return { items: result.rows };
 });
-
-
 
 app.get("/wallet/:address/launches", async (request, reply) => {
   const { address } = request.params as { address: string };
@@ -290,8 +282,6 @@ app.get("/wallet/:address/positions", async (request, reply) => {
   );
   return { items: result.rows };
 });
-
-
 
 app.get("/buybacks", async () => {
   const result = await db.query(
