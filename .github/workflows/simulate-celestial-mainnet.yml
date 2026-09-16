@@ -32,6 +32,11 @@ jobs:
           forge install OpenZeppelin/openzeppelin-contracts --no-commit
           forge install foundry-rs/forge-std --no-commit
 
+      - name: Report contract sizes
+        run: |
+          set -o pipefail
+          forge build --sizes 2>&1 | tee /tmp/contract-sizes.log || true
+
       - name: Start Arc mainnet fork
         run: |
           anvil --fork-url "$FORK_URL" --chain-id 5042 --port 8545 > /tmp/anvil.log 2>&1 &
@@ -50,6 +55,7 @@ jobs:
           forge script packages/contracts/script/DeployCelestialMainnet.s.sol:DeployCelestialMainnet \
             --rpc-url "$LOCAL_RPC" \
             --broadcast \
+            --non-interactive \
             -vvv | tee /tmp/celestial-mainnet-simulation.log
 
       - name: Verify deployed wiring
@@ -98,10 +104,12 @@ jobs:
           echo "Connector=$CONNECTOR"
           echo "Adapter=$ADAPTER"
 
-      - name: Upload simulation log
+      - name: Upload simulation logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: celestial-mainnet-simulation
           path: |
             /tmp/celestial-mainnet-simulation.log
             /tmp/anvil.log
+            /tmp/contract-sizes.log
