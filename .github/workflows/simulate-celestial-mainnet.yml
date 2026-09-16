@@ -87,8 +87,11 @@ jobs:
           test "${UNIVERSAL_ROUTER,,}" = "0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1"
           test "${PERMIT2,,}" = "0x000000000022d473030f116ddee9f6b43ac78ba3"
 
-          HOOK_INT=$(cast to-dec "$HOOK")
-          test "$((HOOK_INT & 16383))" = "8192"
+          python - "$HOOK" <<'PY'
+          import sys
+          hook = int(sys.argv[1], 16)
+          assert hook & ((1 << 14) - 1) == (1 << 13), hex(hook)
+          PY
 
           echo "Factory=$FACTORY"
           echo "Hook=$HOOK"
