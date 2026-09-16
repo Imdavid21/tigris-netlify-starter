@@ -34,6 +34,7 @@ contract CelestialBuybackVault is ReentrancyGuard {
     /// so control follows the factory's transferable owner instead of being pinned to the deployer EOA.
     address public immutable owner;
     address public keeper;
+    address public keeperController;
 
     error NotAuthorized();
     error InvalidCurve();
@@ -53,8 +54,10 @@ contract CelestialBuybackVault is ReentrancyGuard {
     }
 
     modifier onlyAuthorized() {
-        address controller = _controller();
-        if (msg.sender != controller && msg.sender != keeper) revert NotAuthorized();
+        address currentController = _controller();
+        bool keeperIsCurrent =
+            msg.sender == keeper && keeper != address(0) && keeperController == currentController;
+        if (msg.sender != currentController && !keeperIsCurrent) revert NotAuthorized();
         _;
     }
 
@@ -63,8 +66,10 @@ contract CelestialBuybackVault is ReentrancyGuard {
     }
 
     function setKeeper(address next) external {
-        if (msg.sender != _controller()) revert NotAuthorized();
+        address currentController = _controller();
+        if (msg.sender != currentController) revert NotAuthorized();
         keeper = next;
+        keeperController = next == address(0) ? address(0) : currentController;
         emit KeeperUpdated(next);
     }
 
