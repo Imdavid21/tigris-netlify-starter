@@ -1,0 +1,53 @@
+name: restore-render-workspace-compat
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: "!contains(github.event.head_commit.message, 'infra: retain legacy workspace ids for Render compatibility')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore deployment workspace identifiers
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import json
+
+          package_names = {
+              Path('apps/web/package.json'): '@arc-launchpad/web',
+              Path('apps/api/package.json'): '@arc-launchpad/api',
+              Path('apps/indexer/package.json'): '@arc-launchpad/indexer',
+          }
+          for path, name in package_names.items():
+              data = json.loads(path.read_text())
+              data['name'] = name
+              path.write_text(json.dumps(data, indent=2) + '\n')
+
+          root = Path('package.json')
+          data = json.loads(root.read_text())
+          for key, value in list(data.get('scripts', {}).items()):
+              data['scripts'][key] = value.replace('@supershot/', '@arc-launchpad/')
+          root.write_text(json.dumps(data, indent=2) + '\n')
+
+          lock = Path('package-lock.json')
+          if lock.exists():
+              lock.write_text(lock.read_text().replace('@supershot/', '@arc-launchpad/'))
+          PY
+      - name: Commit compatibility identifiers
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json apps/web/package.json apps/api/package.json apps/indexer/package.json
+          git commit -m "infra: retain legacy workspace ids for Render compatibility"
+          git push origin HEAD:main
