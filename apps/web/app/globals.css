@@ -61,6 +61,16 @@
   line-height: var(--md-sys-typescale-body-small-line-height);
 }
 
+.analytics-notice,
+.protocol-status {
+  background: var(--md-sys-color-warning-container) !important;
+  color: var(--md-sys-color-on-warning-container) !important;
+}
+
+.protocol-status-dot {
+  background: var(--md-sys-color-warning) !important;
+}
+
 .form-error {
   color: var(--md-sys-color-on-error-container);
 }
@@ -78,7 +88,8 @@
 }
 
 /* One color meaning everywhere: brand/action, info, success/buy, warning, error/sell. */
-.phase-badge.done {
+.phase-badge.done,
+.phase-pill {
   background: var(--md-sys-color-positive-container) !important;
   color: var(--md-sys-color-on-positive-container) !important;
 }
