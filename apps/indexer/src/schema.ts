@@ -88,4 +88,10 @@ create table if not exists limit_orders (
 
 create index if not exists limit_orders_owner_idx on limit_orders(owner, status);
 
+create table if not exists indexer_cursors (
+  key text primary key,
+  block_number bigint not null,
+  updated_at timestamptz not null default now()
+);
+
 `;
