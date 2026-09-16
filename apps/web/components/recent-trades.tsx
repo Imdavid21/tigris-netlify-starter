@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { API_URL, type IndexedTrade } from "@/lib/api";
+import styles from "./MarketTable.module.css";
 
 export function RecentTrades({ token }: { token: string }) {
   const [trades, setTrades] = useState<IndexedTrade[]>([]);
@@ -12,7 +13,7 @@ export function RecentTrades({ token }: { token: string }) {
     let active = true;
 
     fetch(API_URL + "/tokens/" + token)
-      .then((r) => (r.ok ? r.json() : null))
+      .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (active && data?.trades) setTrades(data.trades);
       })
@@ -27,50 +28,36 @@ export function RecentTrades({ token }: { token: string }) {
   }, [token]);
 
   return (
-    <section style={{ marginTop: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+    <section className={styles.panel}>
+      <div className={styles.head}>
         <strong>Recent trades</strong>
-        <span style={{ opacity: 0.5, fontSize: 13 }}>
-          Indexed from Arc
-        </span>
+        <span>Indexed from Arc</span>
       </div>
 
-      <div style={{ marginTop: 12, borderTop: "1px solid #29302c" }}>
+      <div className={styles.body}>
         {loading ? (
-          <p style={{ opacity: 0.55 }}>Loading trades...</p>
+          <p className={styles.empty}>Loading trades...</p>
         ) : !trades.length ? (
-          <p style={{ opacity: 0.55 }}>No indexed trades yet.</p>
+          <p className={styles.empty}>No indexed trades yet.</p>
         ) : (
           trades.slice(0, 20).map((trade) => (
-            <div
-              key={trade.tx_hash + String(trade.block_time)}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "70px 1fr auto",
-                gap: 12,
-                padding: "11px 0",
-                borderBottom: "1px solid #1d211f",
-                fontSize: 13
-              }}
-            >
-              <span style={{ fontWeight: 600 }}>
+            <div key={trade.tx_hash + String(trade.block_time)} className={`${styles.row} ${styles.tradeRow}`}>
+              <span className={`${styles.side} ${trade.side === "BUY" ? styles.buy : styles.sell}`}>
                 {trade.side === "BUY" ? "Buy" : "Sell"}
               </span>
               <a
-                href={"https://testnet.arcscan.app/address/" + trade.trader}
+                href={`https://testnet.arcscan.app/address/${trade.trader}`}
                 target="_blank"
                 rel="noreferrer"
-                style={{ opacity: 0.75, textDecoration: "underline", textUnderlineOffset: 3 }}
-                title={"Open " + trade.trader + " on Arcscan"}
+                className={styles.address}
+                title={`Open ${trade.trader} on Arcscan`}
               >
                 {trade.trader.slice(0, 6)}...{trade.trader.slice(-4)}
               </a>
-              <span>
-                {Number(formatUnits(BigInt(trade.quote_amount), 6)).toLocaleString(
-                  undefined,
-                  { maximumFractionDigits: 2 }
-                )}{" "}
-                USDC
+              <span className={styles.value}>
+                {Number(formatUnits(BigInt(trade.quote_amount), 6)).toLocaleString(undefined, {
+                  maximumFractionDigits: 2
+                })} USDC
               </span>
             </div>
           ))
