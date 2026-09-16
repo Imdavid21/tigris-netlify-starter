@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/simulate-celestial-mainnet.yml
+      - foundry.toml
       - packages/contracts/**
   workflow_dispatch:
 
@@ -104,6 +105,14 @@ jobs:
           echo "Connector=$CONNECTOR"
           echo "Adapter=$ADAPTER"
 
+      - name: Exercise launch, graduation, and post-graduation swaps on Arc v4
+        run: |
+          set -o pipefail
+          forge test \
+            --fork-url "$FORK_URL" \
+            --match-contract ArcMainnetUniswapV4ForkTest \
+            -vvv | tee /tmp/arc-v4-lifecycle.log
+
       - name: Upload simulation logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -111,5 +120,6 @@ jobs:
           name: celestial-mainnet-simulation
           path: |
             /tmp/celestial-mainnet-simulation.log
+            /tmp/arc-v4-lifecycle.log
             /tmp/anvil.log
             /tmp/contract-sizes.log
