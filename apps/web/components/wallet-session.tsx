@@ -47,6 +47,16 @@ function browserProvider(): InjectedProvider | undefined {
   return (window as Window & { ethereum?: InjectedProvider }).ethereum;
 }
 
+function activateBrowserProvider(provider: InjectedProvider) {
+  const target = window as Window & { ethereum?: InjectedProvider };
+  if (target.ethereum === provider) return;
+  try {
+    target.ethereum = provider;
+  } catch {
+    // Some extensions expose a non-writable ethereum property. Session actions still use the selected provider.
+  }
+}
+
 export function WalletSessionProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<`0x${string}`>();
   const [connecting, setConnecting] = useState(false);
@@ -101,7 +111,10 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
-    if (!activeWalletId && wallets[0]) setActiveWalletId(wallets[0].id);
+    if (activeWalletId || !wallets[0]) return;
+    const current = browserProvider();
+    const preferred = wallets.find((wallet) => wallet.provider === current) ?? wallets[0];
+    setActiveWalletId(preferred.id);
   }, [wallets, activeWalletId]);
 
   const activeWallet = useMemo(
@@ -109,6 +122,10 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
     [wallets, activeWalletId]
   );
   const provider = activeWallet?.provider;
+
+  useEffect(() => {
+    if (provider) activateBrowserProvider(provider);
+  }, [provider]);
 
   const refresh = useCallback(async () => {
     if (!provider) {
@@ -132,6 +149,7 @@ export function WalletSessionProvider({ children }: { children: React.ReactNode 
 
     setConnecting(true);
     setActiveWalletId(target.id);
+    activateBrowserProvider(target.provider);
     try {
       await ensureArcChain(target.provider);
       const accounts = (await target.provider.request({ method: "eth_requestAccounts" })) as string[];
