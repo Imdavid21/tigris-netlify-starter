@@ -16,13 +16,9 @@ type LoaderProps = {
   className?: string;
 };
 
-type DotStyle = CSSProperties & {
-  "--dmx-order"?: number;
-};
-
 // Adapted from the open-source Dot Matrix loader patterns by zzzzshawn/matrix.
-// The motion signatures are retained, while geometry, timing, and color are
-// customized for Celestial's Material 3 system.
+// Motion signatures are retained while timing, color, and geometry are tuned
+// to Celestial's Material 3 system.
 
 const SPIRAL_PATH = [
   0, 1, 2, 3, 4,
@@ -98,7 +94,7 @@ export function CelestialDotLoader({
     <span
       role="status"
       aria-label={ariaLabel}
-      className={`${styles.loader} ${styles[variant]} ${toneClass} ${styles.inline} ${className}`.trim()}
+      className={`${styles.loader} ${toneClass} ${styles.inline} ${className}`.trim()}
       style={{
         "--dmx-size": `${size}px`,
         "--dmx-dot": `${dotSize}px`,
@@ -108,14 +104,13 @@ export function CelestialDotLoader({
       <span className={`${matrixClass} ${styles[variant]}`} aria-hidden="true">
         {Array.from({ length: count }, (_, index) => {
           const active = variant === "checkSpin" && CHECK_ACTIVE.has(index);
-          const dotStyle: DotStyle = {
-            animationDelay: variant === "checkSpin" ? undefined : `${delayFor(variant, index, speed)}s`
-          };
           return (
             <span
               key={index}
               className={`${styles.dot} ${active ? styles.active : ""}`.trim()}
-              style={dotStyle}
+              style={{
+                animationDelay: variant === "checkSpin" ? undefined : `${delayFor(variant, index, speed)}s`
+              }}
             />
           );
         })}
