@@ -51,17 +51,18 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   min-width: max-content;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .logo {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
 }
 
 .nav,
