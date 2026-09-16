@@ -88,4 +88,12 @@ create table if not exists limit_orders (
 
 create index if not exists limit_orders_owner_idx on limit_orders(owner, status);
 
+create table if not exists token_images (
+  id uuid primary key,
+  mime_type text not null,
+  data bytea not null,
+  size_bytes integer not null,
+  created_at timestamptz not null default now()
+);
+
 `;

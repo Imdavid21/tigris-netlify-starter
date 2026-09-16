@@ -25,14 +25,42 @@ import { ensureArcChain } from "@/lib/wallet";
 import { friendlyChainError } from "@/lib/rpc";
 import { useWalletSession } from "@/components/wallet-session";
 import { motionSpring } from "@/lib/motion-system";
+import { API_URL } from "@/lib/api";
+
+const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function getProvider(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
 }
 
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadTokenImage(file: File) {
+  if (!IMAGE_TYPES.has(file.type)) throw new Error("Use a PNG, JPG, WebP, or GIF image.");
+  if (file.size > MAX_IMAGE_BYTES) throw new Error("Token images must be 5 MB or smaller.");
+
+  const dataUrl = await readFileAsDataUrl(file);
+  const response = await fetch(API_URL + "/uploads/images", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ dataUrl })
+  });
+  const payload = await response.json() as { path?: string; error?: string };
+  if (!response.ok || !payload.path) throw new Error(payload.error ?? "Image upload failed.");
+  return API_URL.replace(/\/$/, "") + payload.path;
+}
+
 export function CreateTokenForm() {
   const { address, connect } = useWalletSession();
-  const [status, setStatus] = useState<"idle" | "wallet" | "submitted" | "confirmed">("idle");
+  const [status, setStatus] = useState<"idle" | "uploading" | "wallet" | "submitted" | "confirmed">("idle");
   const [hash, setHash] = useState<`0x${string}`>();
   const [error, setError] = useState<string>();
 
@@ -40,6 +68,8 @@ export function CreateTokenForm() {
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
+  const [imageFile, setImageFile] = useState<File>();
+  const [imagePreview, setImagePreview] = useState("");
   const [website, setWebsite] = useState("");
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -56,7 +86,7 @@ export function CreateTokenForm() {
   const celestialReady = Boolean(celestialAddresses.factory);
 
   const usesCelestialFeatures =
-    Boolean(description.trim() || image.trim() || website.trim() || twitter.trim() || telegram.trim()) ||
+    Boolean(description.trim() || image.trim() || imageFile || website.trim() || twitter.trim() || telegram.trim()) ||
     Boolean(developerBuy && Number(developerBuy) > 0) ||
     Boolean(creatorFeeWallet.trim()) ||
     Number(creatorTax) > 0 ||
@@ -82,6 +112,13 @@ export function CreateTokenForm() {
     }
 
     try {
+      let imageUrl = image.trim();
+      if (imageFile) {
+        setStatus("uploading");
+        imageUrl = await uploadTokenImage(imageFile);
+        setImage(imageUrl);
+      }
+
       setStatus("wallet");
       await ensureArcChain(ethereum);
 
@@ -133,7 +170,7 @@ export function CreateTokenForm() {
           holderFeeBps,
           metadata: {
             description: description.trim(),
-            image: image.trim(),
+            image: imageUrl,
             website: website.trim(),
             twitter: twitter.trim(),
             telegram: telegram.trim()
@@ -266,7 +303,35 @@ export function CreateTokenForm() {
             </label>
 
             <div className="field-grid two">
-              <label><span>Image URL</span><input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https:// or ipfs://" /></label>
+              <label className="image-upload-field">
+                <span>Token image</span>
+                <input
+                  className="image-upload-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    if (!IMAGE_TYPES.has(file.type)) {
+                      setError("Use a PNG, JPG, WebP, or GIF image.");
+                      event.target.value = "";
+                      return;
+                    }
+                    if (file.size > MAX_IMAGE_BYTES) {
+                      setError("Token images must be 5 MB or smaller.");
+                      event.target.value = "";
+                      return;
+                    }
+                    setError(undefined);
+                    setImage("");
+                    setImageFile(file);
+                    const reader = new FileReader();
+                    reader.onload = () => setImagePreview(String(reader.result ?? ""));
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                <small>{imageFile ? imageFile.name : "PNG, JPG, WebP, or GIF · max 5 MB"}</small>
+              </label>
               <label><span>Website</span><input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" /></label>
               <label><span>X / Twitter</span><input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" /></label>
               <label><span>Telegram</span><input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="t.me/..." /></label>
@@ -345,7 +410,7 @@ export function CreateTokenForm() {
             <motion.button
               className="launch-cta"
               type="submit"
-              disabled={status === "wallet" || status === "submitted"}
+              disabled={status === "uploading" || status === "wallet" || status === "submitted"}
               layout
               whileHover={status === "idle" ? { scale: 1.01, y: -1 } : undefined}
               whileTap={status === "idle" ? { scale: 0.985, y: 0 } : undefined}
@@ -359,7 +424,7 @@ export function CreateTokenForm() {
                   exit={{ opacity: 0, y: -4 }}
                   transition={motionSpring.effectsFast}
                 >
-                  {status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
+                  {status === "uploading" ? "Uploading image" : status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
                 </motion.span>
               </AnimatePresence>
             </motion.button>
@@ -402,7 +467,9 @@ export function CreateTokenForm() {
             initial={{ scale: 0.9, opacity: 0, rotate: -4 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={motionSpring.spatialFast}
-          >{previewSymbol.slice(0, 2)}</motion.div>
+          >
+            {imagePreview || image ? <img src={imagePreview || image} alt="" /> : previewSymbol.slice(0, 2)}
+          </motion.div>
           <motion.h3 layout="position">{name || "Untitled token"}</motion.h3>
           <motion.p className="preview-symbol" layout="position">{"$" + previewSymbol}</motion.p>
           <motion.p className="preview-description" layout>{description || "Add a token description."}</motion.p>
