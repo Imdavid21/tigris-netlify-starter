@@ -27,15 +27,10 @@
   font-weight: 600;
 }
 
-.brandMark {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--surface-active);
-  color: var(--brand);
-  font-size: 13px;
+.logo {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
 }
 
 .brandBlock p,
