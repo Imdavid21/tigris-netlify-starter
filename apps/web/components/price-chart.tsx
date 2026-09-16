@@ -8,6 +8,7 @@ import {
   CrosshairMode,
   LineStyle,
   createChart,
+  type MouseEventParams,
   type Time,
   type UTCTimestamp
 } from "lightweight-charts";
@@ -204,7 +205,7 @@ export function PriceChart({ token }: { token: string }) {
     series.setData(points.map((point) => ({ time: point.time, value: point.price })));
     chart.timeScale().fitContent();
 
-    const crosshairHandler = (param: Parameters<typeof chart.subscribeCrosshairMove>[0] extends (arg: infer P) => void ? P : never) => {
+    const crosshairHandler = (param: MouseEventParams<Time>) => {
       if (!param.time || !param.point) {
         setHovered(undefined);
         return;
