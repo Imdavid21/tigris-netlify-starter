@@ -77,6 +77,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+.material-field,
+md-filled-text-field.material-field,
+md-outlined-text-field.material-field,
+md-filled-select.material-field,
+md-outlined-select.material-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.route-loading-progress {
+  width: 100%;
+}
+
 @media (max-width: 700px) {
   .page-heading {
     width: min(calc(100% - 28px), var(--md-sys-layout-content-max));
