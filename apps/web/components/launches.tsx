@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { formatUnits } from "viem";
 import { curveAbi } from "@/lib/abi";
 import { API_URL } from "@/lib/api";
 import { createArcPublicClient } from "@/lib/rpc";
+import { motionSpring } from "@/lib/motion-system";
 import { TokenCard } from "@/components/token-card";
 import styles from "./Launches.module.css";
 
@@ -29,7 +31,6 @@ type Launch = IndexedLaunch & {
 };
 
 type Sort = "activity" | "newest" | "oldest" | "graduation" | "volume";
-
 type WindowFilter = "all" | "24h" | "7d";
 
 const PAGE_SIZE = 20;
@@ -114,16 +115,29 @@ function Card({ item, graduated = false }: { item: Launch; graduated?: boolean }
 
 function LoadingGrid() {
   return (
-    <div className={styles.surface} aria-label="Loading markets">
+    <motion.div
+      className={styles.surface}
+      aria-label="Loading markets"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={motionSpring.effectsDefault}
+    >
       <div className={styles.skeletonPanel}>
         <div className={styles.skeletonHead} />
         <div className={styles.skeletonGrid}>
           {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index} className={styles.skeletonCard} />
+            <motion.div
+              key={index}
+              className={styles.skeletonCard}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...motionSpring.effectsDefault, delay: index * 0.025 }}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -219,106 +233,169 @@ export function Launches() {
   if (loading) return <LoadingGrid />;
 
   return (
-    <div className={styles.surface}>
-      {error && (
-        <div className={styles.notice} role="status">
-          <strong>Market data may be delayed.</strong>
-          <span>{error} Trading can remain available from contract state.</span>
-        </div>
-      )}
+    <LayoutGroup id="explore-markets">
+      <motion.div className={styles.surface} layout transition={{ layout: motionSpring.spatialDefault }}>
+        <AnimatePresence initial={false} mode="popLayout">
+          {error && (
+            <motion.div
+              key="market-error"
+              className={styles.notice}
+              role="status"
+              initial={{ opacity: 0, height: 0, y: -8 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -6 }}
+              transition={{ ...motionSpring.spatialDefault, opacity: motionSpring.effectsFast }}
+            >
+              <strong>Market data may be delayed.</strong>
+              <span>{error} Trading can remain available from contract state.</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {graduated.length > 0 && (
-        <section className={`${styles.panel} ${styles.graduatedPanel}`}>
-          <div className={styles.panelHead}>
+        <AnimatePresence initial={false} mode="popLayout">
+          {graduated.length > 0 && (
+            <motion.section
+              key="graduated"
+              className={`${styles.panel} ${styles.graduatedPanel}`}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={motionSpring.spatialDefault}
+            >
+              <div className={styles.panelHead}>
+                <div className={styles.heading}>
+                  <h2>Graduated</h2>
+                  <motion.span key={graduated.length} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}>{graduated.length}</motion.span>
+                </div>
+              </div>
+              <motion.div className={styles.grid} layout>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {graduated.map((item) => <Card item={item} graduated key={item.address} />)}
+                </AnimatePresence>
+              </motion.div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        <motion.section className={styles.panel} layout transition={{ layout: motionSpring.spatialDefault }}>
+          <motion.div className={styles.toolbar} layout="position">
+            <motion.label className={styles.searchWrap} layout whileFocus={{ scale: 1.005 }}>
+              <span className={styles.searchIcon} aria-hidden="true">⌕</span>
+              <input
+                aria-label="Search tokens"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search token, ticker, or address"
+              />
+            </motion.label>
+
+            <div className={styles.filters}>
+              <div className={styles.segmented} aria-label="Sort markets">
+                {([
+                  ["activity", "Recent buys"],
+                  ["newest", "Newest"],
+                  ["oldest", "Oldest"],
+                  ["graduation", "Graduation"],
+                  ["volume", "Volume"]
+                ] as const).map(([value, label]) => (
+                  <motion.button
+                    type="button"
+                    key={value}
+                    layout
+                    className={sort === value ? styles.active : ""}
+                    onClick={() => setSort(value)}
+                    whileTap={{ scale: .92 }}
+                    transition={motionSpring.spatialFast}
+                  >
+                    {label}
+                  </motion.button>
+                ))}
+              </div>
+
+              <div className={styles.segmented} aria-label="Market time range">
+                {(["all", "24h", "7d"] as const).map((value) => (
+                  <motion.button
+                    type="button"
+                    key={value}
+                    layout
+                    className={windowFilter === value ? styles.active : ""}
+                    onClick={() => setWindowFilter(value)}
+                    whileTap={{ scale: .92 }}
+                    transition={motionSpring.spatialFast}
+                  >
+                    {value === "all" ? "All" : value}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div className={styles.panelHead} layout="position">
             <div className={styles.heading}>
-              <h2>Graduated</h2>
-              <span>{graduated.length}</span>
+              <h2>Explore</h2>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={live.length}
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -3 }}
+                  transition={motionSpring.effectsFast}
+                >{live.length.toLocaleString()} launches</motion.span>
+              </AnimatePresence>
             </div>
-          </div>
-          <div className={styles.grid}>
-            {graduated.map((item) => <Card item={item} graduated key={item.address} />)}
-          </div>
-        </section>
-      )}
+            <motion.a href="/create" className={styles.createLink} whileHover={{ y: -1 }} whileTap={{ scale: .97 }} transition={motionSpring.spatialFast}>Create</motion.a>
+          </motion.div>
 
-      <section className={styles.panel}>
-        <div className={styles.toolbar}>
-          <label className={styles.searchWrap}>
-            <span className={styles.searchIcon} aria-hidden="true">⌕</span>
-            <input
-              aria-label="Search tokens"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search token, ticker, or address"
-            />
-          </label>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {!visibleLive.length ? (
+              <motion.div
+                key="empty"
+                className={styles.empty}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={motionSpring.spatialDefault}
+              >
+                <strong>{items.length ? "No matching markets" : "No live markets yet"}</strong>
+                <span>{items.length ? "Try another search or time range." : "New launches will appear here automatically."}</span>
+              </motion.div>
+            ) : (
+              <motion.div key={`grid-${safePage}`} className={styles.grid} layout>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {visibleLive.map((item) => <Card item={item} key={item.address} />)}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <div className={styles.filters}>
-            <div className={styles.segmented} aria-label="Sort markets">
-              {([
-                ["activity", "Recent buys"],
-                ["newest", "Newest"],
-                ["oldest", "Oldest"],
-                ["graduation", "Graduation"],
-                ["volume", "Volume"]
-              ] as const).map(([value, label]) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={sort === value ? styles.active : ""}
-                  onClick={() => setSort(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.segmented} aria-label="Market time range">
-              {(["all", "24h", "7d"] as const).map((value) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={windowFilter === value ? styles.active : ""}
-                  onClick={() => setWindowFilter(value)}
-                >
-                  {value === "all" ? "All" : value}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.panelHead}>
-          <div className={styles.heading}>
-            <h2>Explore</h2>
-            <span>{live.length.toLocaleString()} launches</span>
-          </div>
-          <a href="/create" className={styles.createLink}>Create</a>
-        </div>
-
-        {!visibleLive.length ? (
-          <div className={styles.empty}>
-            <strong>{items.length ? "No matching markets" : "No live markets yet"}</strong>
-            <span>{items.length ? "Try another search or time range." : "New launches will appear here automatically."}</span>
-          </div>
-        ) : (
-          <div className={styles.grid}>
-            {visibleLive.map((item) => <Card item={item} key={item.address} />)}
-          </div>
-        )}
-
-        {live.length > PAGE_SIZE && (
-          <div className={styles.pagination}>
-            <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1}>
-              Prev
-            </button>
-            <span>{safePage} / {pageCount}</span>
-            <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={safePage === pageCount}>
-              Next
-            </button>
-          </div>
-        )}
-      </section>
-    </div>
+          <AnimatePresence initial={false} mode="popLayout">
+            {live.length > PAGE_SIZE && (
+              <motion.div
+                className={styles.pagination}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={motionSpring.spatialFast}
+              >
+                <motion.button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1} whileTap={{ scale: .93 }}>
+                  Prev
+                </motion.button>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span key={safePage} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
+                    {safePage} / {pageCount}
+                  </motion.span>
+                </AnimatePresence>
+                <motion.button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={safePage === pageCount} whileTap={{ scale: .93 }}>
+                  Next
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      </motion.div>
+    </LayoutGroup>
   );
 }
