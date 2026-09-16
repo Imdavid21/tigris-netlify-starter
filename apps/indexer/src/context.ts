@@ -1,15 +1,14 @@
 import { createPublicClient, defineChain, fallback, http, webSocket } from "viem";
-import pg from "pg";
+import { createDatabasePool } from "./database.js";
 
 const rpcUrls = [
   process.env.ARC_RPC_URL,
   ...(process.env.ARC_RPC_FALLBACKS ?? "").split(",")
 ].map((value) => value?.trim()).filter((value): value is string => Boolean(value));
 const wsUrl = process.env.ARC_WS_URL;
-const databaseUrl = process.env.DATABASE_URL;
 
-if (!rpcUrls.length || !databaseUrl) {
-  throw new Error("ARC_RPC_URL and DATABASE_URL are required");
+if (!rpcUrls.length) {
+  throw new Error("ARC_RPC_URL is required");
 }
 
 const arc = defineChain({
@@ -30,9 +29,4 @@ export const client = createPublicClient({
   transport: transports.length === 1 ? transports[0] : fallback(transports, { rank: true })
 });
 
-export const db = new pg.Pool({
-  connectionString: databaseUrl,
-  max: Number(process.env.DB_POOL_MAX ?? "10"),
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000
-});
+export const db = createDatabasePool();
