@@ -1,4 +1,4 @@
-import { MaterialCircularProgress, MaterialLinearProgress } from "@/components/m3/material-feedback";
+import { CoreSpiralLoader } from "@/components/dotmatrix/celestial-loaders";
 
 export default function Loading() {
   return (
@@ -17,13 +17,15 @@ export default function Loading() {
         style={{
           width: "min(420px, calc(100vw - 40px))",
           display: "grid",
-          gap: 18,
+          gap: 16,
           justifyItems: "center"
         }}
       >
-        <MaterialCircularProgress ariaLabel="Loading Celestial" />
-        <strong style={{ font: "var(--md-sys-typescale-title-medium)" }}>Loading Celestial</strong>
-        <MaterialLinearProgress indeterminate ariaLabel="Loading page" className="route-loading-progress" />
+        <CoreSpiralLoader size={58} dotSize={6} speed={1.05} ariaLabel="Loading Celestial" />
+        <strong className="md-typescale-title-medium">Loading Celestial</strong>
+        <span className="md-typescale-body-small" style={{ color: "var(--md-sys-color-on-surface-variant)" }}>
+          Resolving markets and interface state
+        </span>
       </div>
     </main>
   );
