@@ -7,34 +7,48 @@
 }
 
 .head {
-  min-height: 92px;
+  min-height: 78px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px 8px;
+  padding: 14px 18px 8px;
 }
 
-.eyebrow {
-  display: block;
-  min-height: 18px;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-sys-typescale-label-small-size);
-  line-height: var(--md-sys-typescale-label-small-line-height);
+.titleBlock {
+  min-width: 0;
 }
 
 .head h3 {
-  margin: 1px 0 0;
-  font-size: var(--md-sys-typescale-title-large-size);
-  line-height: var(--md-sys-typescale-title-large-line-height);
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  line-height: var(--md-sys-typescale-title-medium-line-height);
   font-weight: 650;
 }
 
-.value {
-  display: block;
-  margin-top: 5px;
-  font-size: var(--md-sys-typescale-title-medium-size);
+.valueRow {
+  min-height: 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.valueRow strong {
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.valueRow span {
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ranges {
@@ -70,7 +84,7 @@
 }
 
 .stage {
-  height: 286px;
+  height: 278px;
   margin: 0 8px 8px;
   overflow: hidden;
   border-radius: var(--md-sys-shape-corner-large);
@@ -92,20 +106,14 @@
   text-align: center;
 }
 
-.footer {
-  margin: -1px 18px 14px;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-sys-typescale-label-small-size);
-  line-height: var(--md-sys-typescale-label-small-line-height);
-}
-
 @media (max-width: 620px) {
   .head {
     min-height: 0;
+    align-items: flex-start;
     flex-direction: column;
   }
 
   .stage {
-    height: 250px;
+    height: 248px;
   }
 }
