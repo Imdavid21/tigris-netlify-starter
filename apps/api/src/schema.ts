@@ -101,8 +101,10 @@ create table if not exists arc_chain_snapshots (
   stats jsonb not null default '{}'::jsonb,
   transaction_stats jsonb,
   contract_counters jsonb,
-  hot_contracts jsonb
+  hot_contracts jsonb,
+  historical_lines jsonb not null default '{}'::jsonb
 );
+alter table arc_chain_snapshots add column if not exists historical_lines jsonb not null default '{}'::jsonb;
 
 create index if not exists arc_chain_snapshots_time_idx on arc_chain_snapshots(captured_at desc);
 
