@@ -4,63 +4,58 @@ import { SiteFooter } from "@/components/site-footer";
 
 export default function ExplorePage() {
   return (
-    <main className="app-shell explore-page avenue-shell">
+    <main className="app-shell explore-page utopia-app-shell">
       <AppHeader />
 
-      <section className="avenue-hero">
-        <div className="avenue-hero-copy">
-          <span className="avenue-eyebrow">Built on Arc</span>
-          <h1>Launch markets.<br />Trade from day one.</h1>
-          <p>
-            Create tokens, trade bonding-curve markets, manage limit orders, and follow launches through graduation from one interface.
-          </p>
+      <section className="utopia-app-hero">
+        <div className="utopia-app-hero-topline">
+          <span>CELESTIAL / ARC</span>
+          <span>MARKET TERMINAL</span>
+          <span>LIVE</span>
+        </div>
 
-          <div className="avenue-hero-actions">
-            <a href="/create" className="primary-link">Launch a token</a>
-            <a href="#live-markets" className="secondary-link">Explore markets</a>
+        <div className="utopia-app-hero-grid">
+          <div className="utopia-app-hero-copy">
+            <div className="utopia-app-kicker">BUILT ON ARC</div>
+            <h1>
+              <span>LAUNCH.</span>
+              <span>TRADE.</span>
+              <span>GRADUATE.</span>
+            </h1>
+            <p>
+              Permissionless token markets with bonding-curve execution, limit orders,
+              holder rewards, and onchain graduation.
+            </p>
+            <div className="utopia-app-actions">
+              <a href="/create" className="utopia-app-primary">LAUNCH MARKET</a>
+              <a href="#live-markets" className="utopia-app-secondary">EXPLORE MARKETS</a>
+            </div>
           </div>
 
-          <div className="avenue-supported">
-            <span className="avenue-supported-label">Supported quote assets</span>
-            <div className="avenue-asset-row">
-              <div className="avenue-asset"><span>U</span><small>USDC</small></div>
-              <div className="avenue-asset"><span>€</span><small>EURC</small></div>
-              <div className="avenue-asset"><span>₿</span><small>cirBTC</small></div>
-              <div className="avenue-asset"><span>◎</span><small>Arc</small></div>
-            </div>
+          <div className="utopia-app-hero-art" aria-hidden="true">
+            <div className="utopia-app-hero-number">01</div>
+            <div className="utopia-app-hero-symbol">市<br />場</div>
+            <div className="utopia-app-hero-orbit"><span /><span /><span /></div>
+            <div className="utopia-app-hero-caption">ARC TESTNET / NON-CUSTODIAL / LIVE MARKETS</div>
           </div>
         </div>
 
-        <div className="avenue-card-stage" aria-hidden="true">
-          <div className="avenue-project-card avenue-project-card-left">
-            <div className="avenue-card-art avenue-art-left"><span>01</span></div>
-            <div className="avenue-card-caption"><strong>Permissionless</strong><small>Launch</small></div>
-          </div>
-
-          <div className="avenue-project-card avenue-project-card-right">
-            <div className="avenue-card-art avenue-art-right"><span>03</span></div>
-            <div className="avenue-card-caption"><strong>Onchain</strong><small>Graduate</small></div>
-          </div>
-
-          <div className="avenue-project-card avenue-project-card-main">
-            <div className="avenue-card-topline"><span>Celestial market</span><b>LIVE</b></div>
-            <div className="avenue-card-art avenue-art-main">
-              <div className="avenue-orbit-mark">✦</div>
-            </div>
-            <div className="avenue-card-stats">
-              <div><strong>Bonding curve</strong><small>Price discovery</small></div>
-              <div><strong>Limit orders</strong><small>Native execution</small></div>
-            </div>
-          </div>
+        <div className="utopia-app-assets">
+          <span>SUPPORTED QUOTE ASSETS</span>
+          <div><b>USDC</b><b>EURC</b><b>cirBTC</b></div>
         </div>
       </section>
 
-      <section id="live-markets" className="avenue-market-heading">
+      <section id="live-markets" className="utopia-app-market-intro">
         <div>
-          <span>Markets</span>
-          <h2>Live projects</h2>
+          <span>02 / DISCOVER</span>
+          <h2>EXPLORE<br />MARKETS</h2>
         </div>
-        <a href="/analytics">View protocol data</a>
+        <div className="utopia-app-market-copy">
+          <p>Live markets are read from the indexer, while execution and market state remain contract-authoritative.</p>
+          <a href="/analytics">VIEW PROTOCOL DATA ↗</a>
+        </div>
+        <div className="utopia-app-side-type" aria-hidden="true">天体市場</div>
       </section>
 
       <Launches />
