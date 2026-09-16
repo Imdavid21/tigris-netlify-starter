@@ -1,0 +1,65 @@
+name: Simulate Celestial Arc Mainnet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/simulate-celestial-mainnet.yml
+      - foundry.toml
+      - packages/contracts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    env:
+      FORK_URL: "https://rpc.mainnet.arc.io"
+      ARC_FOUNDRY_VERSION: "v0.8.0-1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install verified Arc Foundry release
+        run: |
+          set -euo pipefail
+          ASSET="arc-foundry-${ARC_FOUNDRY_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          BASE="https://github.com/circlefin/arc-foundry/releases/download/${ARC_FOUNDRY_VERSION}"
+          curl --fail --location --retry 3 -o "/tmp/$ASSET" "$BASE/$ASSET"
+          curl --fail --location --retry 3 -o "/tmp/$ASSET.sha256" "$BASE/$ASSET.sha256"
+          (cd /tmp && sha256sum -c "$ASSET.sha256")
+          mkdir -p /tmp/arc-foundry
+          tar -xzf "/tmp/$ASSET" -C /tmp/arc-foundry
+          sudo install -m 0755 /tmp/arc-foundry/forge /usr/local/bin/arc-forge
+          sudo install -m 0755 /tmp/arc-foundry/cast /usr/local/bin/arc-cast
+          sudo install -m 0755 /tmp/arc-foundry/anvil /usr/local/bin/arc-anvil
+          arc-forge --version
+
+      - name: Install dependencies
+        run: |
+          arc-forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          arc-forge install foundry-rs/forge-std --no-commit
+
+      - name: Report Arc build sizes
+        run: |
+          set -o pipefail
+          arc-forge build --sizes 2>&1 | tee /tmp/contract-sizes.log
+
+      - name: Exercise launch, graduation, and post-graduation swaps on Arc v4
+        run: |
+          set -o pipefail
+          arc-forge test \
+            --fork-url "$FORK_URL" \
+            --match-contract ArcMainnetUniswapV4ForkTest \
+            -vvv | tee /tmp/arc-v4-lifecycle.log
+
+      - name: Upload lifecycle logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-arc-mainnet-lifecycle
+          path: |
+            /tmp/arc-v4-lifecycle.log
+            /tmp/contract-sizes.log
