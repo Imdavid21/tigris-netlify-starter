@@ -1,4 +1,4 @@
-import { defineChain } from "viem";
+import { defineChain, type Address } from "viem";
 
 export const arcChainId = Number(process.env.NEXT_PUBLIC_ARC_CHAIN_ID ?? "5042002");
 export const isArcMainnet = arcChainId === 5042;
@@ -32,30 +32,24 @@ export const arcTestnet = defineChain({
   }
 });
 
-function networkAddress(
+function legacyAddress(
   configured: string | undefined,
-  testnetFallback: `0x${string}`,
-  name: string
-): `0x${string}` {
-  if (configured) return configured as `0x${string}`;
-  if (isArcMainnet) {
-    throw new Error(`${name} must be configured for Arc mainnet`);
-  }
-  return testnetFallback;
+  testnetFallback: Address
+): Address | undefined {
+  if (configured) return configured as Address;
+  return isArcMainnet ? undefined : testnetFallback;
 }
 
 export const addresses = {
-  factory: networkAddress(
+  factory: legacyAddress(
     process.env.NEXT_PUBLIC_FACTORY_ADDRESS,
-    "0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423",
-    "NEXT_PUBLIC_FACTORY_ADDRESS"
+    "0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423"
   ),
   usdc:
-    (process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined) ??
+    (process.env.NEXT_PUBLIC_USDC_ADDRESS as Address | undefined) ??
     "0x3600000000000000000000000000000000000000",
-  feeEscrow: networkAddress(
+  feeEscrow: legacyAddress(
     process.env.NEXT_PUBLIC_FEE_ESCROW_ADDRESS,
-    "0x6D1597932B93b9939f21E9A8D8C2908457F7925d",
-    "NEXT_PUBLIC_FEE_ESCROW_ADDRESS"
+    "0x6D1597932B93b9939f21E9A8D8C2908457F7925d"
   )
 };
