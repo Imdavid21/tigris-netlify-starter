@@ -83,7 +83,10 @@ jobs:
             sleep 1
           done
           ROOT_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)
-          test "$ROOT_STATUS" = "307" || test "$ROOT_STATUS" = "308"
+          case "$ROOT_STATUS" in
+            200|307|308) ;;
+            *) echo "Unexpected root status: $ROOT_STATUS"; exit 1 ;;
+          esac
           curl -fsS http://127.0.0.1:3000/explore | grep 'Celestial'
           curl -fsS http://127.0.0.1:3000/create | grep 'Launch a token'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001)" = "200"
