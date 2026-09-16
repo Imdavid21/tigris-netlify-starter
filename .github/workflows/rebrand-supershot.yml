@@ -2,14 +2,15 @@ name: supershot-rebrand
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   rebrand:
-    if: ${{ !contains(github.event.head_commit.message, 'brand: complete supershot.fun rebrand') }}
+    if: "!contains(github.event.head_commit.message, 'brand: complete supershot.fun rebrand')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,11 +63,10 @@ jobs:
 
               updated = text
 
-              # Public-facing standalone brand mentions. This does not touch identifiers
-              # such as CelestialLaunchFactory or CELESTIAL generation values.
+              # Rebrand standalone public-facing product references without touching
+              # identifiers such as CelestialLaunchFactory or CELESTIAL generation values.
               updated = re.sub(r'\bCelestial\b', 'supershot.fun', updated)
 
-              # Web component/file branding.
               if rel.startswith('apps/web/'):
                   updated = updated.replace('CelestialLogo', 'SupershotLogo')
                   updated = updated.replace('celestial-logo', 'supershot-logo')
@@ -75,7 +75,6 @@ jobs:
                   updated = updated.replace('CelestialLoaders.module.css', 'SupershotLoaders.module.css')
                   updated = updated.replace('celestial-theme', 'supershot-theme')
 
-              # Package/workspace branding. Database and service identifiers remain unchanged.
               updated = updated.replace('@arc-launchpad/', '@supershot/')
 
               if path == Path('package.json'):
@@ -89,7 +88,6 @@ jobs:
               if updated != text:
                   path.write_text(updated, encoding='utf-8')
 
-          # Update individual workspace package names explicitly.
           package_names = {
               Path('apps/web/package.json'): '@supershot/web',
               Path('apps/api/package.json'): '@supershot/api',
