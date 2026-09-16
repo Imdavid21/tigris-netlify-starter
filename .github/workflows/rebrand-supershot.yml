@@ -1,0 +1,115 @@
+name: supershot-rebrand
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    if: ${{ !contains(github.event.head_commit.message, 'brand: complete supershot.fun rebrand') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply supershot.fun branding
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          root = Path('.')
+
+          # Rename web-only branded components. Protocol/contract identifiers stay untouched.
+          moves = [
+              (Path('apps/web/components/celestial-logo.tsx'), Path('apps/web/components/supershot-logo.tsx')),
+              (Path('apps/web/components/dotmatrix/celestial-loaders.tsx'), Path('apps/web/components/dotmatrix/supershot-loaders.tsx')),
+              (Path('apps/web/components/dotmatrix/CelestialLoaders.module.css'), Path('apps/web/components/dotmatrix/SupershotLoaders.module.css')),
+          ]
+          for old, new in moves:
+              if old.exists() and not new.exists():
+                  old.rename(new)
+
+          text_exts = {'.md', '.tsx', '.ts', '.css', '.json', '.yml', '.yaml', '.sh'}
+          skip_prefixes = (
+              'packages/contracts/src/',
+              'packages/contracts/test/',
+              'packages/contracts/script/',
+              'scripts/deploy-celestial-',
+              '.github/workflows/deploy-celestial-',
+              '.github/workflows/simulate-celestial-',
+          )
+
+          for path in root.rglob('*'):
+              if not path.is_file() or path.suffix not in text_exts:
+                  continue
+              rel = path.as_posix()
+              if rel.startswith('.git/') or rel == '.github/workflows/rebrand-supershot.yml':
+                  continue
+              if rel.startswith(skip_prefixes):
+                  continue
+
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+
+              updated = text
+
+              # Public-facing standalone brand mentions. This does not touch identifiers
+              # such as CelestialLaunchFactory or CELESTIAL generation values.
+              updated = re.sub(r'\bCelestial\b', 'supershot.fun', updated)
+
+              # Web component/file branding.
+              if rel.startswith('apps/web/'):
+                  updated = updated.replace('CelestialLogo', 'SupershotLogo')
+                  updated = updated.replace('celestial-logo', 'supershot-logo')
+                  updated = updated.replace('CelestialDotLoader', 'SupershotDotLoader')
+                  updated = updated.replace('celestial-loaders', 'supershot-loaders')
+                  updated = updated.replace('CelestialLoaders.module.css', 'SupershotLoaders.module.css')
+                  updated = updated.replace('celestial-theme', 'supershot-theme')
+
+              # Package/workspace branding. Database and service identifiers remain unchanged.
+              updated = updated.replace('@arc-launchpad/', '@supershot/')
+
+              if path == Path('package.json'):
+                  try:
+                      data = json.loads(updated)
+                      data['name'] = 'supershot-fun'
+                      updated = json.dumps(data, indent=2) + '\n'
+                  except Exception:
+                      pass
+
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          # Update individual workspace package names explicitly.
+          package_names = {
+              Path('apps/web/package.json'): '@supershot/web',
+              Path('apps/api/package.json'): '@supershot/api',
+              Path('apps/indexer/package.json'): '@supershot/indexer',
+          }
+          for path, name in package_names.items():
+              data = json.loads(path.read_text())
+              data['name'] = name
+              path.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+
+      - name: Commit rebrand
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No branding changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "brand: complete supershot.fun rebrand"
+          git push origin HEAD:main
