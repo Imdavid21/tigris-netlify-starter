@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-16
 
-This is the frontend design and interaction source of truth for Celestial.
+This is the frontend design, component, and interaction source of truth for Celestial.
 
 Official references:
 
@@ -11,22 +11,20 @@ Official references:
 - Material styles: https://m3.material.io/styles
 - Material motion: https://m3.material.io/styles/motion/overview/how-it-works
 - Material web development: https://m3.material.io/develop
+- Material Web: https://github.com/material-components/material-web
 - Motion for React: https://motion.dev/docs/react
 
-## 1. Architecture decision
+## 1. Current architecture
 
-Material 3 defines the design language. Motion for React provides the runtime interaction layer.
+Celestial now uses Google Material 3 at three layers:
 
-Celestial does not depend on `@material/web` for the full product. The application remains a React 19 / Next.js 16 application using semantic HTML, CSS custom properties, CSS Modules, server components, and focused client interaction boundaries.
+1. Material 3 foundations and semantic design roles
+2. Google's `@material/web` package for the complete Material Web component catalog
+3. Motion for React for orchestration, layout continuity, presence, gestures, and Material-tuned springs
 
-The frontend stack is now:
+The application remains React 19 / Next.js 16. Protocol and wallet logic remain independent from the visual layer.
 
-1. Material 3 semantic design roles
-2. Celestial theme tokens
-3. native React/Next components
-4. reusable M3 primitives
-5. Motion for React for layout, presence, gestures, shared elements, scroll response, and spring orchestration
-6. viem and existing protocol logic kept independent from visual motion
+`@material/web` is currently in maintenance mode upstream, but the complete package is intentionally installed because Celestial now wants the official Material Web implementation available across the frontend. All usage stays behind local React adapters so the package can be changed later without rewriting protocol logic.
 
 ## 2. Foundations
 
@@ -34,76 +32,104 @@ Canonical files:
 
 - `apps/web/styles/tokens.css`
 - `apps/web/styles/base.css`
+- `apps/web/components/material-web-provider.tsx`
 
-### Color
+Foundations include:
 
-Use Material system color roles. Celestial keeps its acid-lime identity through semantic primary/container roles rather than page-level hex values.
+- Material semantic color roles
+- light and dark themes
+- Material surface hierarchy
+- Material typography roles
+- Google's official Material Web type-scale stylesheet
+- Material shape roles
+- elevation levels
+- state-layer opacities
+- reduced-motion support
+- adaptive responsive behavior
 
-### Typography
+Do not introduce a second design-token system.
 
-Primary family: Roboto Flex.
+## 3. Complete Material Web import
 
-Use Material display, headline, title, body, and label roles. Financial values may use tabular numerals.
+Dependency:
 
-### Shape
+- `@material/web`
 
-Canonical corner scale:
+Full component registration lives in:
 
-- none: 0
-- extra small: 4px
-- small: 8px
-- medium: 12px
-- large: 16px
-- extra large: 28px
-- full
+- `apps/web/lib/material-web-catalog.ts`
 
-### Elevation
+The catalog registers the complete upstream component set:
 
-Use Material elevation levels 0 through 5 to communicate hierarchy. Do not add shadows simply for decoration.
+- elevated, filled, filled-tonal, outlined, and text buttons
+- checkbox
+- assist, filter, input, and suggestion chips
+- chip set
+- dialog
+- divider
+- elevation
+- FAB and branded FAB
+- filled and outlined fields
+- focus ring
+- icon
+- icon-button variants
+- list and list item
+- menu, menu item, and sub-menu
+- circular and linear progress
+- radio
+- ripple
+- filled and outlined select
+- select option
+- slider
+- switch
+- primary and secondary tabs
+- tabs container
+- filled and outlined text fields
 
-### State layers
+The catalog is registered client-side by `MaterialWebProvider` so custom elements are never evaluated during server rendering.
 
-Hover, focus, pressed, dragged, and disabled states use the Material state-layer model.
+Google warns that the convenience `all.js` bundle is intended for development/prototyping. Celestial therefore imports the full catalog explicitly by component path. This still gives us the complete package while keeping the registration strategy explicit and removable.
 
-## 3. Reusable Material components
+## 4. React adapter layer
 
-Reusable primitives live in:
+Reusable adapters live under:
 
 - `apps/web/components/m3/primitives.tsx`
-- `apps/web/components/m3/M3.module.css`
+- `apps/web/components/m3/material-controls.tsx`
+- `apps/web/components/m3/material-feedback.tsx`
 
-Current primitives:
+Current adapters include:
 
 - `M3Button`
-  - filled
-  - tonal
-  - outlined
-  - text
-  - elevated
 - `M3IconButton`
 - `M3Chip`
+- `MaterialTextField`
+- `MaterialSelect`
+- `MaterialSwitch`
+- `MaterialSlider`
+- `MaterialCheckbox`
+- `MaterialDialog`
+- `MaterialLinearProgress`
+- `MaterialCircularProgress`
+- `MaterialBusy`
+- `MaterialDivider`
 
-These primitives are Motion-enabled. Press, hover, selection, and selected-icon changes inherit the common spring system.
+Adapters render safe native React fallbacks until Material Web finishes registering. After registration they upgrade to official Material Web custom elements.
 
-## 4. Motion runtime
+Do not call Material custom elements directly from protocol/business components unless there is a strong reason. Prefer adapters so React behavior, fallbacks, accessibility, and future migration stay centralized.
 
-Runtime dependency:
+## 5. Motion architecture
 
-- `motion`
-- imported from `motion/react`
-
-Canonical motion files:
+Canonical files:
 
 - `apps/web/lib/motion-system.ts`
 - `apps/web/components/app-motion.tsx`
 - `apps/web/components/motion-nav.tsx`
 - `apps/web/components/viewport-flow.tsx`
 
-The earlier custom Web Animations spring sampler was removed after Motion became the runtime.
+Motion for React is the orchestration runtime. Material Web owns component internals such as ripple and control state. Motion owns movement between application states.
 
-### Material spring mapping
-
-Material 3 Expressive separates spatial motion from effects motion.
+Material spring families:
 
 | Family | Damping ratio | Stiffness |
 | --- | ---: | ---: |
@@ -114,225 +140,114 @@ Material 3 Expressive separates spatial motion from effects motion.
 | Effects default | 1.0 | 1600 |
 | Effects slow | 1.0 | 800 |
 
-`motion-system.ts` converts damping ratio and stiffness into Motion spring damping values with unit mass.
+Rules:
 
-### Motion rules
+1. Position, scale, size, reflow, and shared-element movement use spatial springs.
+2. Opacity and effect-only changes use effects springs.
+3. Use `AnimatePresence` when disappearance would otherwise snap.
+4. Use layout interpolation for sorting, filtering, resizing, and responsive reflow.
+5. Use shared `layoutId` when the same object persists across screens.
+6. Keep transaction confirmations and errors restrained.
+7. Animations must be interruptible and follow user input.
+8. Respect `prefers-reduced-motion`.
 
-1. Position, scale, size, reflow, expansion, and shared-element movement use spatial springs.
-2. Opacity and effect-only changes use critically damped effect springs.
-3. Mounting and unmounting should use `AnimatePresence` where disappearance would otherwise feel abrupt.
-4. Reordering and responsive changes should use Motion layout interpolation instead of manual coordinate animation.
-5. Shared identities should use `layoutId` when an object conceptually persists across views.
-6. Financial confirmations and error states should be clear and restrained, not playful or bouncy.
-7. Continuous motion must remain interruptible. The UI should follow rapid user input rather than finish stale animations.
-8. Respect the user's reduced-motion preference through the global `MotionConfig`.
+## 6. Loading and feedback
 
-## 5. Global motion architecture
+Celestial uses multiple loading patterns based on context:
 
-### Routes
+- Next route-level loading uses Material circular and linear progress.
+- Material Web catalog hydration uses a minimal top-edge indeterminate progress cue.
+- content-heavy grids keep skeleton placeholders to prevent layout shift.
+- wallet connection uses `MaterialBusy` with an animated progress indicator.
+- token graduation uses official Material linear progress.
 
-`AppMotion` wraps route content using `AnimatePresence` and pathname-keyed transitions.
+Avoid replacing content-shaped skeletons with generic spinners when doing so would cause layout shift.
 
-Route changes use:
+## 7. Product motion coverage
 
-- subtle opacity
-- shallow vertical displacement
-- tiny scale continuity
-- short blur removal
-- Material spatial/effect springs
+### Global shell
 
-The global shell also includes a spring-smoothed scroll progress indicator.
-
-### Navigation
-
-The primary navigation uses a shared `layoutId` indicator. The active destination glides between Explore, Analytics, and Portfolio instead of recreating a disconnected active state.
-
-### Shared token identity
-
-Explore token media and the token market hero share a normalized `layoutId` based on the token route. This lets a token retain spatial identity when moving between discovery and market context.
-
-## 6. Product motion mapping
+- route presence transitions
+- spring-smoothed scroll progress
+- shared active navigation indicator
+- Material icon button and wallet button
+- Material catalog hydration feedback
 
 ### Search
 
-Search uses:
-
 - backdrop presence
-- modal spatial spring entrance and exit
-- result-list layout interpolation
-- staggered result entrance
-- row exit animation
-- hover/tap physical response
+- spring modal entrance/exit
+- layout interpolation
+- result staggering
+- hover/tap feedback
 
 ### Explore
 
-Explore uses:
-
-- layout interpolation during sorting
-- card reordering
-- filter/time-range button press physics
-- card enter/exit presence
-- pagination continuity
+- animated sorting/filtering
+- card reorder and pagination continuity
 - empty-state presence
-- launch-count transitions
-- graduation-panel presence
-
-### Token cards
-
-Cards use:
-
-- spatial layout interpolation
-- hover lift
-- press compression
-- image fade/settle
-- animated graduation progress
-- shared identity with token market
+- token shared-element continuity
+- Material linear graduation progress
 
 ### Create
 
-Create uses:
-
-- spring layout for the form and preview
-- animated progressive disclosure for advanced controls
-- preview identity/value changes
-- transaction-status label presence
+- form and preview layout interpolation
+- advanced-control disclosure
+- transaction state transitions
 - hash/error presence
-- physical CTA response
 
-No transaction sequencing or contract logic is animated away or delayed.
+Material field/select adapters are available for continued replacement of native form controls. Preserve form semantics and validation behavior when migrating each field.
 
-### Token market and trading terminal
-
-The market uses:
+### Token market
 
 - shared token identity
-- animated graduation progress
-- layout-aware chart/data/about panes
-- Market / Limit / Orders presence transitions
-- Buy / Sell control feedback
-- quick-amount transitions
-- expanding/collapsing limit controls
-- quote-review height interpolation
-- open-order list presence
-- CTA label transitions
-- graduation notice presence
-- error presence
-
-Execution logic remains independent from the motion layer.
-
-### Price chart
-
-Charts use:
-
-- range transition presence
-- animated line reveal
-- crosshair/dot presence
-- tooltip spring motion
-- range-control press feedback
-
-### Recent trades and holders
-
-Rows enter, leave, and reflow using layout presence so live/indexed data changes do not pop abruptly.
+- graduation progress
+- Market / Limit / Orders transitions
+- Buy / Sell feedback
+- quote/review expansion
+- order presence
+- transaction CTA transitions
+- error and graduation notice presence
 
 ### Portfolio
 
-Portfolio uses:
-
-- tab content presence
-- row reflow
-- metric/card entrance
-- claim/connect button physics
-- status/error presence
+- tab and list reflow
+- state presence
 
 ### Analytics and Scanner
 
-These routes stay server-rendered. Small client motion boundaries add viewport entrance and layout continuity without converting the entire page into client-side rendering.
-
-### Theme
-
-The theme toggle icon rotates/scales through presence while the underlying semantic theme switches immediately.
+- server-rendered data
+- lightweight viewport motion boundaries
 
 ### Footer
 
-The footer uses restrained viewport stagger and lightweight link/logo response.
+- restrained viewport/stagger motion
 
-## 7. React and Next.js rules
+## 8. Accessibility and SSR
 
-Keep server components unless interaction requires client state.
-
-Client components are appropriate for:
-
-- wallet state
-- transaction flows
-- search
-- filters and tabs
-- charts with pointer interaction
-- Motion layout/presence boundaries
-- gesture/scroll response
-
-Do not convert data-loading server pages to client rendering only to animate them. Use focused client wrappers such as `FlowSection` instead.
-
-## 8. Performance rules
-
-1. Prefer transform and opacity animation.
-2. Use layout animation only on surfaces that materially change size or position.
-3. Avoid permanent `will-change` on large portions of the page.
-4. Do not animate every metric update with a large transition.
-5. Do not add infinite decorative motion to trading-critical regions.
-6. Keep motion independent from API/RPC timing.
-7. Reduced motion must remain functional and readable.
-
-## 9. Accessibility
-
-Keep native semantic controls wherever possible.
+Keep server components wherever interaction is not required.
 
 Required:
 
 - visible focus states
 - keyboard operation
 - semantic disabled states
-- `aria-pressed` for selectable chips
 - labels for icon-only controls
-- status must not depend on color only
-- `prefers-reduced-motion` respected globally
+- state text that does not rely on color alone
+- reduced-motion support
+- native fallback before custom-element upgrade
 
-## 10. Current migration coverage
+Material Web must remain client-registered. Do not import the full component catalog from a server component.
 
-The Material 3 + Motion system now covers:
+## 9. Future frontend rules
 
-- semantic color/type/shape/elevation foundations
-- light and dark themes
-- app shell
-- route transitions
-- shared navigation state
-- spring-smoothed scroll continuity
-- global search
-- reusable Material controls
-- Explore filtering, sorting, pagination, and cards
-- shared token transition into market context
-- Create flow
-- token market
-- trading terminal
-- price chart
-- recent trades
-- holders
-- Portfolio
-- Analytics
-- Scanner
-- theme switching
-- footer
-
-The obsolete pre-Material purple/cyberpunk styling layer and the temporary custom animation runtime have both been removed.
-
-## 11. Rules for future frontend work
-
-1. Material 3 semantic roles remain the design source of truth.
-2. Motion for React is the interaction runtime.
-3. Use the shared Material spring presets instead of arbitrary durations.
-4. Prefer continuous spatial relationships over isolated entrance animations.
-5. Use `layout`, `layoutId`, and `AnimatePresence` deliberately.
-6. Do not animate for decoration alone.
-7. Keep protocol execution independent from UI animation.
-8. Never delay signature, quote, or transaction state to make an animation finish.
-9. Test light mode, dark mode, reduced motion, keyboard use, desktop, tablet, and mobile after motion changes.
-10. Do not reintroduce the old cyberpunk, Avenue, Utopia, or unrelated animation systems.
+1. Material 3 remains the only primary design language.
+2. Prefer official Material Web components through local React adapters.
+3. Do not reintroduce the old purple/cyberpunk design layer.
+4. Do not add another component framework such as MUI React unless explicitly required.
+5. Do not duplicate an existing Material Web component with new custom CSS without a clear product reason.
+6. Keep Motion for React for cross-component and cross-route orchestration.
+7. Keep protocol execution independent from animations and component internals.
+8. Contract-native trading must remain usable when indexed data is degraded.
+9. Verify light mode, dark mode, keyboard, reduced motion, desktop, tablet, and mobile after component changes.
+10. Treat Google Material Web maintenance status as an upstream dependency risk. Keep adapters isolated so migration remains possible.
