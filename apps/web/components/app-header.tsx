@@ -31,7 +31,6 @@ export function AppHeader() {
 
           <div className={styles.actions}>
             <nav className={styles.utilityNav} aria-label="Product actions">
-              <a href="/stocks">Stocks</a>
               <a href="/create" className={styles.createLink}>Create</a>
             </nav>
             <a
