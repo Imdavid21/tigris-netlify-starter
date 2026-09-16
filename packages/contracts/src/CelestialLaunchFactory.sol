@@ -73,7 +73,6 @@ contract CelestialLaunchFactory is ReentrancyGuard {
     mapping(address => address) public curveOf;
     mapping(address => address) public creatorOf;
     mapping(address => address) public quoteAssetOf;
-    mapping(address => Metadata) private metadataOf;
     mapping(address => Graduation) public graduations;
     address[] public allTokens;
 
@@ -152,10 +151,6 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         if (address(adapter) == address(0)) revert ZeroAddress();
         graduationAdapter = adapter;
         emit GraduationAdapterUpdated(address(adapter));
-    }
-
-    function getMetadata(address token) external view returns (Metadata memory) {
-        return metadataOf[token];
     }
 
     function previewInitialBuy(
@@ -270,7 +265,6 @@ contract CelestialLaunchFactory is ReentrancyGuard {
         curveOf[token] = curve;
         creatorOf[token] = creator;
         quoteAssetOf[token] = params.quoteAsset;
-        metadataOf[token] = params.metadata;
         allTokens.push(token);
 
         _emitLaunch(token, curve, creator, feeRecipient, params);
