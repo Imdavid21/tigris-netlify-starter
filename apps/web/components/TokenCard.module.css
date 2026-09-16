@@ -1,26 +1,55 @@
 .card {
+  position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-  transition: transform 140ms var(--ease), border-color 140ms var(--ease), box-shadow 140ms var(--ease);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-level1);
+  transform-origin: center;
+  transition:
+    transform var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial),
+    box-shadow var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
+    background var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--md-sys-color-on-surface);
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects);
 }
 
 .card:hover {
-  transform: translateY(-1px);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-2);
+  transform: translateY(-4px) scale(1.008);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.card:hover::after {
+  opacity: .035;
+}
+
+.card:active {
+  transform: translateY(-1px) scale(.988);
+}
+
+.card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 44%, transparent);
+  outline-offset: 3px;
 }
 
 .media {
   position: relative;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: var(--surface-soft);
+  background: var(--md-sys-color-surface-container-high);
 }
 
 .image,
@@ -32,48 +61,57 @@
 
 .image {
   object-fit: cover;
+  transition: transform var(--md-sys-motion-spatial-slow-duration) var(--md-sys-motion-spring-slow-spatial);
+}
+
+.card:hover .image {
+  transform: scale(1.035);
 }
 
 .fallback {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 52%),
-    var(--surface-soft);
-  color: var(--brand);
+    radial-gradient(circle at 32% 22%, color-mix(in srgb, var(--md-sys-color-primary-container) 82%, transparent), transparent 54%),
+    var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-primary);
   font-size: clamp(24px, 4vw, 44px);
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-weight: 580;
+  letter-spacing: -.04em;
 }
 
 .badge {
   position: absolute;
   top: 10px;
   left: 10px;
-  min-height: 23px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border));
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--brand);
-  font-size: 9px;
-  font-weight: 600;
-  backdrop-filter: blur(8px);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-small);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 92%, transparent);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .graduated {
-  border-color: color-mix(in srgb, var(--positive) 20%, var(--border));
-  color: var(--positive);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
 }
 
 .body {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 9px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
 }
 
 .title {
@@ -86,25 +124,28 @@
 
 .title strong {
   overflow: hidden;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-small-size);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .title span {
   flex: 0 0 auto;
-  color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  font-weight: var(--md-sys-typescale-label-small-weight);
 }
 
 .value {
-  color: var(--text-primary);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: 520;
+  letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -114,27 +155,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: var(--text-tertiary);
-  font-size: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
   font-variant-numeric: tabular-nums;
 }
 
 .progress {
-  height: 3px;
+  height: 4px;
   overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--border);
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-secondary-container);
 }
 
 .progress > span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--brand);
+  background: var(--md-sys-color-primary);
+  transform-origin: left center;
+  transition: width var(--md-sys-motion-spatial-default-duration) var(--md-sys-motion-spring-default-spatial);
 }
 
 .foot {
-  padding-top: 2px;
+  padding-top: 1px;
 }
 
 .foot span:first-child {
@@ -147,11 +191,16 @@
 
 @media (max-width: 620px) {
   .body {
-    gap: 7px;
-    padding: 10px;
+    gap: 8px;
+    padding: 12px;
   }
 
   .value {
-    font-size: 17px;
+    font-size: 19px;
+    line-height: 25px;
+  }
+
+  .card:hover {
+    transform: none;
   }
 }
