@@ -33,7 +33,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm install
       - name: Build Celestial-only Arc Mainnet frontend
         run: npm --workspace @arc-launchpad/web run build
