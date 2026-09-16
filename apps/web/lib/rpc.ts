@@ -1,5 +1,5 @@
 import { createPublicClient, fallback, http } from "viem";
-import { arcTestnet } from "./arc";
+import { arcTestnet, isArcMainnet } from "./arc";
 
 function rpcUrls() {
   const configured = [
@@ -9,7 +9,10 @@ function rpcUrls() {
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value));
 
-  const urls = configured.length ? configured : ["https://rpc.testnet.arc.network"];
+  const defaultRpc = isArcMainnet
+    ? "https://rpc.mainnet.arc.io"
+    : "https://rpc.testnet.arc.network";
+  const urls = configured.length ? configured : [defaultRpc];
   return [...new Set(urls)];
 }
 
