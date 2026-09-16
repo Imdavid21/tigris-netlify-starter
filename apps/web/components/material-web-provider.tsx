@@ -15,13 +15,22 @@ export function MaterialWebProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     let active = true;
-    import("@/lib/material-web-catalog")
-      .then(() => {
+
+    Promise.all([
+      import("@/lib/material-web-catalog"),
+      import("@material/web/typography/md-typescale-styles.js")
+    ])
+      .then(([, typography]) => {
+        const sheet = typography.styles?.styleSheet;
+        if (sheet && "adoptedStyleSheets" in document && !document.adoptedStyleSheets.includes(sheet)) {
+          document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+        }
         if (active) setReady(true);
       })
       .catch(() => {
         if (active) setReady(false);
       });
+
     return () => {
       active = false;
     };
