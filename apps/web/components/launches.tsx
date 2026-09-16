@@ -5,6 +5,8 @@ import { formatUnits } from "viem";
 import { curveAbi } from "@/lib/abi";
 import { API_URL } from "@/lib/api";
 import { createArcPublicClient } from "@/lib/rpc";
+import { TokenCard } from "@/components/token-card";
+import styles from "./Launches.module.css";
 
 type IndexedLaunch = {
   address: `0x${string}`;
@@ -26,7 +28,11 @@ type Launch = IndexedLaunch & {
   threshold?: bigint;
 };
 
-type Sort = "activity" | "newest" | "graduation" | "volume";
+type Sort = "activity" | "newest" | "oldest" | "graduation" | "volume";
+
+type WindowFilter = "all" | "24h" | "7d";
+
+const PAGE_SIZE = 20;
 
 const QUOTE_DECIMALS: Record<string, number> = {
   "0x3600000000000000000000000000000000000000": 6,
@@ -43,6 +49,7 @@ function money(value: bigint | string | undefined, d = 6) {
   try {
     const n = Number(formatUnits(BigInt(value), d));
     if (!Number.isFinite(n)) return "—";
+    if (n >= 1_000_000_000) return "$" + (n / 1_000_000_000).toFixed(2) + "B";
     if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
     if (n >= 1_000) return "$" + (n / 1_000).toFixed(1) + "K";
     return "$" + n.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -62,55 +69,61 @@ function age(value?: string | null) {
   const ms = Date.now() - new Date(value).getTime();
   if (!Number.isFinite(ms) || ms < 0) return "";
   const mins = Math.floor(ms / 60_000);
-  if (mins < 60) return mins + "m ago";
+  if (mins < 1) return "now";
+  if (mins < 60) return mins + "m";
   const hrs = Math.floor(mins / 60);
-  if (hrs < 48) return hrs + "h ago";
-  return Math.floor(hrs / 24) + "d ago";
+  if (hrs < 48) return hrs + "h";
+  return Math.floor(hrs / 24) + "d";
 }
 
-function TokenImage({ item }: { item: Launch }) {
-  if (item.image) {
-    return <img className="market-card-image" src={item.image} alt="" />;
+function timestamp(value?: string | null) {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function volumeValue(item: Launch) {
+  try {
+    return BigInt(item.volume_24h ?? "0");
+  } catch {
+    return 0n;
   }
+}
+
+function Card({ item, graduated = false }: { item: Launch; graduated?: boolean }) {
+  const pct = progress(item);
+  const d = decimals(item);
+
   return (
-    <div className="market-card-image market-card-fallback" aria-hidden="true">
-      {item.symbol?.slice(0, 2).toUpperCase() || "✦"}
-    </div>
+    <TokenCard
+      href={`/token/${item.address}`}
+      image={item.image}
+      name={item.name}
+      symbol={item.symbol}
+      badge={graduated ? "Graduated" : item.generation === "CELESTIAL" ? "Celestial" : "V1"}
+      graduated={graduated}
+      value={money(item.volume_24h ?? "0", d)}
+      metaLeft={`${Number(item.trades_24h ?? 0).toLocaleString()} trades`}
+      metaRight={age(item.last_trade_at ?? item.created_at)}
+      footLeft={`${item.address.slice(0, 6)}…${item.address.slice(-4)}`}
+      footRight={graduated ? "DEX" : pct ? `${pct.toFixed(0)}%` : "24h vol"}
+      progress={graduated ? undefined : pct}
+    />
   );
 }
 
-function MarketCard({ item, graduated = false }: { item: Launch; graduated?: boolean }) {
-  const pct = progress(item);
-  const d = decimals(item);
+function LoadingGrid() {
   return (
-    <a href={"/token/" + item.address} className="market-card">
-      <div className="market-card-media">
-        <TokenImage item={item} />
-        <span className={"market-version " + (graduated ? "graduated" : "")}>
-          {graduated ? "Graduated" : item.generation === "CELESTIAL" ? "C" : "V1"}
-        </span>
-      </div>
-      <div className="market-card-body">
-        <div className="market-card-title">
-          <strong>{item.name}</strong>
-          <span>{item.symbol}</span>
-        </div>
-        <div className="market-card-value">{money(item.volume_24h ?? "0", d)}</div>
-        <div className="market-card-meta">
-          <span>{Number(item.trades_24h ?? 0).toLocaleString()} trades</span>
-          <span>{age(item.last_trade_at ?? item.created_at)}</span>
-        </div>
-        {!graduated && (
-          <div className="market-progress">
-            <div style={{ width: pct + "%" }} />
-          </div>
-        )}
-        <div className="market-card-foot">
-          <span>{item.address.slice(0, 6)}...{item.address.slice(-4)}</span>
-          <span>{graduated ? "DEX" : pct ? pct.toFixed(0) + "%" : "Live"}</span>
+    <div className={styles.surface} aria-label="Loading markets">
+      <div className={styles.skeletonPanel}>
+        <div className={styles.skeletonHead} />
+        <div className={styles.skeletonGrid}>
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div key={index} className={styles.skeletonCard} />
+          ))}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -120,7 +133,8 @@ export function Launches() {
   const [error, setError] = useState<string>();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("activity");
-  const [windowFilter, setWindowFilter] = useState<"all" | "24h" | "7d">("all");
+  const [windowFilter, setWindowFilter] = useState<WindowFilter>("all");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const client = createArcPublicClient();
@@ -164,109 +178,144 @@ export function Launches() {
     })();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [query, sort, windowFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const now = Date.now();
     const cutoff = windowFilter === "24h" ? now - 86_400_000 : windowFilter === "7d" ? now - 604_800_000 : 0;
 
-    const matches = items.filter((x) => {
-      const matchQuery =
+    const matches = items.filter((item) => {
+      const matchesQuery =
         !q ||
-        x.name.toLowerCase().includes(q) ||
-        x.symbol.toLowerCase().includes(q) ||
-        x.address.toLowerCase().includes(q);
-      const time = new Date(x.last_trade_at ?? x.created_at ?? 0).getTime();
-      return matchQuery && (!cutoff || time >= cutoff);
+        item.name.toLowerCase().includes(q) ||
+        item.symbol.toLowerCase().includes(q) ||
+        item.address.toLowerCase().includes(q);
+      const time = timestamp(item.last_trade_at ?? item.created_at);
+      return matchesQuery && (!cutoff || time >= cutoff);
     });
 
     return [...matches].sort((a, b) => {
-      if (sort === "volume") return BigInt(b.volume_24h ?? "0") > BigInt(a.volume_24h ?? "0") ? 1 : -1;
+      if (sort === "volume") {
+        const av = volumeValue(a);
+        const bv = volumeValue(b);
+        return av === bv ? 0 : bv > av ? 1 : -1;
+      }
       if (sort === "graduation") return progress(b) - progress(a);
-      if (sort === "newest") return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
-      return String(b.last_trade_at ?? b.created_at ?? "").localeCompare(String(a.last_trade_at ?? a.created_at ?? ""));
+      if (sort === "oldest") return timestamp(a.created_at) - timestamp(b.created_at);
+      if (sort === "newest") return timestamp(b.created_at) - timestamp(a.created_at);
+      return timestamp(b.last_trade_at ?? b.created_at) - timestamp(a.last_trade_at ?? a.created_at);
     });
   }, [items, query, sort, windowFilter]);
 
-  const graduated = filtered.filter((x) => x.status === "GRADUATED").slice(0, 10);
-  const live = filtered.filter((x) => x.status !== "GRADUATED");
+  const graduated = filtered.filter((item) => item.status === "GRADUATED").slice(0, 10);
+  const live = filtered.filter((item) => item.status !== "GRADUATED");
+  const pageCount = Math.max(1, Math.ceil(live.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const visibleLive = live.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  if (loading) {
-    return <div className="market-loading">Loading Celestial markets...</div>;
-  }
+  if (loading) return <LoadingGrid />;
 
   return (
-    <div className="explore-surface">
+    <div className={styles.surface}>
       {error && (
-        <div className="system-notice">
-          <strong>Market index degraded</strong>
-          <span>{error} Onchain trading can remain available from individual market pages.</span>
+        <div className={styles.notice} role="status">
+          <strong>Market data may be delayed.</strong>
+          <span>{error} Trading can remain available from contract state.</span>
         </div>
       )}
 
-      <div className="market-toolbar dense">
-        <div className="market-search-wrap">
-          <span>⌕</span>
-          <input
-            aria-label="Search tokens"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search tokens"
-          />
-        </div>
-        <div className="market-toolbar-actions">
-          <div className="segmented">
-            {([
-              ["activity", "Recent buys"],
-              ["newest", "Newest"],
-              ["graduation", "Market cap"],
-              ["volume", "Volume"]
-            ] as const).map(([value, label]) => (
-              <button key={value} className={sort === value ? "active" : ""} onClick={() => setSort(value)}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="segmented compact-segment">
-            {(["all", "24h", "7d"] as const).map((value) => (
-              <button key={value} className={windowFilter === value ? "active" : ""} onClick={() => setWindowFilter(value)}>
-                {value === "all" ? "All" : value}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {graduated.length > 0 && (
-        <section className="market-section graduated-section">
-          <div className="market-section-head">
-            <div>
-              <h2>Graduated <span>{graduated.length}</span></h2>
-              <p>Markets that cleared the graduation threshold.</p>
+        <section className={`${styles.panel} ${styles.graduatedPanel}`}>
+          <div className={styles.panelHead}>
+            <div className={styles.heading}>
+              <h2>Graduated</h2>
+              <span>{graduated.length}</span>
             </div>
           </div>
-          <div className="graduated-grid">
-            {graduated.map((item) => <MarketCard item={item} graduated key={item.address} />)}
+          <div className={styles.grid}>
+            {graduated.map((item) => <Card item={item} graduated key={item.address} />)}
           </div>
         </section>
       )}
 
-      <section className="market-section explore-grid-section">
-        <div className="market-section-head">
-          <div>
-            <h2>Explore <span>{live.length}</span></h2>
-            <p>Live markets on Arc. Trade terms and execution are read from contracts.</p>
+      <section className={styles.panel}>
+        <div className={styles.toolbar}>
+          <label className={styles.searchWrap}>
+            <span className={styles.searchIcon} aria-hidden="true">⌕</span>
+            <input
+              aria-label="Search tokens"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search token, ticker, or address"
+            />
+          </label>
+
+          <div className={styles.filters}>
+            <div className={styles.segmented} aria-label="Sort markets">
+              {([
+                ["activity", "Recent buys"],
+                ["newest", "Newest"],
+                ["oldest", "Oldest"],
+                ["graduation", "Graduation"],
+                ["volume", "Volume"]
+              ] as const).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={sort === value ? styles.active : ""}
+                  onClick={() => setSort(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.segmented} aria-label="Market time range">
+              {(["all", "24h", "7d"] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={windowFilter === value ? styles.active : ""}
+                  onClick={() => setWindowFilter(value)}
+                >
+                  {value === "all" ? "All" : value}
+                </button>
+              ))}
+            </div>
           </div>
-          <a href="/create" className="secondary-link compact-link">+ Create</a>
         </div>
 
-        {!live.length ? (
-          <div className="empty-state">
+        <div className={styles.panelHead}>
+          <div className={styles.heading}>
+            <h2>Explore</h2>
+            <span>{live.length.toLocaleString()} launches</span>
+          </div>
+          <a href="/create" className={styles.createLink}>Create</a>
+        </div>
+
+        {!visibleLive.length ? (
+          <div className={styles.empty}>
             <strong>{items.length ? "No matching markets" : "No live markets yet"}</strong>
             <span>{items.length ? "Try another search or time range." : "New launches will appear here automatically."}</span>
           </div>
         ) : (
-          <div className="market-card-grid">
-            {live.map((item) => <MarketCard item={item} key={item.address} />)}
+          <div className={styles.grid}>
+            {visibleLive.map((item) => <Card item={item} key={item.address} />)}
+          </div>
+        )}
+
+        {live.length > PAGE_SIZE && (
+          <div className={styles.pagination}>
+            <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1}>
+              Prev
+            </button>
+            <span>{safePage} / {pageCount}</span>
+            <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={safePage === pageCount}>
+              Next
+            </button>
           </div>
         )}
       </section>
