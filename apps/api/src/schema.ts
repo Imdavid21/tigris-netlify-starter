@@ -96,4 +96,61 @@ create table if not exists token_images (
   created_at timestamptz not null default now()
 );
 
+create table if not exists arc_chain_snapshots (
+  captured_at timestamptz primary key,
+  stats jsonb not null default '{}'::jsonb,
+  transaction_stats jsonb,
+  contract_counters jsonb,
+  hot_contracts jsonb
+);
+
+create index if not exists arc_chain_snapshots_time_idx on arc_chain_snapshots(captured_at desc);
+
+create table if not exists arc_daily_activity (
+  day date primary key,
+  transactions bigint not null default 0,
+  synced_at timestamptz not null default now()
+);
+
+create table if not exists arc_blocks (
+  block_number bigint primary key,
+  block_hash text,
+  block_time timestamptz not null,
+  transactions_count integer not null default 0,
+  gas_used numeric(78,0),
+  gas_limit numeric(78,0),
+  miner text,
+  synced_at timestamptz not null default now()
+);
+
+create index if not exists arc_blocks_time_idx on arc_blocks(block_time desc);
+
+create table if not exists arc_transactions (
+  tx_hash text primary key,
+  block_number bigint,
+  block_time timestamptz not null,
+  status text,
+  method text,
+  from_address text,
+  to_address text,
+  created_contract text,
+  fee_value text,
+  value text,
+  gas_used numeric(78,0),
+  gas_price text,
+  synced_at timestamptz not null default now()
+);
+
+create index if not exists arc_transactions_time_idx on arc_transactions(block_time desc);
+create index if not exists arc_transactions_block_idx on arc_transactions(block_number desc);
+create index if not exists arc_transactions_from_idx on arc_transactions(from_address, block_time desc);
+create index if not exists arc_transactions_to_idx on arc_transactions(to_address, block_time desc);
+
+create table if not exists arc_sync_state (
+  id text primary key,
+  last_synced_at timestamptz,
+  last_error text,
+  updated_at timestamptz not null default now()
+);
+
 `;
