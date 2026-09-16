@@ -60,7 +60,7 @@ jobs:
           );
           SQL
       - run: |
-          DATABASE_URL=postgres://postgres:test@127.0.0.1:5432/arc_launchpad PORT=3001 npm --workspace @supershot/api run start > /tmp/api.log 2>&1 &
+          DATABASE_URL=postgres://postgres:test@127.0.0.1:5432/arc_launchpad PORT=3001 npm --workspace @arc-launchpad/api run start > /tmp/api.log 2>&1 &
           PID=$!
           for i in {1..30}; do curl -fsS http://127.0.0.1:3001/health && break; sleep 1; done
           curl -fsS http://127.0.0.1:3001/health | grep '"ok":true'
@@ -76,7 +76,7 @@ jobs:
           DECIMALS=$(curl -fsS https://rpc.testnet.arc.network -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{"to":"0x3600000000000000000000000000000000000000","data":"0x313ce567"},"latest"]}')
           echo "$DECIMALS" | grep -E '0x0*6"'
       - run: |
-          NEXT_PUBLIC_ARC_CHAIN_ID=5042002 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000 npm --workspace @supershot/web run start -- -p 3000 > /tmp/web.log 2>&1 &
+          NEXT_PUBLIC_ARC_CHAIN_ID=5042002 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000 npm --workspace @arc-launchpad/web run start -- -p 3000 > /tmp/web.log 2>&1 &
           PID=$!
           for i in {1..30}; do
             if curl -fsS -o /dev/null http://127.0.0.1:3000/explore; then break; fi
