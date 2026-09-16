@@ -1,0 +1,108 @@
+name: fix-arc-analytics-empty-charts
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, 'analytics: fill Arc chart history')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync latest main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Patch Arc analytics data and charts
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          api = Path('apps/api/src/arc-analytics.ts')
+          text = api.read_text()
+
+          text = text.replace(
+          '''  if (Array.isArray(payload?.chart_data)) return payload.chart_data;\n  if (Array.isArray(payload?.data)) return payload.data;''',
+          '''  if (Array.isArray(payload?.chart_data)) return payload.chart_data;\n  if (Array.isArray(payload?.chart)) return payload.chart;\n  if (Array.isArray(payload?.data)) return payload.data;'''
+          )
+
+          marker = '''function normalizeActivity(raw: Json) {\n'''
+          helper = '''function normalizeStatsLine(raw: Json | null) {\n  if (!raw) return [];\n  return itemArray(raw)\n    .map((item) => ({\n      date: asString(item?.date ?? item?.date_from ?? item?.timestamp),\n      dateTo: asString(item?.date_to),\n      value: asNumber(item?.value),\n      approximate: Boolean(item?.is_approximate)\n    }))\n    .filter((item): item is { date: string; dateTo: string | null; value: number; approximate: boolean } => Boolean(item.date) && item.value !== null);\n}\n\n'''
+          if 'function normalizeStatsLine' not in text:
+              text = text.replace(marker, helper + marker)
+
+          old = '''    const hotContractsRaw = await optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" });\n\n    const stats = normalizeStats(statsRaw);'''
+          new = '''    const hotContractsRaw = await optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" });\n\n    const historicalLines: Record<string, ReturnType<typeof normalizeStatsLine>> = {};\n    for (const name of ["active_accounts", "txns_success_rate", "new_blocks", "average_gas_used", "average_gas_limit"]) {\n      const raw = await optionalBlockscout(`/stats-service/api/v1/lines/${name}`, { resolution: "DAY" });\n      const points = normalizeStatsLine(raw);\n      if (points.length) historicalLines[name] = points.slice(-365);\n    }\n\n    const stats = normalizeStats(statsRaw);'''
+          if old not in text:
+              raise SystemExit('historical lines insertion anchor not found')
+          text = text.replace(old, new)
+
+          old = '''      `insert into arc_chain_snapshots(captured_at,stats,transaction_stats,contract_counters,hot_contracts)\n       values (now(),$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb)`,\n      [JSON.stringify(stats), JSON.stringify(transactionStats), JSON.stringify(contractCounters), JSON.stringify(hotContracts)]'''
+          new = '''      `insert into arc_chain_snapshots(captured_at,stats,transaction_stats,contract_counters,hot_contracts,historical_lines)\n       values (now(),$1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5::jsonb)`,\n      [JSON.stringify(stats), JSON.stringify(transactionStats), JSON.stringify(contractCounters), JSON.stringify(hotContracts), JSON.stringify(historicalLines)]'''
+          if old not in text:
+              raise SystemExit('snapshot insertion anchor not found')
+          text = text.replace(old, new)
+
+          text = text.replace(
+              'const [snapshotRes, syncRes, activityRes, blocksRes, txRes, hourlyRes, methodsRes, destinationsRes] = await Promise.all([',
+              'const [snapshotRes, syncRes, activityRes, blocksRes, txRes, recentRes, methodsRes, destinationsRes] = await Promise.all(['
+          )
+
+          old_query = '''    db.query(`select date_trunc('hour',block_time) as bucket,\n                     count(*)::int as transactions,\n                     count(distinct from_address)::int as senders,\n                     count(*) filter (where lower(coalesce(status,'')) in ('ok','success','confirmed'))::int as successful,\n                     count(*) filter (where lower(coalesce(status,'')) in ('error','failed','fail','reverted','revert'))::int as failed,\n                     count(*) filter (where method is not null and method <> '')::int as contract_calls\n              from arc_transactions\n              where block_time > now() - interval '48 hours'\n              group by 1 order by 1 asc`),'''
+          new_query = '''    db.query(`with recent as (\n                select * from arc_transactions where block_time > now() - interval '48 hours'\n              ), bounds as (\n                select extract(epoch from (max(block_time) - min(block_time))) as span_seconds from recent\n              ), params as (\n                select case\n                  when coalesce(span_seconds,0) <= 300 then 5\n                  when span_seconds <= 3600 then 30\n                  when span_seconds <= 21600 then 120\n                  when span_seconds <= 86400 then 600\n                  else 1800\n                end::int as bucket_seconds\n                from bounds\n              ), aggregated as (\n                select to_timestamp(floor(extract(epoch from r.block_time) / p.bucket_seconds) * p.bucket_seconds) as bucket,\n                       p.bucket_seconds,\n                       count(*)::int as transactions,\n                       count(distinct r.from_address)::int as senders,\n                       count(*) filter (where lower(coalesce(r.status,'')) in ('ok','success','confirmed'))::int as successful,\n                       count(*) filter (where lower(coalesce(r.status,'')) in ('error','failed','fail','reverted','revert'))::int as failed,\n                       count(*) filter (where r.method is not null and r.method <> '')::int as contract_calls\n                from recent r cross join params p\n                group by 1,2\n              )\n              select * from (select * from aggregated order by bucket desc limit 240) latest order by bucket asc`),'''
+          if old_query not in text:
+              raise SystemExit('recent aggregation query anchor not found')
+          text = text.replace(old_query, new_query)
+
+          old_return = '''    hotContracts: snapshot.hot_contracts ?? [],\n    activity: activityRes.rows.map((row) => ({ date: row.day, transactions: asNumber(row.transactions) ?? 0 })),\n    hourly: hourlyRes.rows.map((row) => ({\n      time: row.bucket,\n      transactions: asNumber(row.transactions) ?? 0,\n      senders: asNumber(row.senders) ?? 0,\n      successful: asNumber(row.successful) ?? 0,\n      failed: asNumber(row.failed) ?? 0,\n      contractCalls: asNumber(row.contract_calls) ?? 0\n    })),'''
+          new_return = '''    hotContracts: snapshot.hot_contracts ?? [],\n    historicalLines: snapshot.historical_lines ?? {},\n    activity: activityRes.rows.map((row) => ({ date: row.day, transactions: asNumber(row.transactions) ?? 0 })),\n    recentBucketSeconds: asNumber(recentRes.rows[0]?.bucket_seconds) ?? null,\n    recentActivity: recentRes.rows.map((row) => ({\n      time: row.bucket,\n      transactions: asNumber(row.transactions) ?? 0,\n      senders: asNumber(row.senders) ?? 0,\n      successful: asNumber(row.successful) ?? 0,\n      failed: asNumber(row.failed) ?? 0,\n      contractCalls: asNumber(row.contract_calls) ?? 0\n    })),'''
+          if old_return not in text:
+              raise SystemExit('overview return anchor not found')
+          text = text.replace(old_return, new_return)
+          api.write_text(text)
+
+          web = Path('apps/web/components/analytics-dashboard.tsx')
+          text = web.read_text()
+
+          old = '''  const hourly = Array.isArray(arc?.hourly) ? arc.hourly : [];\n  const contracts = arc?.contracts ?? {};\n  const transactionStats = arc?.transactionStats ?? {};'''
+          new = '''  const recentActivity = Array.isArray(arc?.recentActivity) ? arc.recentActivity : [];\n  const historicalLines = arc?.historicalLines ?? {};\n  const contracts = arc?.contracts ?? {};\n  const transactionStats = arc?.transactionStats ?? {};\n  const bucketSeconds = Number(arc?.recentBucketSeconds ?? 0);\n  const bucketLabel = bucketSeconds <= 5 ? "5s" : bucketSeconds < 60 ? `${bucketSeconds}s` : bucketSeconds < 3600 ? `${Math.round(bucketSeconds / 60)}m` : `${Math.round(bucketSeconds / 3600)}h`;'''
+          if old not in text:
+              raise SystemExit('web recent activity const anchor not found')
+          text = text.replace(old, new)
+
+          start = text.index('  const hourlyTransactions = useMemo<AnalyticsChartPoint[]>')
+          end = text.index('  const totals = useMemo', start)
+          replacement = '''  const recentTransactions = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => ({\n    time: toTime(item.time), value: Number(item.transactions ?? 0), label: new Date(item.time).toLocaleString()\n  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);\n\n  const recentSenders = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => ({\n    time: toTime(item.time), value: Number(item.senders ?? 0), label: new Date(item.time).toLocaleString()\n  })).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);\n\n  const recentSuccess = useMemo<AnalyticsChartPoint[]>(() => recentActivity.map((item: any) => {\n    const success = Number(item.successful ?? 0);\n    const failed = Number(item.failed ?? 0);\n    const known = success + failed;\n    return { time: toTime(item.time), value: known > 0 ? success / known * 100 : NaN, label: new Date(item.time).toLocaleString() };\n  }).filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value)), [recentActivity]);\n\n  const statsLine = (name: string, asPercent = false) => (Array.isArray(historicalLines?.[name]) ? historicalLines[name] : [])\n    .map((item: any) => {\n      const raw = Number(item.value);\n      const value = asPercent && raw >= 0 && raw <= 1 ? raw * 100 : raw;\n      return { time: toTime(item.date), value, label: new Date(item.date).toLocaleDateString() };\n    })\n    .filter((point: AnalyticsChartPoint) => point.time > 0 && Number.isFinite(point.value));\n\n  const activeAccountsHistory = statsLine("active_accounts");\n  const successHistory = statsLine("txns_success_rate", true);\n  const newBlocksHistory = statsLine("new_blocks");\n  const avgGasUsedHistory = statsLine("average_gas_used");\n\n  const activeAccountPoints = activeAccountsHistory.length >= 2 ? activeAccountsHistory : recentSenders;\n  const successPoints = successHistory.length >= 2 ? successHistory : recentSuccess;\n\n  const blockBuckets = useMemo(() => {\n    const grouped = new Map<number, { transactions: number; gasFill: number; gasSamples: number; blocks: number; first: number; last: number }>();\n    for (const block of [...blocks].reverse()) {\n      const second = toTime(block.timestamp);\n      if (!second) continue;\n      const number = Number(block.number ?? 0);\n      const entry = grouped.get(second) ?? { transactions: 0, gasFill: 0, gasSamples: 0, blocks: 0, first: number, last: number };\n      entry.transactions += Number(block.transactions ?? 0);\n      entry.blocks += 1;\n      entry.first = Math.min(entry.first || number, number);\n      entry.last = Math.max(entry.last || number, number);\n      const used = Number(block.gasUsed);\n      const limit = Number(block.gasLimit);\n      if (Number.isFinite(used) && Number.isFinite(limit) && limit > 0) {\n        entry.gasFill += Math.min(100, used / limit * 100);\n        entry.gasSamples += 1;\n      }\n      grouped.set(second, entry);\n    }\n    return [...grouped.entries()].sort((a, b) => a[0] - b[0]);\n  }, [blocks]);\n\n  const blockTxPoints = useMemo<AnalyticsChartPoint[]>(() => blockBuckets.map(([time, row]) => ({\n    time, value: row.blocks ? row.transactions / row.blocks : 0, label: row.first === row.last ? `#${row.first}` : `#${row.first}–${row.last}`\n  })), [blockBuckets]);\n\n  const gasFillPoints = useMemo<AnalyticsChartPoint[]>(() => blockBuckets.filter(([, row]) => row.gasSamples > 0).map(([time, row]) => ({\n    time, value: row.gasFill / row.gasSamples, label: row.first === row.last ? `#${row.first}` : `#${row.first}–${row.last}`\n  })), [blockBuckets]);\n\n'''
+          text = text[:start] + replacement + text[end:]
+
+          text = text.replace('}, { tx: 0, contract: 0, success: 0, failed: 0 }), [hourly]);', '}, { tx: 0, contract: 0, success: 0, failed: 0 }), [recentActivity]);')
+          text = text.replace('hourly.reduce((acc:', 'recentActivity.reduce((acc:')
+
+          old_grid = '''      <section className={styles.chartGrid}>\n        <AnalyticsChart title="Transactions" points={transactionTrend} rangesEnabled defaultRange="30d" />\n        <AnalyticsChart title="Transactions / hour" points={hourlyTransactions} kind="bar" />\n        <AnalyticsChart title="Active senders / hour" points={hourlySenders} />\n        <AnalyticsChart title="Success rate" points={hourlySuccess} format="percent" />\n        <AnalyticsChart title="Transactions / block" points={blockTxPoints} kind="bar" />\n        <AnalyticsChart title="Block utilization" points={gasFillPoints} format="percent" />\n      </section>'''
+          new_grid = '''      <section className={styles.chartGrid}>\n        {transactionTrend.length >= 2 && <AnalyticsChart title="Transactions" points={transactionTrend} rangesEnabled defaultRange="30d" />}\n        {recentTransactions.length >= 2 && <AnalyticsChart title={`Transactions / ${bucketLabel}`} points={recentTransactions} kind="bar" />}\n        {activeAccountPoints.length >= 2 && <AnalyticsChart title={activeAccountsHistory.length >= 2 ? "Active accounts" : `Active senders / ${bucketLabel}`} points={activeAccountPoints} rangesEnabled={activeAccountsHistory.length >= 2} defaultRange="30d" />}\n        {successPoints.length >= 2 && <AnalyticsChart title="Success rate" points={successPoints} format="percent" rangesEnabled={successHistory.length >= 2} defaultRange="30d" />}\n        {blockTxPoints.length >= 2 && <AnalyticsChart title="Transactions / block" points={blockTxPoints} kind="bar" />}\n        {gasFillPoints.length >= 2 && <AnalyticsChart title="Block utilization" points={gasFillPoints} format="percent" />}\n        {newBlocksHistory.length >= 2 && <AnalyticsChart title="New blocks" points={newBlocksHistory} kind="bar" rangesEnabled defaultRange="30d" />}\n        {avgGasUsedHistory.length >= 2 && <AnalyticsChart title="Average gas used" points={avgGasUsedHistory} rangesEnabled defaultRange="30d" />}\n      </section>'''
+          if old_grid not in text:
+              raise SystemExit('chart grid anchor not found')
+          text = text.replace(old_grid, new_grid)
+          text = text.replace('<CardTitle title="Methods · 24h" />', '<CardTitle title="Methods" />')
+          web.write_text(text)
+          PY
+      - name: Validate builds
+        run: |
+          npm install
+          npm --workspace @arc-launchpad/api run build
+          npm --workspace @arc-launchpad/web run build
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/src/arc-analytics.ts apps/web/components/analytics-dashboard.tsx
+          git commit -m "analytics: fill Arc chart history"
+          git pull --rebase origin main
+          git push origin HEAD:main
