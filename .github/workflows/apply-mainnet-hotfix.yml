@@ -1,0 +1,70 @@
+name: Apply Mainnet Hotfix
+
+on:
+  push:
+    branches:
+      - fix/mainnet-indexing-nonce
+    paths:
+      - .github/workflows/apply-mainnet-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mainnet-indexing-nonce
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Apply targeted patches
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          market = Path('apps/web/components/token-market.tsx')
+          text = market.read_text()
+          rpc_import = 'import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";'
+          nonce_import = 'import { writeContractFreshNonce } from "@/lib/transactions";'
+          if nonce_import not in text:
+              if rpc_import not in text:
+                  raise SystemExit('token-market rpc import not found')
+              text = text.replace(rpc_import, rpc_import + '\n' + nonce_import, 1)
+          count = text.count('wallet.writeContract({')
+          if count < 5:
+              raise SystemExit(f'expected at least 5 wallet writes, found {count}')
+          text = text.replace('wallet.writeContract({', 'writeContractFreshNonce(wallet, client, account, {')
+          market.write_text(text)
+
+          analytics = Path('apps/api/src/arc-analytics.ts')
+          text = analytics.read_text()
+          old = 'const SYNC_INTERVAL_MS = 30 * 60 * 1000;'
+          new = 'const SYNC_INTERVAL_MS = Number(process.env.ARC_ANALYTICS_SYNC_INTERVAL_MS ?? "120000");'
+          if old not in text and new not in text:
+              raise SystemExit('analytics sync constant not found')
+          text = text.replace(old, new, 1)
+          analytics.write_text(text)
+          PY
+
+      - name: Build changed apps
+        run: |
+          npm install
+          npm --workspace @arc-launchpad/indexer run build
+          npm --workspace @arc-launchpad/api run build
+          npm --workspace @arc-launchpad/web run build
+
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/components/token-market.tsx apps/api/src/arc-analytics.ts
+          git diff --cached --exit-code && exit 0
+          git commit -m "fix: sync mainnet data and refresh wallet nonces"
+          git push origin HEAD:fix/mainnet-indexing-nonce
