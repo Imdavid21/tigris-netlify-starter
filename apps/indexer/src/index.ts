@@ -56,13 +56,19 @@ async function runIngestionUntilLive() {
 }
 
 async function main() {
+  const expectedChainId = Number(process.env.ARC_CHAIN_ID ?? "5042002");
+  const rpcChainId = await client.getChainId();
+  if (rpcChainId !== expectedChainId) {
+    throw new Error(`RPC chain mismatch: expected ${expectedChainId}, received ${rpcChainId}`);
+  }
+
   await prepareDatabaseSchema();
   await db.query(schemaSql);
   startHealthServer();
 
   try {
     latestBlock = await client.getBlockNumber();
-    console.log(`Arc indexer connected at block ${latestBlock} using database schema ${databaseSchema}`);
+    console.log(`Arc indexer connected to chain ${rpcChainId} at block ${latestBlock} using database schema ${databaseSchema}`);
   } catch (error) {
     ingestionState = "degraded";
     lastIngestionError = error instanceof Error ? error.message : String(error);
