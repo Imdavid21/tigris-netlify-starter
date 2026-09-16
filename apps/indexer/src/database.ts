@@ -8,6 +8,11 @@ if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(databaseSchema)) {
   throw new Error("DATABASE_SCHEMA must be a valid PostgreSQL identifier");
 }
 
+const chainId = Number(process.env.ARC_CHAIN_ID ?? "5042002");
+if (chainId === 5042 && databaseSchema === "public") {
+  throw new Error("Arc mainnet must use an isolated DATABASE_SCHEMA, not public");
+}
+
 function quoteIdentifier(value: string) {
   return `"${value.replaceAll('"', '""')}"`;
 }
