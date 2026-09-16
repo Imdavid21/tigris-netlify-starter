@@ -1,0 +1,104 @@
+name: Simulate Celestial Arc Mainnet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/simulate-celestial-mainnet.yml
+      - packages/contracts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    env:
+      FORK_URL: "https://rpc.mainnet.arc.io"
+      LOCAL_RPC: "http://127.0.0.1:8545"
+      PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      PROTOCOL_TREASURY: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Start Arc mainnet fork
+        run: |
+          anvil --fork-url "$FORK_URL" --chain-id 5042 --port 8545 > /tmp/anvil.log 2>&1 &
+          echo $! > /tmp/anvil.pid
+          for i in $(seq 1 30); do
+            if cast chain-id --rpc-url "$LOCAL_RPC" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          test "$(cast chain-id --rpc-url "$LOCAL_RPC")" = "5042"
+
+      - name: Deploy complete Celestial stack on fork
+        run: |
+          set -o pipefail
+          forge script packages/contracts/script/DeployCelestialMainnet.s.sol:DeployCelestialMainnet \
+            --rpc-url "$LOCAL_RPC" \
+            --broadcast \
+            -vvv | tee /tmp/celestial-mainnet-simulation.log
+
+      - name: Verify deployed wiring
+        run: |
+          FACTORY=$(grep "CELESTIAL_FACTORY" /tmp/celestial-mainnet-simulation.log | tail -1 | awk '{print $NF}')
+          HOOK=$(grep "CELESTIAL_V4_HOOK" /tmp/celestial-mainnet-simulation.log | tail -1 | awk '{print $NF}')
+          CONNECTOR=$(grep "CELESTIAL_V4_CONNECTOR" /tmp/celestial-mainnet-simulation.log | tail -1 | awk '{print $NF}')
+          ADAPTER=$(grep "CELESTIAL_DEX_ADAPTER" /tmp/celestial-mainnet-simulation.log | tail -1 | awk '{print $NF}')
+
+          test -n "$FACTORY"
+          test -n "$HOOK"
+          test -n "$CONNECTOR"
+          test -n "$ADAPTER"
+
+          for ADDRESS in "$FACTORY" "$HOOK" "$CONNECTOR" "$ADAPTER"; do
+            test "$(cast code "$ADDRESS" --rpc-url "$LOCAL_RPC")" != "0x"
+          done
+
+          CONFIGURED_ADAPTER=$(cast call "$FACTORY" 'graduationAdapter()(address)' --rpc-url "$LOCAL_RPC")
+          test "${CONFIGURED_ADAPTER,,}" = "${ADAPTER,,}"
+
+          INITIALIZER=$(cast call "$HOOK" 'initializer()(address)' --rpc-url "$LOCAL_RPC")
+          test "${INITIALIZER,,}" = "${CONNECTOR,,}"
+          test "$(cast call "$HOOK" 'initializerSealed()(bool)' --rpc-url "$LOCAL_RPC")" = "true"
+
+          POOL_MANAGER=$(cast call "$CONNECTOR" 'poolManager()(address)' --rpc-url "$LOCAL_RPC")
+          POSITION_MANAGER=$(cast call "$CONNECTOR" 'positionManager()(address)' --rpc-url "$LOCAL_RPC")
+          QUOTER=$(cast call "$CONNECTOR" 'quoter()(address)' --rpc-url "$LOCAL_RPC")
+          UNIVERSAL_ROUTER=$(cast call "$CONNECTOR" 'universalRouter()(address)' --rpc-url "$LOCAL_RPC")
+          PERMIT2=$(cast call "$CONNECTOR" 'permit2()(address)' --rpc-url "$LOCAL_RPC")
+
+          test "${POOL_MANAGER,,}" = "0x8366a39cc670b4001a1121b8f6a443a643e40951"
+          test "${POSITION_MANAGER,,}" = "0x6049c9a0e26405c0985f9e3685c87d0ae917f82b"
+          test "${QUOTER,,}" = "0x8dc178efb8111bb0973dd9d722ebeff267c98f94"
+          test "${UNIVERSAL_ROUTER,,}" = "0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1"
+          test "${PERMIT2,,}" = "0x000000000022d473030f116ddee9f6b43ac78ba3"
+
+          HOOK_INT=$(cast to-dec "$HOOK")
+          test "$((HOOK_INT & 16383))" = "8192"
+
+          echo "Factory=$FACTORY"
+          echo "Hook=$HOOK"
+          echo "Connector=$CONNECTOR"
+          echo "Adapter=$ADAPTER"
+
+      - name: Upload simulation log
+        uses: actions/upload-artifact@v4
+        with:
+          name: celestial-mainnet-simulation
+          path: |
+            /tmp/celestial-mainnet-simulation.log
+            /tmp/anvil.log
