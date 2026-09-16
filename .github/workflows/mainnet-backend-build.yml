@@ -1,4 +1,4 @@
-name: Arc Mainnet Backend Isolation
+name: supershot.fun Arc Mainnet Backend Isolation
 
 on:
   push:
@@ -26,8 +26,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm --workspace @arc-launchpad/api run build
-      - run: npm --workspace @arc-launchpad/indexer run build
+      - run: npm --workspace @supershot/api run build
+      - run: npm --workspace @supershot/indexer run build
 
       - name: Start isolated PostgreSQL
         run: |
@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=mainnet PORT=3002 \
-            npm --workspace @arc-launchpad/api run start > /tmp/api-mainnet.log 2>&1 &
+            npm --workspace @supershot/api run start > /tmp/api-mainnet.log 2>&1 &
           echo $! > /tmp/api-mainnet.pid
 
           : > /tmp/api-health.json
@@ -98,7 +98,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: arc-mainnet-backend-isolation
+          name: supershot-mainnet-backend-isolation
           path: |
             /tmp/api-mainnet.log
             /tmp/api-health.json
