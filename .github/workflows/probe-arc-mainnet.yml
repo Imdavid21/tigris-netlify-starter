@@ -64,3 +64,5 @@ jobs:
           DECIMALS=$(rpc eth_call "[{\"to\":\"$USDC\",\"data\":\"0x313ce567\"},\"latest\"]")
           echo "USDC_DECIMALS_RAW=$DECIMALS"
           test "$DECIMALS" = "0x0000000000000000000000000000000000000000000000000000000000000006"
+
+          echo "Arc mainnet readiness probe completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
