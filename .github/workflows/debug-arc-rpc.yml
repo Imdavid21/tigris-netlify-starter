@@ -1,0 +1,45 @@
+name: Debug Arc Mainnet RPC
+
+on:
+  push:
+    branches:
+      - debug/arc-mainnet-rpc
+    paths:
+      - .github/workflows/debug-arc-rpc.yml
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Probe health and log RPC
+        env:
+          RPC: https://rpc.mainnet.arc.io
+          FACTORY: 0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423
+          ORDERBOOK: 0xED7b5904e272d3DF891179D916D2E3A939ed1471
+        run: |
+          set -euo pipefail
+          echo '--- indexer health ---'
+          curl -fsSL --max-time 20 https://arc-launchpad-indexer.onrender.com/health || true
+          echo
+          echo '--- api health ---'
+          curl -fsSL --max-time 20 https://arc-launchpad-api.onrender.com/health || true
+          echo
+          echo '--- site status ---'
+          curl -fsSL --max-time 20 https://supershot.fun/api/status || true
+          echo
+          echo '--- chain ---'
+          cast chain-id --rpc-url "$RPC"
+          LATEST=$(cast block-number --rpc-url "$RPC")
+          echo "latest=$LATEST"
+          FROM=21158188
+          FROM_HEX=$(printf '0x%x' "$FROM")
+          LATEST_HEX=$(printf '0x%x' "$LATEST")
+          echo '--- factory logs full deployment range ---'
+          time cast rpc --rpc-url "$RPC" eth_getLogs "{\"fromBlock\":\"$FROM_HEX\",\"toBlock\":\"$LATEST_HEX\",\"address\":\"$FACTORY\"}" | head -c 4000
+          echo
+          echo '--- orderbook logs full deployment range ---'
+          time cast rpc --rpc-url "$RPC" eth_getLogs "{\"fromBlock\":\"$FROM_HEX\",\"toBlock\":\"$LATEST_HEX\",\"address\":\"$ORDERBOOK\"}" | head -c 4000
+          echo
