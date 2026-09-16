@@ -1,0 +1,529 @@
+/* Purple cyberpunk visual system. Presentation only: no protocol or wallet behavior changes. */
+:root{
+  --cyber-bg:#07040f;
+  --cyber-bg-2:#0b0614;
+  --cyber-panel:#0e0719;
+  --cyber-panel-2:#140a23;
+  --cyber-panel-3:#1a0d2d;
+  --cyber-line:#3f215c;
+  --cyber-line-soft:#281438;
+  --cyber-line-hot:#8f4ad1;
+  --cyber-accent:#a855f7;
+  --cyber-accent-2:#c084fc;
+  --cyber-accent-3:#e9d5ff;
+  --cyber-text:#f5ecff;
+  --cyber-muted:#9f86b7;
+  --cyber-dim:#6d537f;
+  --cyber-glow:rgba(168,85,247,.22);
+  --cyber-grid:rgba(168,85,247,.065);
+  --cyber-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+
+html,body{
+  background:var(--cyber-bg)!important;
+  color:var(--cyber-text)!important;
+}
+
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 18% -8%,rgba(168,85,247,.14),transparent 33rem),
+    radial-gradient(circle at 88% 18%,rgba(126,34,206,.11),transparent 30rem),
+    linear-gradient(180deg,#080410 0%,#06030c 58%,#090411 100%)!important;
+  position:relative;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+  background-image:
+    linear-gradient(var(--cyber-grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--cyber-grid) 1px,transparent 1px);
+  background-size:38px 38px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.72),rgba(0,0,0,.18) 74%,transparent);
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);
+  opacity:.34;
+}
+
+::selection{background:#8f4ad1;color:#fff}
+*{scrollbar-color:#5d2c84 #0a0512}
+
+.app-shell{
+  max-width:1540px!important;
+  padding:14px 24px 84px!important;
+}
+
+/* Header */
+.topbar{
+  min-height:64px!important;
+  padding:0 14px!important;
+  position:sticky;
+  top:8px;
+  z-index:40;
+  border:1px solid var(--cyber-line)!important;
+  background:rgba(9,4,17,.9)!important;
+  backdrop-filter:blur(18px) saturate(130%);
+  box-shadow:0 12px 42px rgba(0,0,0,.38),inset 0 0 30px rgba(168,85,247,.035);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+}
+
+.topbar::before{
+  content:"SYS // CELESTIAL";
+  position:absolute;
+  top:-8px;
+  left:16px;
+  padding:0 8px;
+  background:var(--cyber-bg);
+  color:var(--cyber-dim);
+  font:8px/1 var(--cyber-mono);
+  letter-spacing:.16em;
+}
+
+.topbar::after{
+  content:"";
+  position:absolute;
+  right:20px;
+  bottom:-1px;
+  width:88px;
+  height:4px;
+  background:repeating-linear-gradient(135deg,var(--cyber-accent) 0 8px,transparent 8px 13px);
+  opacity:.82;
+}
+
+.brand{
+  gap:9px!important;
+  color:var(--cyber-text)!important;
+  font-family:var(--cyber-mono)!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase;
+}
+
+.brand-mark{
+  width:31px!important;
+  height:31px!important;
+  border:1px solid #b96cff!important;
+  border-radius:0!important;
+  background:linear-gradient(135deg,#2d0d48,#8c3dcc)!important;
+  color:#f3e5ff!important;
+  box-shadow:inset 0 0 12px rgba(255,255,255,.08),0 0 22px var(--cyber-glow)!important;
+  clip-path:polygon(0 0,74% 0,100% 26%,100% 100%,26% 100%,0 74%);
+}
+
+.nav{gap:5px!important;margin-left:18px!important}
+.nav a{
+  position:relative;
+  padding:10px 12px;
+  color:var(--cyber-muted)!important;
+  border:1px solid transparent;
+  font:10px/1 var(--cyber-mono)!important;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.nav a::before{content:"//";margin-right:6px;color:#5c2e7d}
+.nav a:hover{
+  color:var(--cyber-accent-3)!important;
+  border-color:#4d286d;
+  background:#130921;
+}
+
+.header-actions{gap:7px!important}
+.network-chip,.search-trigger,.theme-toggle,.wallet-button{
+  border-radius:0!important;
+  border-color:#44245f!important;
+  background:#0f071a!important;
+  color:#bda4d3!important;
+  box-shadow:none!important;
+}
+.network-chip,.search-trigger{
+  font:9px/1 var(--cyber-mono)!important;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.network-chip:hover,.search-trigger:hover,.theme-toggle:hover,.wallet-button:hover{
+  border-color:#9c50df!important;
+  color:#f0ddff!important;
+  background:#190b2a!important;
+}
+.status-dot,.protocol-status-dot{
+  background:#c084fc!important;
+  box-shadow:0 0 0 2px rgba(192,132,252,.12),0 0 14px rgba(192,132,252,.55)!important;
+}
+
+.protocol-status{
+  min-height:26px!important;
+  margin:0 0 6px!important;
+  border:1px solid #4c2868!important;
+  background:#12081f!important;
+  color:#9277aa!important;
+  font:9px/1.25 var(--cyber-mono)!important;
+  letter-spacing:.05em;
+}
+.protocol-status strong{color:#d9b8f7!important}
+
+/* Type */
+h1,h2,h3,strong{color:var(--cyber-text)}
+h1,h2,h3{letter-spacing:-.035em}
+.page-heading h1,.explore-intro h1,.token-title-line h1,.marketing-hero h1{
+  text-transform:uppercase;
+  font-family:var(--cyber-mono)!important;
+  letter-spacing:-.055em!important;
+}
+.explore-intro h1::before,.page-heading h1::before{content:"// ";color:#9d4ce0;font-size:.55em;vertical-align:.2em}
+.muted,.explore-intro p,.page-heading p,.review-copy,.preview-description,.terminal-footnote,.profile-empty{color:var(--cyber-muted)!important}
+.kicker{display:block!important;color:#a85df0!important;font:9px/1 var(--cyber-mono)!important;letter-spacing:.15em!important}
+
+/* Global controls */
+button,.primary-link,.secondary-link,.compact-link{
+  border-radius:0!important;
+  font-family:var(--cyber-mono)!important;
+  letter-spacing:.035em;
+}
+.primary-link,.launch-cta,.review-trade-button,.profile-connect button,.fees-card>button{
+  color:#12051e!important;
+  background:linear-gradient(135deg,#e9d5ff 0%,#c084fc 52%,#a855f7 100%)!important;
+  border:1px solid #d8b4fe!important;
+  box-shadow:0 0 24px rgba(168,85,247,.2)!important;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+}
+.primary-link:hover,.launch-cta:hover,.review-trade-button:hover,.profile-connect button:hover,.fees-card>button:hover{
+  filter:brightness(1.08);
+  box-shadow:0 0 30px rgba(192,132,252,.36)!important;
+}
+.secondary-link{
+  color:#cfb6e5!important;
+  background:#100719!important;
+  border:1px solid #4b2968!important;
+}
+input,textarea,select{
+  border-radius:0!important;
+  border:1px solid #3f2257!important;
+  background:#0b0513!important;
+  color:#f2e7ff!important;
+  font-family:var(--cyber-mono)!important;
+  caret-color:#c084fc;
+}
+input::placeholder,textarea::placeholder{color:#6f567f!important}
+input:focus,textarea:focus,select:focus{
+  border-color:#a855f7!important;
+  box-shadow:0 0 0 2px rgba(168,85,247,.11),inset 0 0 22px rgba(168,85,247,.045)!important;
+}
+label>span,.amount-label,.hero-metrics span,.analytics-kpi span,.metric-card span,.preview-stat span,.about-grid span{
+  color:#8e72a6!important;
+  font-family:var(--cyber-mono)!important;
+  letter-spacing:.08em!important;
+}
+
+/* Panels */
+.launch-list,.empty-state,.form-card,.launch-preview,.chart-card,.trade-terminal,.metric-card,
+.analytics-card,.analytics-hero-card,.analytics-panel,.profile-connect,.profile-summary,.profile-table,
+.stock-card,.jurisdiction-card,.feature-notice,.fees-card,.market-section,.market-card,.market-loading,
+.graduation-strip,.hero-metrics,.search-modal,.site-footer,.terminal-preview,.marketing-feature,.flow-step,
+.about-grid>div,.v2-about{
+  border-radius:0!important;
+  border-color:var(--cyber-line)!important;
+  background:linear-gradient(180deg,rgba(17,8,30,.97),rgba(10,5,17,.98))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.018),0 18px 48px rgba(0,0,0,.14)!important;
+}
+
+.form-card,.launch-preview,.chart-card,.trade-terminal,.metric-card,.analytics-hero-card,.analytics-panel,.profile-summary,.fees-card,.market-section,.site-footer{
+  position:relative;
+  overflow:hidden;
+}
+.form-card::before,.chart-card::before,.trade-terminal::before,.metric-card::before,.analytics-panel::before,.market-section::before,.fees-card::before{
+  content:"";
+  position:absolute;
+  top:0;
+  right:0;
+  width:72px;
+  height:4px;
+  background:repeating-linear-gradient(135deg,#a855f7 0 7px,transparent 7px 11px);
+  opacity:.58;
+  pointer-events:none;
+}
+
+/* Discover */
+.explore-page{max-width:1420px!important}
+.explore-intro{
+  padding:50px 2px 24px!important;
+  border-bottom:1px solid #2a153c;
+  position:relative;
+}
+.explore-intro::after{
+  content:"ARC TESTNET // MARKET DISCOVERY GRID";
+  position:absolute;
+  right:0;
+  bottom:7px;
+  color:#5e3b72;
+  font:8px/1 var(--cyber-mono);
+  letter-spacing:.12em;
+}
+.explore-intro h1{font-size:38px!important}
+.market-toolbar.dense{gap:8px!important}
+.market-search-wrap input{height:42px!important}
+.segmented{
+  border-radius:0!important;
+  border-color:#38204e!important;
+  background:#0b0512!important;
+}
+.segmented button{border-radius:0!important;color:#8d73a4!important;font:9px/1 var(--cyber-mono)!important;text-transform:uppercase}
+.segmented button.active{background:#2a123e!important;color:#e4ccf9!important;box-shadow:inset 0 -2px #a855f7}
+.market-section{padding:14px!important}
+.market-section-head{
+  padding-bottom:10px;
+  border-bottom:1px solid #2d183f;
+}
+.market-section-head h2{font-family:var(--cyber-mono);text-transform:uppercase;font-size:14px!important}
+.market-section-head h2::before{content:"// ";color:#a855f7}
+.market-card{
+  border-color:#311a45!important;
+  background:#0d0716!important;
+  transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease!important;
+}
+.market-card:hover{
+  transform:translateY(-3px)!important;
+  border-color:#8f4ad1!important;
+  background:#140a20!important;
+  box-shadow:0 10px 30px rgba(97,38,137,.2)!important;
+}
+.market-card-media{background:#08040e!important}
+.market-card-fallback{background:radial-gradient(circle at 30% 18%,#4d1b72,#0b0512 70%)!important;color:#e9d5ff!important}
+.market-version,.market-version.graduated{
+  border:1px solid #70409a!important;
+  border-radius:0!important;
+  background:#261138!important;
+  color:#d9b8f7!important;
+  font-family:var(--cyber-mono)!important;
+}
+.market-card-title span,.market-card-meta,.market-card-foot{color:#7f648f!important}
+.market-card-value{color:#e4c9ff!important}
+.market-progress{background:#1f102c!important;border-radius:0!important}
+.market-progress>div{background:linear-gradient(90deg,#7e22ce,#c084fc)!important;border-radius:0!important;box-shadow:0 0 12px rgba(168,85,247,.42)}
+.graduated-section{background:linear-gradient(180deg,rgba(62,25,91,.32),rgba(13,7,22,.98) 42%)!important}
+.system-notice{
+  border-radius:0!important;
+  border-color:#593078!important;
+  background:#170b25!important;
+  color:#a98cbe!important;
+}
+.system-notice strong,.system-notice span{color:#c8a7e2!important}
+
+/* Token terminal */
+.token-breadcrumb{font-family:var(--cyber-mono)!important;color:#705780!important}
+.token-hero{border-bottom:1px solid #2d173f}
+.token-avatar{
+  border-radius:0!important;
+  color:#160722!important;
+  background:linear-gradient(135deg,#e9d5ff,#b86bf2 54%,#7e22ce)!important;
+  box-shadow:0 0 28px rgba(168,85,247,.2);
+  clip-path:polygon(0 0,76% 0,100% 24%,100% 100%,24% 100%,0 76%);
+}
+.phase-pill,.phase-badge,.live-badge,.coming-chip{
+  border-radius:0!important;
+  border-color:#5a3078!important;
+  background:#1b0d2a!important;
+  color:#c9a8e3!important;
+  font-family:var(--cyber-mono)!important;
+  text-transform:uppercase;
+}
+.hero-metrics{border-color:#3a2050!important}
+.hero-metrics>div{border-color:#2d183f!important;background:rgba(18,8,30,.56)}
+.graduation-strip{border-color:#45255f!important}
+.progress-track{border-radius:0!important;background:#21102e!important}
+.progress-track>div{border-radius:0!important;background:linear-gradient(90deg,#7e22ce,#c084fc)!important;box-shadow:0 0 12px rgba(168,85,247,.4)}
+.chart-card{border-color:#482563!important}
+.chart-ranges button,.market-tabs button,.profile-tabs button{
+  border-radius:0!important;
+  color:#866b9c!important;
+  font-family:var(--cyber-mono)!important;
+}
+.chart-ranges button.active,.market-tabs button.active,.profile-tabs button.active{
+  background:#2b123f!important;
+  color:#e3c9f8!important;
+  box-shadow:inset 0 -2px #a855f7;
+}
+.chart-stage{color:#c084fc!important}
+.about-panel,.market-tabs,.profile-tabs{border-color:#2b173d!important}
+.about-grid>div{border-color:#321b46!important}
+.trade-terminal{border-color:#5a2e7b!important;box-shadow:0 20px 64px rgba(0,0,0,.28),0 0 46px rgba(126,34,206,.07)!important}
+.trade-modes,.amount-box,.trade-review{
+  border-radius:0!important;
+  border-color:#321a45!important;
+  background:#090410!important;
+}
+.trade-modes button,.side-toggle button,.quick-amounts button,.trade-settings button{
+  border-radius:0!important;
+  color:#8f73a5!important;
+  border-color:#3b2050!important;
+  background:#11071c!important;
+  font-family:var(--cyber-mono)!important;
+}
+.trade-modes button.active,.side-toggle button.active.buy,.side-toggle button.active.sell,.trade-settings button.active{
+  color:#ead9f8!important;
+  background:#301445!important;
+  border-color:#8242b6!important;
+  box-shadow:inset 0 -2px #a855f7!important;
+}
+.form-error{
+  border-radius:0!important;
+  border-color:#6a3a89!important;
+  background:#200d30!important;
+  color:#d6b8eb!important;
+}
+
+/* Create, portfolio, profile, analytics */
+.step-index{
+  border-radius:0!important;
+  border-color:#4c2868!important;
+  color:#c39cdf!important;
+  font-family:var(--cyber-mono)!important;
+}
+.economics-table{
+  border-radius:0!important;
+  border-color:#38204c!important;
+  background:#0a0511!important;
+}
+.economics-table>div{border-color:#281536!important}
+.advanced-grid{border-color:#2b173c!important}
+.profile-row,.launch-row,.buyback-row{border-color:#281537!important}
+.profile-row:hover,.launch-row:hover,.buyback-row:hover{background:#170a25!important}
+.launch-list-head,.profile-table-head,.buyback-head{
+  color:#7d6091!important;
+  background:#0a0511!important;
+  font-family:var(--cyber-mono)!important;
+}
+.analytics-kpi-grid,.buyback-table{border-color:#3c2052!important}
+.analytics-kpi{border-color:#2c173d!important}
+.analytics-bars.upgraded{background:#0a0512!important;border-color:#2d183f!important}
+.analytics-bar{background:linear-gradient(180deg,#c084fc,#7e22ce)!important;box-shadow:0 0 10px rgba(168,85,247,.2)}
+.fees-card{background:linear-gradient(135deg,#170a26,#0b0512)!important}
+
+/* Search and footer */
+.search-backdrop{background:rgba(4,1,8,.74)!important;backdrop-filter:blur(7px)}
+.search-modal{border-color:#7740a4!important;box-shadow:0 30px 100px rgba(0,0,0,.6),0 0 60px rgba(168,85,247,.1)!important}
+.search-results a:hover{background:#1a0c2a!important}
+.search-avatar{border-radius:0!important;background:linear-gradient(135deg,#dfc6ff,#8c3dcc)!important;color:#160722!important}
+.site-footer{border-color:#321b46!important}
+.footer-bottom,.marketing-strip,.protocol-block{border-color:#2b173d!important}
+.site-footer h3,.site-footer strong{font-family:var(--cyber-mono)!important;text-transform:uppercase}
+
+/* Any remaining semantic colors are kept inside the purple system. */
+.side-toggle button.active.sell,
+.trade-type.sell,
+.negative,.down,.loss{color:#d8a7f0!important}
+.side-toggle button.active.buy,
+.trade-type.buy,
+.positive,.up,.gain{color:#c084fc!important}
+
+/* Light mode remains purple, not white SaaS. */
+html[data-theme="light"]{
+  --cyber-bg:#f6efff;
+  --cyber-bg-2:#eee2fa;
+  --cyber-panel:#fbf8ff;
+  --cyber-panel-2:#f2e7fb;
+  --cyber-panel-3:#e8d8f5;
+  --cyber-line:#b899ce;
+  --cyber-line-soft:#ddcaeb;
+  --cyber-line-hot:#7e3cad;
+  --cyber-accent:#7e22ce;
+  --cyber-accent-2:#9333ea;
+  --cyber-accent-3:#4d166d;
+  --cyber-text:#24102f;
+  --cyber-muted:#735d82;
+  --cyber-dim:#9a7bab;
+  --cyber-glow:rgba(126,34,206,.13);
+  --cyber-grid:rgba(126,34,206,.075);
+  background:#f6efff!important;
+  color:#24102f!important;
+}
+html[data-theme="light"] body{
+  color:#24102f!important;
+  background:
+    radial-gradient(circle at 15% -10%,rgba(126,34,206,.10),transparent 30rem),
+    radial-gradient(circle at 92% 12%,rgba(168,85,247,.08),transparent 26rem),
+    linear-gradient(180deg,#fbf7ff,#f3eafb)!important;
+}
+html[data-theme="light"] body::after{opacity:.16}
+html[data-theme="light"] .topbar{background:rgba(250,246,255,.91)!important;border-color:#b997cf!important;box-shadow:0 12px 38px rgba(75,34,97,.08)!important}
+html[data-theme="light"] .topbar::before{background:#f6efff;color:#9c7aac}
+html[data-theme="light"] .brand{color:#2b1238!important}
+html[data-theme="light"] .nav a{color:#765b85!important}
+html[data-theme="light"] .nav a:hover{color:#4d166d!important;background:#efe2f8!important;border-color:#c9addb}
+html[data-theme="light"] .network-chip,
+html[data-theme="light"] .search-trigger,
+html[data-theme="light"] .theme-toggle,
+html[data-theme="light"] .wallet-button{background:#fbf7ff!important;border-color:#bfa3d1!important;color:#694b79!important}
+html[data-theme="light"] .protocol-status{background:#efe2f8!important;border-color:#c2a4d4!important;color:#765986!important}
+html[data-theme="light"] .protocol-status strong{color:#5e297b!important}
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select{background:#fdfaff!important;color:#2a1237!important;border-color:#c7add7!important}
+html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#a288b0!important}
+html[data-theme="light"] .launch-list,
+html[data-theme="light"] .empty-state,
+html[data-theme="light"] .form-card,
+html[data-theme="light"] .launch-preview,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .trade-terminal,
+html[data-theme="light"] .metric-card,
+html[data-theme="light"] .analytics-card,
+html[data-theme="light"] .analytics-hero-card,
+html[data-theme="light"] .analytics-panel,
+html[data-theme="light"] .profile-connect,
+html[data-theme="light"] .profile-summary,
+html[data-theme="light"] .profile-table,
+html[data-theme="light"] .stock-card,
+html[data-theme="light"] .jurisdiction-card,
+html[data-theme="light"] .feature-notice,
+html[data-theme="light"] .fees-card,
+html[data-theme="light"] .market-section,
+html[data-theme="light"] .market-card,
+html[data-theme="light"] .market-loading,
+html[data-theme="light"] .graduation-strip,
+html[data-theme="light"] .hero-metrics,
+html[data-theme="light"] .search-modal,
+html[data-theme="light"] .site-footer,
+html[data-theme="light"] .about-grid>div{
+  color:#24102f!important;
+  background:linear-gradient(180deg,#fff,#f8f1fc)!important;
+  border-color:#c7acd8!important;
+}
+html[data-theme="light"] .market-card:hover,html[data-theme="light"] .launch-row:hover,html[data-theme="light"] .profile-row:hover{background:#efe2f8!important}
+html[data-theme="light"] .segmented,html[data-theme="light"] .trade-modes,html[data-theme="light"] .amount-box,html[data-theme="light"] .trade-review{background:#f3e7fa!important;border-color:#c8add8!important}
+html[data-theme="light"] .muted,html[data-theme="light"] .explore-intro p,html[data-theme="light"] .page-heading p,html[data-theme="light"] .review-copy{color:#755f82!important}
+html[data-theme="light"] .launch-row,html[data-theme="light"] .profile-row,html[data-theme="light"] .buyback-row{color:#2a1237!important;border-color:#decbe9!important}
+html[data-theme="light"] .system-notice{background:#eee0f7!important;border-color:#b88dcc!important;color:#684774!important}
+html[data-theme="light"] .system-notice strong,html[data-theme="light"] .system-notice span{color:#5f3671!important}
+html[data-theme="light"] .form-error{background:#eadcf4!important;border-color:#b789cc!important;color:#603471!important}
+
+@media(max-width:900px){
+  .app-shell{padding:10px 14px 58px!important}
+  .topbar{top:4px;gap:10px!important;overflow-x:auto;clip-path:none}
+  .topbar::before,.topbar::after{display:none}
+  .nav{margin-left:4px!important;gap:2px!important}
+  .nav a{padding:9px 7px;font-size:8px!important;white-space:nowrap}
+  .header-actions{min-width:max-content}
+  .network-chip{display:none!important}
+  .explore-intro::after{display:none}
+}
+
+@media(max-width:620px){
+  .brand span:last-child{display:none}
+  .brand-mark{width:29px!important;height:29px!important}
+  .search-trigger{max-width:38px;overflow:hidden}
+  .topbar{padding:0 8px!important}
+  .explore-intro h1{font-size:30px!important}
+  .market-card-grid,.graduated-grid{gap:6px!important}
+}
