@@ -1,0 +1,145 @@
+name: One-shot Arc Mainnet Deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/arc-mainnet-deploy.trigger"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arc-mainnet-production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ARC_RPC_URL: "https://rpc.mainnet.arc.io"
+      PROTOCOL_TREASURY: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+      EXPECTED_DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
+      RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
+      ARC_USDC: "0x3600000000000000000000000000000000000000"
+      V4_POOL_MANAGER: "0x8366a39CC670B4001A1121B8F6A443A643e40951"
+      V4_POSITION_MANAGER: "0x6049c9a0e26405C0985f9E3685C87d0aE917f82B"
+      V4_QUOTER: "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94"
+      V4_UNIVERSAL_ROUTER: "0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1"
+      PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts --no-commit
+          forge install foundry-rs/forge-std --no-commit
+
+      - name: Normalize and verify deployer
+        run: |
+          set -euo pipefail
+          test -n "$RAW_PRIVATE_KEY"
+          case "$RAW_PRIVATE_KEY" in
+            0x*) PRIVATE_KEY="$RAW_PRIVATE_KEY" ;;
+            *) PRIVATE_KEY="0x$RAW_PRIVATE_KEY" ;;
+          esac
+          echo "PRIVATE_KEY=$PRIVATE_KEY" >> "$GITHUB_ENV"
+          DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY")
+          test "${DEPLOYER,,}" = "${EXPECTED_DEPLOYER,,}"
+
+      - name: Verify Arc Mainnet dependencies and funded balance
+        run: |
+          set -euo pipefail
+          test "$(cast chain-id --rpc-url "$ARC_RPC_URL")" = "5042"
+          for TARGET in "$ARC_USDC" "$V4_POOL_MANAGER" "$V4_POSITION_MANAGER" "$V4_QUOTER" "$V4_UNIVERSAL_ROUTER" "$PERMIT2"; do
+            CODE=$(cast code "$TARGET" --rpc-url "$ARC_RPC_URL")
+            test "$CODE" != "0x"
+          done
+          test "$(cast call "$ARC_USDC" 'decimals()(uint8)' --rpc-url "$ARC_RPC_URL")" = "6"
+          BALANCE=$(cast balance "$EXPECTED_DEPLOYER" --rpc-url "$ARC_RPC_URL")
+          test "$BALANCE" -ge 5000000000000000000
+          echo "Preflight deployer native balance: $BALANCE"
+
+      - name: Test contracts
+        run: forge test -vv
+
+      - name: Simulate production deployment
+        run: |
+          forge script packages/contracts/script/DeployCelestialMainnet.s.sol:DeployCelestialMainnet \
+            --rpc-url "$ARC_RPC_URL" \
+            -vv
+
+      - name: Broadcast production deployment
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          START_BLOCK=$(cast block-number --rpc-url "$ARC_RPC_URL")
+          echo "START_BLOCK=$START_BLOCK" >> "$GITHUB_ENV"
+
+          forge script packages/contracts/script/DeployCelestialMainnet.s.sol:DeployCelestialMainnet \
+            --rpc-url "$ARC_RPC_URL" \
+            --broadcast \
+            -vvv | tee /tmp/arc-mainnet-deployment.log
+
+          FACTORY=$(grep "CELESTIAL_FACTORY" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          ESCROW=$(grep "CELESTIAL_FEE_ESCROW" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          BUYBACK=$(grep "CELESTIAL_BUYBACK_VAULT" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          LOCKER=$(grep "CELESTIAL_LIQUIDITY_LOCKER" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          ORDERBOOK=$(grep "CELESTIAL_LIMIT_ORDER_BOOK" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          HOOK=$(grep "CELESTIAL_V4_HOOK" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          CONNECTOR=$(grep "CELESTIAL_V4_CONNECTOR" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          ADAPTER=$(grep "CELESTIAL_DEX_ADAPTER" /tmp/arc-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          END_BLOCK=$(cast block-number --rpc-url "$ARC_RPC_URL")
+
+          for VALUE in "$FACTORY" "$ESCROW" "$BUYBACK" "$LOCKER" "$ORDERBOOK" "$HOOK" "$CONNECTOR" "$ADAPTER"; do
+            test -n "$VALUE"
+            test "$(cast code "$VALUE" --rpc-url "$ARC_RPC_URL")" != "0x"
+          done
+
+          CONFIGURED_ADAPTER=$(cast call "$FACTORY" 'graduationAdapter()(address)' --rpc-url "$ARC_RPC_URL")
+          test "${CONFIGURED_ADAPTER,,}" = "${ADAPTER,,}"
+          CONFIGURED_INITIALIZER=$(cast call "$HOOK" 'initializer()(address)' --rpc-url "$ARC_RPC_URL")
+          test "${CONFIGURED_INITIALIZER,,}" = "${CONNECTOR,,}"
+          test "$(cast call "$HOOK" 'initializerSealed()(bool)' --rpc-url "$ARC_RPC_URL")" = "true"
+
+          cat > /tmp/arc-mainnet-addresses.json <<EOF
+          {
+            "chainId": 5042,
+            "deploymentStartBlock": $START_BLOCK,
+            "deploymentEndBlock": $END_BLOCK,
+            "factory": "$FACTORY",
+            "feeEscrow": "$ESCROW",
+            "buybackVault": "$BUYBACK",
+            "liquidityLocker": "$LOCKER",
+            "orderBook": "$ORDERBOOK",
+            "v4Hook": "$HOOK",
+            "v4Connector": "$CONNECTOR",
+            "dexAdapter": "$ADAPTER",
+            "usdc": "$ARC_USDC"
+          }
+          EOF
+
+          {
+            echo "## Supershot / Celestial Arc Mainnet"
+            echo "- Deployment blocks: $START_BLOCK to $END_BLOCK"
+            echo "- Factory: $FACTORY"
+            echo "- Fee escrow: $ESCROW"
+            echo "- Buyback vault: $BUYBACK"
+            echo "- Liquidity locker: $LOCKER"
+            echo "- Limit order book: $ORDERBOOK"
+            echo "- v4 hook: $HOOK"
+            echo "- v4 connector: $CONNECTOR"
+            echo "- DEX adapter: $ADAPTER"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arc-mainnet-production-deployment
+          path: |
+            /tmp/arc-mainnet-deployment.log
+            /tmp/arc-mainnet-addresses.json
+            broadcast/
