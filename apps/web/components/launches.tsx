@@ -101,7 +101,7 @@ function Card({ item, graduated = false }: { item: Launch; graduated?: boolean }
       image={item.image}
       name={item.name}
       symbol={item.symbol}
-      badge={graduated ? "Graduated" : item.generation === "CELESTIAL" ? "Celestial" : "V1"}
+      badge={graduated ? "Graduated" : item.generation === "CELESTIAL" ? "supershot.fun" : "V1"}
       graduated={graduated}
       value={money(item.volume_24h ?? "0", d)}
       metaLeft={`${Number(item.trades_24h ?? 0).toLocaleString()} trades`}

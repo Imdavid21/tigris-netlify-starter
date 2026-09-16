@@ -5,7 +5,7 @@ import "../styles/base.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Celestial on Arc",
+  title: "supershot.fun on Arc",
   description: "Permissionless token launches and onchain markets on Arc",
   icons: {
     icon: "/icon.svg",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 const themeScript = `
 (() => {
   try {
-    const saved = localStorage.getItem("celestial-theme");
+    const saved = localStorage.getItem("supershot-theme");
     const theme = saved === "dark" || saved === "light"
       ? saved
       : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");

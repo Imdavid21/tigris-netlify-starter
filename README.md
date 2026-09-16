@@ -1,4 +1,4 @@
-# Celestial
+# supershot.fun
 
 Non-custodial token launchpad and market terminal built for Arc.
 

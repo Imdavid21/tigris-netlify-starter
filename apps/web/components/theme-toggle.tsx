@@ -9,7 +9,7 @@ type Theme = "dark" | "light";
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
-  const saved = window.localStorage.getItem("celestial-theme");
+  const saved = window.localStorage.getItem("supershot-theme");
   if (saved === "dark" || saved === "light") return saved;
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
@@ -27,7 +27,7 @@ export function ThemeToggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
     document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("celestial-theme", next);
+    window.localStorage.setItem("supershot-theme", next);
   }
 
   return (

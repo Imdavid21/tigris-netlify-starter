@@ -1,10 +1,10 @@
-# Celestial Functionality and Security Audit
+# supershot.fun Functionality and Security Audit
 
 Date: 2026-09-14
 
 ## Scope
 
-Internal engineering review of the current Celestial implementation across Solidity contracts, launch and trading flows, wallet/network handling, API, PostgreSQL, indexer, Render deployment, RPC failure behavior, and CI.
+Internal engineering review of the current supershot.fun implementation across Solidity contracts, launch and trading flows, wallet/network handling, API, PostgreSQL, indexer, Render deployment, RPC failure behavior, and CI.
 
 This is not an independent third-party smart-contract audit.
 
@@ -177,7 +177,7 @@ Slither output must be reviewed again for the final production DEX connector.
 
 ## Uniswap v4 graduation review
 
-Celestial now contains a price-aware Uniswap v4 connector and adapter path. It is not enabled on the deployed Arc Testnet factory.
+supershot.fun now contains a price-aware Uniswap v4 connector and adapter path. It is not enabled on the deployed Arc Testnet factory.
 
 Implemented protections:
 
@@ -192,7 +192,7 @@ Implemented protections:
 - output slippage is enforced
 - unexpected surplus launch-token inventory is burned
 - unexpected quote surplus is permanently locked
-- post-graduation trades remain routed through the same Celestial market page
+- post-graduation trades remain routed through the same supershot.fun market page
 
 Known v4-specific risks that remain mainnet gates:
 

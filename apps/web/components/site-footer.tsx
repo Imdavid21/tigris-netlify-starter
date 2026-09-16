@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CelestialLogo } from "@/components/celestial-logo";
+import { SupershotLogo } from "@/components/supershot-logo";
 import { flowContainer, flowItem, motionSpring } from "@/lib/motion-system";
 import styles from "./SiteFooter.module.css";
 
@@ -20,15 +20,15 @@ export function SiteFooter() {
         <motion.a
           href="/explore"
           className={styles.brand}
-          aria-label="Celestial Explore"
+          aria-label="supershot.fun Explore"
           whileHover={{ x: 2 }}
           whileTap={{ scale: 0.98 }}
           transition={motionSpring.spatialFast}
         >
           <motion.span whileHover={{ rotate: 8, scale: 1.05 }} transition={motionSpring.spatialFast}>
-            <CelestialLogo className={styles.logo} />
+            <SupershotLogo className={styles.logo} />
           </motion.span>
-          <span>Celestial</span>
+          <span>supershot.fun</span>
         </motion.a>
         <p>
           Non-custodial token launches and onchain markets on Arc. Your wallet signs every transaction.
@@ -57,7 +57,7 @@ export function SiteFooter() {
       </motion.div>
 
       <motion.div className={styles.bottom} variants={flowItem} layout="position">
-        <span>© Celestial · Arc Testnet</span>
+        <span>© supershot.fun · Arc Testnet</span>
         <div className={styles.bottomLinks}>
           <motion.a href="/analytics" whileHover={{ y: -1 }}>Protocol data</motion.a>
           <motion.a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer" whileHover={{ y: -1 }}>Arc</motion.a>

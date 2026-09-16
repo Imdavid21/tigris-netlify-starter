@@ -1,5 +1,5 @@
 {
-  "name": "@arc-launchpad/indexer",
+  "name": "@supershot/indexer",
   "private": true,
   "type": "module",
   "scripts": {

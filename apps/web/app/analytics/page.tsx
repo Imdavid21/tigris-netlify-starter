@@ -68,7 +68,7 @@ export default async function AnalyticsPage() {
         <div className="analytics-title-row">
           <div>
             <h1>Analytics</h1>
-            <p>Indexed onchain reporting for Celestial markets on Arc.</p>
+            <p>Indexed onchain reporting for supershot.fun markets on Arc.</p>
           </div>
           <div className="analytics-actions">
             <span className="phase-pill">Live index</span>
@@ -108,7 +108,7 @@ export default async function AnalyticsPage() {
         <div className="analytics-panel-head">
           <div>
             <h2>Trading venues</h2>
-            <p>Celestial keeps one market page while execution moves from the bonding curve to Uniswap v4 after graduation.</p>
+            <p>supershot.fun keeps one market page while execution moves from the bonding curve to Uniswap v4 after graduation.</p>
           </div>
         </div>
         <div className="analytics-kpi-grid analytics-kpi-grid-four">
@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
         <div className="analytics-panel-head">
           <div>
             <h2>Buyback and burn</h2>
-            <p>Protocol-funded executions indexed from the Celestial buyback vault.</p>
+            <p>Protocol-funded executions indexed from the supershot.fun buyback vault.</p>
           </div>
           <strong>{stats?.buyback_count ?? "—"} executions</strong>
         </div>

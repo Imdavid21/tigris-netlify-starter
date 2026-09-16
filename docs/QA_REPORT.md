@@ -1,4 +1,4 @@
-# Celestial QA Matrix
+# supershot.fun QA Matrix
 
 Date: 2026-09-14
 

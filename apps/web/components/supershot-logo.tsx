@@ -1,10 +1,10 @@
-export function CelestialLogo({ className = "" }: { className?: string }) {
+export function SupershotLogo({ className = "" }: { className?: string }) {
   return (
     <svg
       className={className}
       viewBox="0 0 256 256"
       role="img"
-      aria-label="Celestial"
+      aria-label="supershot.fun"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path

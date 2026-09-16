@@ -1,4 +1,4 @@
-# Celestial / Arc Launchpad Source of Truth
+# supershot.fun / Arc Launchpad Source of Truth
 
 Last verified: 2026-09-16
 
@@ -6,18 +6,18 @@ Current live frontend commit at verification: `54f61596820e98592a34b12494db2167b
 
 Repository: `Imdavid21/tigris-netlify-starter`
 
-This document consolidates the current product, design system, architecture, deployed contracts, user flows, work completed, superseded design experiments, known debt, and remaining external gates for the Arc launchpad now branded as Celestial.
+This document consolidates the current product, design system, architecture, deployed contracts, user flows, work completed, superseded design experiments, known debt, and remaining external gates for the Arc launchpad now branded as supershot.fun.
 
 It is intended to stop future agents from reconstructing context from old chats, stale screenshots, individual commits, or superseded design directions.
 
 ## 1. Product definition
 
-Celestial is a non-custodial token launchpad and market terminal built for Arc.
+supershot.fun is a non-custodial token launchpad and market terminal built for Arc.
 
 The core product model is:
 
 1. Create a token with explicit launch economics.
-2. Start trading on a Celestial bonding curve.
+2. Start trading on a supershot.fun bonding curve.
 3. Let users discover, buy, sell, place limit orders, inspect holders, and track market activity from the same product.
 4. Graduate the market into permanently locked DEX liquidity once the curve reaches its graduation threshold.
 5. Keep the same token page after graduation and switch the execution venue underneath it.
@@ -220,7 +220,7 @@ Key desktop patterns:
 - Portfolio: wallet-oriented panels and tables
 - Scanner: contract inspection, top holders, and recent activity
 
-## 5. Current Celestial brand mark
+## 5. Current supershot.fun brand mark
 
 The approved mark is a rounded lime tile containing a black four-point celestial spark.
 
@@ -250,7 +250,7 @@ Primary component:
 Current header hierarchy:
 
 1. Protocol status strip when needed
-2. Celestial mark + wordmark
+2. supershot.fun mark + wordmark
 3. Primary nav
    - Explore
    - Analytics
@@ -307,7 +307,7 @@ Primary file:
 
 - `apps/web/components/token-market.tsx`
 
-The token market supports both legacy V1 and Celestial generations.
+The token market supports both legacy V1 and supershot.fun generations.
 
 Current surfaces:
 
@@ -375,7 +375,7 @@ Primary files:
 - `apps/web/app/create/CreatePage.module.css`
 - `apps/web/components/create-token-form.tsx`
 
-Current Celestial launch options include:
+Current supershot.fun launch options include:
 
 - name
 - symbol
@@ -408,7 +408,7 @@ Atomic developer buy flow:
 5. decode `TokenCreated`
 6. redirect to the new token page
 
-Legacy fallback remains supported when the Celestial factory is unavailable, but Celestial-only terms must not be silently discarded.
+Legacy fallback remains supported when the supershot.fun factory is unavailable, but supershot.fun-only terms must not be silently discarded.
 
 ### 7.4 Portfolio
 
@@ -429,7 +429,7 @@ Current responsibilities:
 - wallet activity
 - open and historical limit orders
 - legacy creator fee claims
-- Celestial multi-asset creator fee claims
+- supershot.fun multi-asset creator fee claims
 
 `/profile` is now a compatibility route and redirects to `/portfolio`.
 
@@ -512,7 +512,7 @@ Several visual directions were implemented as experiments during the redesign. T
    - temporarily loaded
    - later superseded
 
-4. Kinetic red-black Celestial landing page
+4. Kinetic red-black supershot.fun landing page
    - temporarily built
    - later superseded
 
@@ -529,7 +529,7 @@ Several visual directions were implemented as experiments during the redesign. T
 The final redesign sequence on 2026-09-16 was:
 
 - reset frontend styling entrypoint
-- add Celestial design tokens
+- add supershot.fun design tokens
 - route root directly to Explore
 - rebuild footer with product-first density
 - add Explore market-grid styles
@@ -544,8 +544,8 @@ The final redesign sequence on 2026-09-16 was:
 - remove Stocks from header
 - apply warm-stone and acid-lime palette globally
 - remove final Stocks reference
-- use approved Celestial brand mark
-- use Celestial mark for metadata icons
+- use approved supershot.fun brand mark
+- use supershot.fun mark for metadata icons
 - match header brand lockup proportions
 
 Unless explicitly requested, future frontend work should extend this current system instead of restoring any older experiment.
@@ -604,7 +604,7 @@ Indexer:
 - Arc event ingestion
 - historical backfill
 - live watchers
-- V1 and Celestial coexistence
+- V1 and supershot.fun coexistence
 
 ## 11. Source-of-truth architecture
 
@@ -631,7 +631,7 @@ API/indexer are for:
 
 Backend failure must not make an otherwise-live market untradeable.
 
-The token-market resolver therefore attempts direct onchain Celestial resolution before falling back to legacy V1 resolution when indexed data is missing or delayed.
+The token-market resolver therefore attempts direct onchain supershot.fun resolution before falling back to legacy V1 resolution when indexed data is missing or delayed.
 
 ## 12. Wallet architecture
 
@@ -716,9 +716,9 @@ Legacy contracts include:
 
 Do not delete or silently repurpose the V1 contracts while old markets remain live.
 
-## 16. Celestial testnet deployment
+## 16. supershot.fun testnet deployment
 
-Current Celestial Arc Testnet addresses:
+Current supershot.fun Arc Testnet addresses:
 
 Factory:
 
@@ -746,7 +746,7 @@ Indexer backfill start used:
 
 The current factory intentionally has no production DEX graduation adapter configured until official Arc DEX deployment details are verified.
 
-## 17. Celestial protocol components
+## 17. supershot.fun protocol components
 
 ### CelestialLaunchFactory
 
@@ -822,13 +822,13 @@ Provides the boundary for:
 - post-graduation quote
 - post-graduation exact-input swaps
 
-### Celestial Uniswap v4 connector path
+### supershot.fun Uniswap v4 connector path
 
 A price-aware Uniswap v4 connector and adapter architecture has been implemented and tested locally, but it is not enabled on the deployed Arc Testnet factory.
 
 The intended lifecycle is:
 
-1. trade on Celestial curve
+1. trade on supershot.fun curve
 2. reach threshold
 3. lock terminal curve price
 4. sweep pending fees
@@ -837,7 +837,7 @@ The intended lifecycle is:
 7. mint liquidity directly to permanent locker
 8. burn surplus launch-token inventory
 9. permanently lock surplus quote
-10. route future trades through the same Celestial token page
+10. route future trades through the same supershot.fun token page
 
 Do not configure guessed v4 deployment addresses.
 
@@ -856,7 +856,7 @@ Initial V1 curve design inputs are still documented as provisional:
 
 These are design inputs, not immutable promises for future production deployments.
 
-Celestial adds configurable bounded economics, including creator tax, holder sharing, and launch protection.
+supershot.fun adds configurable bounded economics, including creator tax, holder sharing, and launch protection.
 
 Current documented caps include:
 
@@ -892,7 +892,7 @@ Token page -> read withdrawable holder rewards -> Claim -> confirmation -> refre
 
 ### Creator fee claim
 
-Portfolio -> read legacy or Celestial claimable fees -> claim through corresponding escrow -> refresh activity.
+Portfolio -> read legacy or supershot.fun claimable fees -> claim through corresponding escrow -> refresh activity.
 
 ### Scanner
 
@@ -922,10 +922,10 @@ Important API surfaces include:
 Core indexed event families include:
 
 - V1 `TokenCreated`
-- Celestial `TokenCreated`
+- supershot.fun `TokenCreated`
 - `MetadataSet`
 - V1 Buy / Sell
-- Celestial Buy / Sell
+- supershot.fun Buy / Sell
 - ERC-20 `Transfer`
 - `GraduationSwept`
 - `TokenGraduated`
@@ -1015,7 +1015,7 @@ This is an internal engineering audit, not a third-party security audit.
 - defined Arc-native launchpad blueprint
 - established Explore-first product direction
 - preserved legacy V1 compatibility
-- implemented Celestial generation
+- implemented supershot.fun generation
 - added metadata and socials
 - added configurable quote assets
 - added atomic create plus developer buy
@@ -1025,10 +1025,10 @@ This is an internal engineering audit, not a third-party security audit.
 - added limit-order system
 - added buyback/burn vault
 - added graduation adapter boundary
-- deployed Celestial contracts to Arc Testnet
-- wired frontend and indexer environment to Celestial addresses
+- deployed supershot.fun contracts to Arc Testnet
+- wired frontend and indexer environment to supershot.fun addresses
 - added generation-aware market resolution
-- fixed token market resolution by checking Celestial onchain state before V1 fallback
+- fixed token market resolution by checking supershot.fun onchain state before V1 fallback
 - made recent-trade wallets clickable on Arcscan
 - made entire holder rows clickable on Arcscan
 - removed the marketing homepage and opened Explore at root
@@ -1040,7 +1040,7 @@ This is an internal engineering audit, not a third-party security audit.
 
 ### 2026-09-15: product-surface cleanup
 
-- aligned navigation to current Celestial product surfaces
+- aligned navigation to current supershot.fun product surfaces
 - redirected legacy Profile to Portfolio
 
 ### 2026-09-16: frontend redesign consolidation
@@ -1072,7 +1072,7 @@ Canonical sequence:
 - removed obsolete brand footer
 - removed Stocks from navigation and final references
 - applied current warm-stone and acid-lime palette
-- added approved Celestial brand mark across product and metadata
+- added approved supershot.fun brand mark across product and metadata
 - finalized header brand proportions
 
 ## 24. Current known gaps and external gates
@@ -1132,7 +1132,7 @@ These remain useful future improvements from the original product blueprint, but
 3. Do not restore cyberpunk, Avenue, red-black, or Utopia experiments by default.
 4. Do not restore Stocks or a separate marketing homepage unless explicitly requested.
 5. Keep `/` and `/trade` discovery-first unless product direction changes explicitly.
-6. Preserve V1 and Celestial coexistence.
+6. Preserve V1 and supershot.fun coexistence.
 7. Keep execution-critical state recoverable from chain.
 8. Never make API/indexer availability a prerequisite for contract-native trading.
 9. Never invent Arc DEX addresses.

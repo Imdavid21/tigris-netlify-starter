@@ -1,5 +1,5 @@
 {
-  "name": "@arc-launchpad/api",
+  "name": "@supershot/api",
   "private": true,
   "type": "module",
   "scripts": {

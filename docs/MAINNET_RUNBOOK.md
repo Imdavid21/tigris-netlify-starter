@@ -1,4 +1,4 @@
-# Celestial Arc Mainnet Cutover Runbook
+# supershot.fun Arc Mainnet Cutover Runbook
 
 Updated: 2026-09-16
 
@@ -56,7 +56,7 @@ bash scripts/deploy-celestial-mainnet-arc.sh
 
 The deployment script prints:
 
-- Celestial factory
+- supershot.fun factory
 - fee escrow
 - buyback vault
 - liquidity locker

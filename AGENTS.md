@@ -1,14 +1,14 @@
-# Celestial Agent Handoff
+# supershot.fun Agent Handoff
 
 Last updated: 2026-09-14
 
-This file is the source-of-truth handoff for agents continuing work on Celestial. Read it before modifying contracts, deployment configuration, backend services, or the frontend.
+This file is the source-of-truth handoff for agents continuing work on supershot.fun. Read it before modifying contracts, deployment configuration, backend services, or the frontend.
 
 ## Product
 
-Celestial is a non-custodial token launchpad and market terminal built on Arc.
+supershot.fun is a non-custodial token launchpad and market terminal built on Arc.
 
-The product direction is informed by PONS, but Celestial is not intended to be a pixel clone. The target feature set includes:
+The product direction is informed by PONS, but supershot.fun is not intended to be a pixel clone. The target feature set includes:
 
 - token launch metadata and socials
 - atomic launch plus developer buy
@@ -107,9 +107,9 @@ Legacy contracts:
 - ArcFeeEscrow.sol
 - ArcLiquidityLocker.sol
 
-Do not delete or silently repurpose these contracts. The indexer supports both V1 and Celestial generations.
+Do not delete or silently repurpose these contracts. The indexer supports both V1 and supershot.fun generations.
 
-## Celestial protocol generation
+## supershot.fun protocol generation
 
 New contracts:
 
@@ -241,9 +241,9 @@ Until then:
 - do not configure a fake graduation adapter
 - UI must state that post-graduation routing is unavailable if no adapter is configured
 
-## Celestial Arc Testnet deployment
+## supershot.fun Arc Testnet deployment
 
-Celestial is deployed on Arc Testnet.
+supershot.fun is deployed on Arc Testnet.
 
 Factory:
 0x418a062cEcB23d68a3e8dcEa19E89bAD98bBe826
@@ -298,7 +298,7 @@ The one-time push trigger used for initial deployment was removed. Future contra
 Stable test frontend:
 https://arc-launchpad-web.onrender.com
 
-The product is branded Celestial in the UI.
+The product is branded supershot.fun in the UI.
 
 Current routes:
 
@@ -342,7 +342,7 @@ The theme is bootstrapped before hydration in app/layout.tsx to avoid flashing.
 Theme toggle:
 apps/web/components/theme-toggle.tsx
 
-The restored Celestial color palette is intentionally retained. Do not reintroduce the later rejected branding/palette redesign unless explicitly requested.
+The restored supershot.fun color palette is intentionally retained. Do not reintroduce the later rejected branding/palette redesign unless explicitly requested.
 
 ### Create flow
 
@@ -368,11 +368,11 @@ Developer buy flow:
 5. decode TokenCreated
 6. redirect to token page
 
-When Celestial factory is NOT configured:
+When supershot.fun factory is NOT configured:
 
 - fallback to legacy createToken only
 - advanced terms must not be silently discarded
-- reject launch if user entered Celestial-only fields
+- reject launch if user entered supershot.fun-only fields
 
 ### Token market
 
@@ -381,10 +381,10 @@ apps/web/components/token-market.tsx
 
 Supports:
 
-- generation-aware V1 and Celestial resolution
+- generation-aware V1 and supershot.fun resolution
 - multi-asset quote decimals
 - Market trading
-- Limit orders for Celestial
+- Limit orders for supershot.fun
 - Open Orders + cancel
 - Sell 25%, 50%, 75%, and Sell all
 - holder reward claim
@@ -408,7 +408,7 @@ Supports:
 - activity
 - limit orders
 - legacy creator fee claim
-- Celestial multi-asset creator fee claims when fee escrow env is configured
+- supershot.fun multi-asset creator fee claims when fee escrow env is configured
 
 ### Analytics
 
@@ -425,7 +425,7 @@ Supports:
 - recent daily launches
 - protocol/indexer degraded-state signaling
 
-Because Celestial uses multiple quote assets, do not naively sum raw quote amounts across assets and display them as USD.
+Because supershot.fun uses multiple quote assets, do not naively sum raw quote amounts across assets and display them as USD.
 
 ## Backend
 
@@ -471,7 +471,7 @@ Legacy env:
 FACTORY_ADDRESS
 FACTORY_START_BLOCK
 
-Celestial env:
+supershot.fun env:
 
 CELESTIAL_FACTORY_ADDRESS
 CELESTIAL_FACTORY_START_BLOCK
@@ -493,10 +493,10 @@ The public Arc RPC has produced -32005 throttling in real Render backfills. The 
 Indexed event families:
 
 - V1 TokenCreated
-- Celestial TokenCreated
+- supershot.fun TokenCreated
 - MetadataSet
 - V1 Buy / Sell
-- Celestial Buy / Sell
+- supershot.fun Buy / Sell
 - ERC20 Transfer
 - GraduationSwept
 - TokenGraduated
@@ -512,7 +512,7 @@ Indexer behavior:
 - idempotent tx hash + log index inserts
 - live watchers
 - block timestamp cache
-- V1 + Celestial coexistence
+- V1 + supershot.fun coexistence
 
 ## Database
 
@@ -561,7 +561,7 @@ NEXT_PUBLIC_FACTORY_ADDRESS=legacy V1 factory
 NEXT_PUBLIC_FEE_ESCROW_ADDRESS=legacy V1 escrow
 NEXT_PUBLIC_API_URL=https://arc-launchpad-api.onrender.com
 
-Configured Celestial frontend env:
+Configured supershot.fun frontend env:
 
 NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS=0x418a062cEcB23d68a3e8dcEa19E89bAD98bBe826
 NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS=0x93e6ada62d3E6a0153B00F9962c4B52eC7F45f62
@@ -573,7 +573,7 @@ NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS
 
 after a real Arc DEX connector and adapter are deployed.
 
-## Render indexer Celestial configuration
+## Render indexer supershot.fun configuration
 
 Configured:
 
@@ -582,15 +582,15 @@ CELESTIAL_FACTORY_START_BLOCK=62084000
 ORDERBOOK_ADDRESS=0x93e6ada62d3E6a0153B00F9962c4B52eC7F45f62
 BUYBACK_VAULT_ADDRESS=0x9FbB1892885888e9a8c01d7A56652C4D76B23fC8
 
-Legacy FACTORY_ADDRESS and FACTORY_START_BLOCK remain configured so V1 and Celestial coexist.
+Legacy FACTORY_ADDRESS and FACTORY_START_BLOCK remain configured so V1 and supershot.fun coexist.
 
 ## Current feature status
 
 metadata + socials
-Implemented in contract, indexer, API, Create UI, token UI. Requires Celestial deployment to activate.
+Implemented in contract, indexer, API, Create UI, token UI. Requires supershot.fun deployment to activate.
 
 atomic launch + developer buy
-Implemented in factory and Create UI. Requires Celestial deployment.
+Implemented in factory and Create UI. Requires supershot.fun deployment.
 
 creator tax
 Implemented and capped in factory/curve. Creator revenue goes to multi-asset fee escrow. Profile supports claims after env configuration.
@@ -667,7 +667,7 @@ Do not deploy a commit whose current contracts/apps workflows are red.
 
 Completed on 2026-09-14:
 
-1. Contracts workflow green with expanded Celestial lifecycle tests.
+1. Contracts workflow green with expanded supershot.fun lifecycle tests.
 2. Apps workflow green with production builds, Docker builds, PostgreSQL runtime smoke tests, Arc RPC checks, and frontend route smoke tests.
 3. Render web, API, and indexer live on the tested commit.
 4. RPC failure handling hardened across browser reads, wallet network setup, backend/indexer fallbacks, adaptive backfill, and degraded-service UI.
@@ -707,19 +707,19 @@ Implemented in repository:
 - integration and graduation price-continuity tests
 - docs/UNISWAP_V4_INTEGRATION.md
 
-The existing deployed Arc Testnet Celestial factory predates the price-aware graduation ABI. Do not configure a v4 adapter against that old factory. A new factory deployment is required for the v4 graduation generation.
+The existing deployed Arc Testnet supershot.fun factory predates the price-aware graduation ABI. Do not configure a v4 adapter against that old factory. A new factory deployment is required for the v4 graduation generation.
 
 Current external blocker:
 
 Arc is not present in the official Uniswap v4 deployment registry as of 2026-09-14. Do not invent PoolManager, PositionManager, Quoter, Universal Router, or Permit2 addresses. Keep NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS and the indexer DEX adapter/connector envs unset until official Arc addresses are verified.
 
-No v4 fee/buyback hook is included yet. The only hook is an initialization guard that prevents third parties from pre-initializing Celestial's intended PoolKey. It has no swap or fee permissions.
+No v4 fee/buyback hook is included yet. The only hook is an initialization guard that prevents third parties from pre-initializing supershot.fun's intended PoolKey. It has no swap or fee permissions.
 
 ## Mainnet gate
 
 Do not use real funds until:
 
-- Celestial contracts receive a dedicated security review
+- supershot.fun contracts receive a dedicated security review
 - DEX connector is tested against official Arc deployment
 - all protocol workflows are fuzzed/invariant tested
 - multisig owns privileged configuration

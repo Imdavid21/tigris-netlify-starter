@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import styles from "./CelestialLoaders.module.css";
+import styles from "./SupershotLoaders.module.css";
 
 type LoaderVariant = "coreSpiral" | "pulseLadder" | "arcBeacon" | "railScan" | "checkSpin";
 type LoaderTone = "primary" | "success" | "muted";
@@ -18,7 +18,7 @@ type LoaderProps = {
 
 // Adapted from the open-source Dot Matrix loader patterns by zzzzshawn/matrix.
 // Motion signatures are retained while timing, color, and geometry are tuned
-// to Celestial's Material 3 system.
+// to supershot.fun's Material 3 system.
 
 const SPIRAL_PATH = [
   0, 1, 2, 3, 4,
@@ -76,7 +76,7 @@ function delayFor(variant: LoaderVariant, index: number, speed: number) {
   return 0;
 }
 
-export function CelestialDotLoader({
+export function SupershotDotLoader({
   variant,
   size = variant === "checkSpin" ? 22 : 36,
   dotSize = variant === "checkSpin" ? 4 : 4.5,
@@ -120,21 +120,21 @@ export function CelestialDotLoader({
 }
 
 export function CoreSpiralLoader(props: Omit<LoaderProps, "variant">) {
-  return <CelestialDotLoader variant="coreSpiral" {...props} />;
+  return <SupershotDotLoader variant="coreSpiral" {...props} />;
 }
 
 export function PulseLadderLoader(props: Omit<LoaderProps, "variant">) {
-  return <CelestialDotLoader variant="pulseLadder" {...props} />;
+  return <SupershotDotLoader variant="pulseLadder" {...props} />;
 }
 
 export function ArcBeaconLoader(props: Omit<LoaderProps, "variant">) {
-  return <CelestialDotLoader variant="arcBeacon" {...props} />;
+  return <SupershotDotLoader variant="arcBeacon" {...props} />;
 }
 
 export function RailScanLoader(props: Omit<LoaderProps, "variant">) {
-  return <CelestialDotLoader variant="railScan" {...props} />;
+  return <SupershotDotLoader variant="railScan" {...props} />;
 }
 
 export function CheckSpinLoader(props: Omit<LoaderProps, "variant">) {
-  return <CelestialDotLoader variant="checkSpin" {...props} />;
+  return <SupershotDotLoader variant="checkSpin" {...props} />;
 }

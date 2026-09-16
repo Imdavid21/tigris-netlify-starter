@@ -1,29 +1,29 @@
-# Celestial Uniswap v4 Graduation
+# supershot.fun Uniswap v4 Graduation
 
 Date: 2026-09-14
 
 ## Decision
 
-Celestial keeps its own bonding curve for primary-market trading and uses Uniswap v4 as the intended post-graduation liquidity engine.
+supershot.fun keeps its own bonding curve for primary-market trading and uses Uniswap v4 as the intended post-graduation liquidity engine.
 
 Lifecycle:
 
-1. launch on Celestial bonding curve
+1. launch on supershot.fun bonding curve
 2. collect quote reserves while users trade
 3. reach graduation threshold
 4. lock the terminal bonding-curve price
-5. sweep pending Celestial fees
+5. sweep pending supershot.fun fees
 6. release graduation quote and token inventory
 7. initialize a vanilla Uniswap v4 pool at the locked terminal price
 8. mint the v4 liquidity position directly to the permanent liquidity locker
 9. burn surplus launch-token inventory that is not required at the terminal price
-10. route later Celestial trades through the v4 adapter
+10. route later supershot.fun trades through the v4 adapter
 
-Celestial uses one minimal initialization-only guard hook. It cannot alter swaps, liquidity accounting, or fees. Its only purpose is to reject pool initialization unless the call originates from the sealed Celestial connector. Fee/buyback hooks are intentionally deferred until the base graduation path is externally reviewed.
+supershot.fun uses one minimal initialization-only guard hook. It cannot alter swaps, liquidity accounting, or fees. Its only purpose is to reject pool initialization unless the call originates from the sealed supershot.fun connector. Fee/buyback hooks are intentionally deferred until the base graduation path is externally reviewed.
 
 ## Official Uniswap surfaces used
 
-Celestial's local minimal interfaces mirror the relevant official Uniswap v4 ABI surfaces:
+supershot.fun's local minimal interfaces mirror the relevant official Uniswap v4 ABI surfaces:
 
 - v4-core IPoolManager
 - v4-core PoolKey / PoolId
@@ -48,7 +48,7 @@ The production adapter must remain unset until those addresses are published by 
 
 ## Terminal price continuity
 
-Celestial uses a virtual quote reserve in the bonding curve.
+supershot.fun uses a virtual quote reserve in the bonding curve.
 
 The terminal marginal curve price is therefore based on:
 
@@ -61,7 +61,7 @@ trackedQuote / token inventory
 
 Using only physical raised quote would initialize the DEX below the final bonding-curve price and create predictable graduation arbitrage.
 
-Celestial locks a sqrtPriceX96 value before the curve releases its assets:
+supershot.fun locks a sqrtPriceX96 value before the curve releases its assets:
 
 sqrtPriceX96 = sqrt(currency1Reserve / currency0Reserve) * 2^96
 
@@ -81,7 +81,7 @@ After minting:
 - surplus quote is sent to the permanent liquidity locker
 - the connector never leaves graduation dust withdrawable by an operator
 
-Burning surplus token inventory is deliberate. Sending it to the locker would make those tokens eligible for Celestial holder-fee accounting while nobody can claim their rewards.
+Burning surplus token inventory is deliberate. Sending it to the locker would make those tokens eligible for supershot.fun holder-fee accounting while nobody can claim their rewards.
 
 ## Permanent liquidity
 
@@ -96,13 +96,13 @@ The factory separately records:
 - position ID
 - lock timestamp
 
-The pool handle is a small immutable address-shaped contract that stores the real v4 PoolId. This preserves compatibility with Celestial's existing database and frontend, which use an address as the market venue identifier even though Uniswap v4 pools themselves are not contracts.
+The pool handle is a small immutable address-shaped contract that stores the real v4 PoolId. This preserves compatibility with supershot.fun's existing database and frontend, which use an address as the market venue identifier even though Uniswap v4 pools themselves are not contracts.
 
 ## Trading
 
 After graduation:
 
-Celestial token page -> CelestialDexAdapter -> CelestialUniswapV4Connector -> Universal Router -> Uniswap v4
+supershot.fun token page -> CelestialDexAdapter -> CelestialUniswapV4Connector -> Universal Router -> Uniswap v4
 
 The same token page remains active.
 
@@ -130,11 +130,11 @@ Post-graduation swaps are stored in the same trades table with:
 
 venue = UNISWAP_V4
 
-The API exposes venue-level analytics so Celestial can distinguish bonding-curve and graduated-market activity without splitting the user experience.
+The API exposes venue-level analytics so supershot.fun can distinguish bonding-curve and graduated-market activity without splitting the user experience.
 
 ## Security boundary
 
-Celestial does not implement:
+supershot.fun does not implement:
 
 - concentrated-liquidity math
 - Uniswap swap math
@@ -144,7 +144,7 @@ Celestial does not implement:
 
 Uniswap owns those surfaces.
 
-Celestial owns:
+supershot.fun owns:
 
 - terminal price calculation
 - graduation reserve transfer

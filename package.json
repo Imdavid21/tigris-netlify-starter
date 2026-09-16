@@ -1,16 +1,16 @@
 {
-  "name": "arc-launchpad",
+  "name": "supershot-fun",
   "private": true,
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
-    "dev:web": "npm --workspace @arc-launchpad/web run dev",
-    "build:web": "npm --workspace @arc-launchpad/web run build",
-    "dev:indexer": "npm --workspace @arc-launchpad/indexer run dev",
-    "build:indexer": "npm --workspace @arc-launchpad/indexer run build",
-    "dev:api": "npm --workspace @arc-launchpad/api run dev",
-    "build:api": "npm --workspace @arc-launchpad/api run build",
+    "dev:web": "npm --workspace @supershot/web run dev",
+    "build:web": "npm --workspace @supershot/web run build",
+    "dev:indexer": "npm --workspace @supershot/indexer run dev",
+    "build:indexer": "npm --workspace @supershot/indexer run build",
+    "dev:api": "npm --workspace @supershot/api run dev",
+    "build:api": "npm --workspace @supershot/api run build",
     "build": "npm run build:indexer && npm run build:api && npm run build:web"
   }
 }

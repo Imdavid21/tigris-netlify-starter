@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { formatUnits } from "viem";
 import { API_URL } from "@/lib/api";
 import { motionSpring } from "@/lib/motion-system";
-import { RailScanLoader } from "@/components/dotmatrix/celestial-loaders";
+import { RailScanLoader } from "@/components/dotmatrix/supershot-loaders";
 import styles from "./MarketTable.module.css";
 
 type Holder = {

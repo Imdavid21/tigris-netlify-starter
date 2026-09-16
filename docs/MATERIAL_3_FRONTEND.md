@@ -1,8 +1,8 @@
-# Celestial Material 3 Frontend
+# supershot.fun Material 3 Frontend
 
 Last updated: 2026-09-16
 
-This is the frontend design, component, and interaction source of truth for Celestial.
+This is the frontend design, component, and interaction source of truth for supershot.fun.
 
 Official references:
 
@@ -16,7 +16,7 @@ Official references:
 
 ## 1. Current architecture
 
-Celestial now uses Google Material 3 at three layers:
+supershot.fun now uses Google Material 3 at three layers:
 
 1. Material 3 foundations and semantic design roles
 2. Google's `@material/web` package for the complete Material Web component catalog
@@ -24,7 +24,7 @@ Celestial now uses Google Material 3 at three layers:
 
 The application remains React 19 / Next.js 16. Protocol and wallet logic remain independent from the visual layer.
 
-`@material/web` is currently in maintenance mode upstream, but the complete package is intentionally installed because Celestial now wants the official Material Web implementation available across the frontend. All usage stays behind local React adapters so the package can be changed later without rewriting protocol logic.
+`@material/web` is currently in maintenance mode upstream, but the complete package is intentionally installed because supershot.fun now wants the official Material Web implementation available across the frontend. All usage stays behind local React adapters so the package can be changed later without rewriting protocol logic.
 
 ## 2. Foundations
 
@@ -88,7 +88,7 @@ The catalog registers the complete upstream component set:
 
 The catalog is registered client-side by `MaterialWebProvider` so custom elements are never evaluated during server rendering.
 
-Google warns that the convenience `all.js` bundle is intended for development/prototyping. Celestial therefore imports the full catalog explicitly by component path. This still gives us the complete package while keeping the registration strategy explicit and removable.
+Google warns that the convenience `all.js` bundle is intended for development/prototyping. supershot.fun therefore imports the full catalog explicitly by component path. This still gives us the complete package while keeping the registration strategy explicit and removable.
 
 ## 4. React adapter layer
 
@@ -153,7 +153,7 @@ Rules:
 
 ## 6. Loading and feedback
 
-Celestial uses multiple loading patterns based on context:
+supershot.fun uses multiple loading patterns based on context:
 
 - Next route-level loading uses Material circular and linear progress.
 - Material Web catalog hydration uses a minimal top-edge indeterminate progress cue.

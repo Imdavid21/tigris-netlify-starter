@@ -1,6 +1,6 @@
 # Arc Mainnet build constraints
 
-Celestial mainnet contracts use Solidity 0.8.26 with via-IR enabled and `optimizer_runs = 200`.
+supershot.fun mainnet contracts use Solidity 0.8.26 with via-IR enabled and `optimizer_runs = 200`.
 
 `CelestialLaunchFactory` was reduced below the EIP-170 24,576-byte runtime limit by removing duplicate metadata storage while keeping the launch metadata input and `MetadataSet` event used by the indexer.
 

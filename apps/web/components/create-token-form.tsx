@@ -228,7 +228,7 @@ export function CreateTokenForm() {
       } else {
         if (usesCelestialFeatures) {
           throw new Error(
-            "The Celestial protocol deployment is not active yet. Advanced launch terms cannot be safely stored on the V1 factory."
+            "The supershot.fun protocol deployment is not active yet. Advanced launch terms cannot be safely stored on the V1 factory."
           );
         }
         if (!addresses.factory) throw new Error("Factory address is not configured.");
@@ -282,7 +282,7 @@ export function CreateTokenForm() {
           <motion.section className="form-card" layout transition={{ layout: motionSpring.spatialDefault }}>
             <div className="form-section-head">
               <div><span className="step-index">01</span><h2>Token</h2></div>
-              <span className="live-badge">{celestialReady ? "Celestial" : "V1"}</span>
+              <span className="live-badge">{celestialReady ? "supershot.fun" : "V1"}</span>
             </div>
 
             <div className="field-grid two">

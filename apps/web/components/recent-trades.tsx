@@ -6,7 +6,7 @@ import { formatUnits } from "viem";
 import { API_URL, type IndexedTrade } from "@/lib/api";
 import { quoteAssets } from "@/lib/celestial";
 import { motionSpring } from "@/lib/motion-system";
-import { RailScanLoader } from "@/components/dotmatrix/celestial-loaders";
+import { RailScanLoader } from "@/components/dotmatrix/supershot-loaders";
 import styles from "./MarketTable.module.css";
 
 type Holder = {

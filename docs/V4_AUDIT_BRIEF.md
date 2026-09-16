@@ -1,4 +1,4 @@
-# Celestial v4 External Review Brief
+# supershot.fun v4 External Review Brief
 
 Date: 2026-09-14
 
@@ -20,22 +20,22 @@ Primary files:
 
 ## Intended invariants
 
-1. A Celestial market cannot graduate before the bonding curve reaches its graduation condition.
+1. A supershot.fun market cannot graduate before the bonding curve reaches its graduation condition.
 2. The terminal price is locked before physical curve reserves are released.
 3. Pending protocol, creator, holder, and buyback accounting cannot be mixed into graduation liquidity.
 4. Graduation cannot be marked seeded unless the adapter consumes the exact factory-held graduation assets.
-5. Only the Celestial connector can initialize the PoolKey used for a Celestial graduated pool.
+5. Only the supershot.fun connector can initialize the PoolKey used for a supershot.fun graduated pool.
 6. The guard hook has BEFORE_INITIALIZE permission only and cannot affect swaps, liquidity modification, or fees.
 7. The v4 LP NFT is minted directly to the permanent locker.
-8. No Celestial contract exposes a path to withdraw the locked LP NFT.
-9. Surplus Celestial token inventory created by virtual-reserve price continuity is permanently burned.
+8. No supershot.fun contract exposes a path to withdraw the locked LP NFT.
+9. Surplus supershot.fun token inventory created by virtual-reserve price continuity is permanently burned.
 10. Quote-asset surplus is not recoverable by the connector operator.
 11. Connector and adapter approvals are bounded and revoked after successful execution.
 12. Post-graduation exact-input swaps cannot leave user input stranded in the connector.
 13. Minimum output applies at the Universal Router/v4 level and is rechecked before recipient transfer.
 14. Pool handles cannot be confused across token/quote pairs.
 15. Buyback execution cannot substitute arbitrary token/quote assets for the recorded graduated market.
-16. Old V1 launch/graduation behavior remains ABI-isolated from the price-aware Celestial generation.
+16. Old V1 launch/graduation behavior remains ABI-isolated from the price-aware supershot.fun generation.
 
 ## High-priority review questions
 
@@ -75,7 +75,7 @@ Primary files:
 
 ## Out of scope for first review
 
-- future Celestial fee hook
+- future supershot.fun fee hook
 - future dynamic fees
 - future protocol-owned liquidity rebalancing
 - arbitrary external token listings

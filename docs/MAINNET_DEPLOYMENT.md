@@ -4,7 +4,7 @@ Verified on 2026-09-16.
 
 ## Current status
 
-Celestial's mainnet code path is ready through the pre-deployment gates.
+supershot.fun's mainnet code path is ready through the pre-deployment gates.
 
 Completed:
 
@@ -22,7 +22,7 @@ Completed:
 Not yet completed because it requires an onchain deployment:
 
 - Arc Mainnet broadcast
-- final Celestial contract addresses and deployment start block
+- final supershot.fun contract addresses and deployment start block
 - Render mainnet environment cutover
 - mainnet indexer backfill
 - controlled real-money mainnet smoke lifecycle
@@ -73,7 +73,7 @@ Official Arc Mainnet deployment addresses:
 
 The Arc Mainnet fork lifecycle now verifies the full production path against these live deployments:
 
-1. create a Celestial token
+1. create a supershot.fun token
 2. buy and sell on the bonding curve
 3. reach graduation
 4. sweep graduation assets
@@ -83,7 +83,7 @@ The Arc Mainnet fork lifecycle now verifies the full production path against the
 8. execute USDC to token through the production router path
 9. execute token to USDC through the production router path
 
-The lifecycle also validates the 18-decimal Celestial token against Arc USDC's 6-decimal ERC-20 interface.
+The lifecycle also validates the 18-decimal supershot.fun token against Arc USDC's 6-decimal ERC-20 interface.
 
 ## Mainnet deployment stack
 

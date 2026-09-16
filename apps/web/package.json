@@ -1,5 +1,5 @@
 {
-  "name": "@arc-launchpad/web",
+  "name": "@supershot/web",
   "private": true,
   "scripts": {
     "dev": "next dev",

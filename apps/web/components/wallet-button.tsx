@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWalletSession } from "@/components/wallet-session";
 import { M3Button } from "@/components/m3/primitives";
-import { ArcBeaconLoader, CheckSpinLoader } from "@/components/dotmatrix/celestial-loaders";
+import { ArcBeaconLoader, CheckSpinLoader } from "@/components/dotmatrix/supershot-loaders";
 import { motionSpring } from "@/lib/motion-system";
 import styles from "./WalletButton.module.css";
 

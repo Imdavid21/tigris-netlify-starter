@@ -5,7 +5,7 @@ import { WalletButton } from "@/components/wallet-button";
 import { SearchPalette } from "@/components/search-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProtocolStatus } from "@/components/protocol-status";
-import { CelestialLogo } from "@/components/celestial-logo";
+import { SupershotLogo } from "@/components/supershot-logo";
 import { MotionNav } from "@/components/motion-nav";
 import styles from "./AppHeaderV2.module.css";
 
@@ -27,9 +27,9 @@ export function AppHeader() {
       <header className={styles.header}>
         <div className={styles.topRow}>
           <div className={styles.leftCluster}>
-            <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
-              <CelestialLogo className={styles.logo} />
-              <span>Celestial</span>
+            <a href="/explore" className={styles.brand} aria-label="supershot.fun Explore">
+              <SupershotLogo className={styles.logo} />
+              <span>supershot.fun</span>
             </a>
 
             <MotionNav items={primaryItems} className={styles.nav} ariaLabel="Primary navigation" />

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { motionSpring } from "@/lib/motion-system";
-import { PulseLadderLoader } from "@/components/dotmatrix/celestial-loaders";
+import { PulseLadderLoader } from "@/components/dotmatrix/supershot-loaders";
 
 const MaterialWebContext = createContext(false);
 
