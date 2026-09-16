@@ -87,14 +87,18 @@ contract ArcMainnetUniswapV4ForkTest is Test {
         hook.sealInitializer(address(connector));
         factory.setGraduationAdapter(adapter);
 
-        deal(USDC, trader, 100_000e6);
-        deal(USDC, postGradTrader, 100_000e6);
+        // Arc native USDC uses 18-decimal account balance units while its ERC-20
+        // interface exposes the same balance at 6 decimals.
+        vm.deal(trader, 100_000 ether);
+        vm.deal(postGradTrader, 100_000 ether);
     }
 
     function testFullArcMainnetLifecycleThroughUniswapV4() public {
         if (block.chainid != ARC_MAINNET_CHAIN_ID) return;
 
+        assertEq(trader.balance, 100_000 ether);
         assertEq(IERC20(USDC).balanceOf(trader), 100_000e6);
+        assertEq(IERC20(USDC).balanceOf(postGradTrader), 100_000e6);
 
         CelestialLaunchFactory.LaunchParams memory params;
         params.name = "Arc Fork Token";
