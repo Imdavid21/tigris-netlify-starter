@@ -1,4 +1,135 @@
 :root {
+  /* Material 3 color roles, tuned around Celestial's acid-lime identity. */
+  --md-sys-color-primary: #435400;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #c8ef52;
+  --md-sys-color-on-primary-container: #121a00;
+  --md-sys-color-secondary: #5c624d;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e1e7cf;
+  --md-sys-color-on-secondary-container: #191e10;
+  --md-sys-color-tertiary: #3c665d;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #bfece1;
+  --md-sys-color-on-tertiary-container: #00201b;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-background: #fbf9f1;
+  --md-sys-color-on-background: #1b1c17;
+  --md-sys-color-surface: #fbf9f1;
+  --md-sys-color-on-surface: #1b1c17;
+  --md-sys-color-surface-variant: #e5e3d7;
+  --md-sys-color-on-surface-variant: #47483e;
+  --md-sys-color-outline: #78796d;
+  --md-sys-color-outline-variant: #c8c8ba;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #30312b;
+  --md-sys-color-inverse-on-surface: #f3f1e9;
+  --md-sys-color-inverse-primary: #add11f;
+  --md-sys-color-surface-dim: #dcdbd3;
+  --md-sys-color-surface-bright: #fbf9f1;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f5f3eb;
+  --md-sys-color-surface-container: #efede5;
+  --md-sys-color-surface-container-high: #e9e8df;
+  --md-sys-color-surface-container-highest: #e3e2da;
+  --md-sys-color-positive: #3f6500;
+  --md-sys-color-warning: #805600;
+
+  /* Material 3 type roles. Roboto Flex is loaded at the app shell. */
+  --md-sys-typescale-font: "Roboto Flex", "Roboto", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --md-sys-typescale-display-large-size: 57px;
+  --md-sys-typescale-display-large-line-height: 64px;
+  --md-sys-typescale-display-large-weight: 400;
+  --md-sys-typescale-display-medium-size: 45px;
+  --md-sys-typescale-display-medium-line-height: 52px;
+  --md-sys-typescale-display-medium-weight: 400;
+  --md-sys-typescale-display-small-size: 36px;
+  --md-sys-typescale-display-small-line-height: 44px;
+  --md-sys-typescale-display-small-weight: 400;
+  --md-sys-typescale-headline-large-size: 32px;
+  --md-sys-typescale-headline-large-line-height: 40px;
+  --md-sys-typescale-headline-large-weight: 450;
+  --md-sys-typescale-headline-medium-size: 28px;
+  --md-sys-typescale-headline-medium-line-height: 36px;
+  --md-sys-typescale-headline-medium-weight: 450;
+  --md-sys-typescale-headline-small-size: 24px;
+  --md-sys-typescale-headline-small-line-height: 32px;
+  --md-sys-typescale-headline-small-weight: 450;
+  --md-sys-typescale-title-large-size: 22px;
+  --md-sys-typescale-title-large-line-height: 28px;
+  --md-sys-typescale-title-large-weight: 520;
+  --md-sys-typescale-title-medium-size: 16px;
+  --md-sys-typescale-title-medium-line-height: 24px;
+  --md-sys-typescale-title-medium-weight: 560;
+  --md-sys-typescale-title-small-size: 14px;
+  --md-sys-typescale-title-small-line-height: 20px;
+  --md-sys-typescale-title-small-weight: 560;
+  --md-sys-typescale-body-large-size: 16px;
+  --md-sys-typescale-body-large-line-height: 24px;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-medium-size: 14px;
+  --md-sys-typescale-body-medium-line-height: 20px;
+  --md-sys-typescale-body-medium-weight: 400;
+  --md-sys-typescale-body-small-size: 12px;
+  --md-sys-typescale-body-small-line-height: 16px;
+  --md-sys-typescale-body-small-weight: 400;
+  --md-sys-typescale-label-large-size: 14px;
+  --md-sys-typescale-label-large-line-height: 20px;
+  --md-sys-typescale-label-large-weight: 560;
+  --md-sys-typescale-label-medium-size: 12px;
+  --md-sys-typescale-label-medium-line-height: 16px;
+  --md-sys-typescale-label-medium-weight: 560;
+  --md-sys-typescale-label-small-size: 11px;
+  --md-sys-typescale-label-small-line-height: 16px;
+  --md-sys-typescale-label-small-weight: 560;
+
+  /* Material 3 shape scale. */
+  --md-sys-shape-corner-none: 0;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* Material 3 elevation. */
+  --md-sys-elevation-level0: none;
+  --md-sys-elevation-level1: 0 1px 2px rgba(0, 0, 0, .14), 0 1px 3px 1px rgba(0, 0, 0, .08);
+  --md-sys-elevation-level2: 0 1px 2px rgba(0, 0, 0, .14), 0 2px 6px 2px rgba(0, 0, 0, .08);
+  --md-sys-elevation-level3: 0 1px 3px rgba(0, 0, 0, .14), 0 4px 8px 3px rgba(0, 0, 0, .08);
+  --md-sys-elevation-level4: 0 2px 3px rgba(0, 0, 0, .14), 0 6px 10px 4px rgba(0, 0, 0, .08);
+  --md-sys-elevation-level5: 0 4px 4px rgba(0, 0, 0, .14), 0 8px 12px 6px rgba(0, 0, 0, .08);
+
+  /* Material 3 state layers. */
+  --md-sys-state-hover-opacity: .08;
+  --md-sys-state-focus-opacity: .10;
+  --md-sys-state-pressed-opacity: .10;
+  --md-sys-state-dragged-opacity: .16;
+  --md-sys-state-disabled-container-opacity: .12;
+  --md-sys-state-disabled-content-opacity: .38;
+
+  /* M3 Expressive-inspired motion scheme.
+     Spatial motion uses under-damped spring-like curves. Effects motion stays critically damped. */
+  --md-sys-motion-spatial-fast-duration: 260ms;
+  --md-sys-motion-spatial-default-duration: 420ms;
+  --md-sys-motion-spatial-slow-duration: 620ms;
+  --md-sys-motion-effects-fast-duration: 140ms;
+  --md-sys-motion-effects-default-duration: 220ms;
+  --md-sys-motion-effects-slow-duration: 320ms;
+  --md-sys-motion-spring-fast-spatial: linear(0, .18 5%, .48 10%, .78 16%, .98 22%, 1.08 29%, 1.09 36%, 1.05 44%, 1.01 55%, .995 68%, 1 100%);
+  --md-sys-motion-spring-default-spatial: linear(0, .09 5%, .28 11%, .53 18%, .76 26%, .94 34%, 1.04 44%, 1.06 52%, 1.04 62%, 1.01 75%, .998 88%, 1 100%);
+  --md-sys-motion-spring-slow-spatial: linear(0, .06 5%, .18 12%, .37 20%, .58 29%, .76 38%, .91 48%, 1.01 59%, 1.04 68%, 1.03 78%, 1.01 89%, 1 100%);
+  --md-sys-motion-spring-fast-effects: cubic-bezier(.2, 0, 0, 1);
+  --md-sys-motion-spring-default-effects: cubic-bezier(.2, 0, 0, 1);
+  --md-sys-motion-spring-slow-effects: cubic-bezier(.2, 0, 0, 1);
+
+  --md-sys-layout-content-max: 1280px;
+
+  /* Compatibility aliases used by the existing frontend during the staged migration. */
   --brand-50: #f8ffdc;
   --brand-100: #efffc2;
   --brand-200: #e2ff91;
@@ -9,57 +140,86 @@
   --brand-700: #7ca01c;
   --brand-800: #607b19;
   --brand-900: #4d6218;
-
-  --brand: #11120f;
-  --brand-on: #f3f1ea;
-  --canvas: #e9e7df;
-  --surface: #f3f1ea;
-  --surface-soft: #eeece5;
-  --surface-active: #e6f4b7;
-  --text-primary: #11120f;
-  --text-secondary: #626159;
-  --text-tertiary: #96948a;
-  --border: #d8d4c9;
-  --border-strong: #c7c2b6;
-  --positive: #9fca26;
-  --negative: #cf5258;
-  --warning: #a66c2c;
-
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 26px;
-  --radius-pill: 999px;
-
-  --shadow-1: 0 1px 2px rgba(17, 18, 15, 0.035);
-  --shadow-2: 0 4px 12px rgba(17, 18, 15, 0.04), 0 1px 2px rgba(17, 18, 15, 0.03);
-  --shadow-3: 0 14px 34px rgba(17, 18, 15, 0.07), 0 2px 5px rgba(17, 18, 15, 0.03);
-
-  --motion-fast: 120ms;
-  --motion-normal: 180ms;
-  --motion-slow: 260ms;
-  --ease: cubic-bezier(.2, .8, .2, 1);
-
-  --content-max: 1240px;
+  --brand: var(--md-sys-color-primary);
+  --brand-on: var(--md-sys-color-on-primary);
+  --canvas: var(--md-sys-color-background);
+  --surface: var(--md-sys-color-surface-container-lowest);
+  --surface-soft: var(--md-sys-color-surface-container-low);
+  --surface-active: var(--md-sys-color-primary-container);
+  --text-primary: var(--md-sys-color-on-surface);
+  --text-secondary: var(--md-sys-color-on-surface-variant);
+  --text-tertiary: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 68%, transparent);
+  --border: var(--md-sys-color-outline-variant);
+  --border-strong: var(--md-sys-color-outline);
+  --positive: var(--md-sys-color-positive);
+  --negative: var(--md-sys-color-error);
+  --warning: var(--md-sys-color-warning);
+  --radius-xs: var(--md-sys-shape-corner-small);
+  --radius-sm: var(--md-sys-shape-corner-medium);
+  --radius-md: var(--md-sys-shape-corner-large);
+  --radius-lg: 20px;
+  --radius-xl: var(--md-sys-shape-corner-extra-large);
+  --radius-pill: var(--md-sys-shape-corner-full);
+  --shadow-1: var(--md-sys-elevation-level1);
+  --shadow-2: var(--md-sys-elevation-level2);
+  --shadow-3: var(--md-sys-elevation-level3);
+  --motion-fast: var(--md-sys-motion-effects-fast-duration);
+  --motion-normal: var(--md-sys-motion-effects-default-duration);
+  --motion-slow: var(--md-sys-motion-effects-slow-duration);
+  --ease: var(--md-sys-motion-spring-default-effects);
+  --content-max: var(--md-sys-layout-content-max);
 }
 
 html[data-theme="dark"] {
-  --canvas: #11120f;
-  --surface: #191a16;
-  --surface-soft: #20211c;
-  --surface-active: #2b301f;
-  --text-primary: #f1f0e8;
-  --text-secondary: #b7b4aa;
-  --text-tertiary: #77756d;
-  --border: #2c2d27;
-  --border-strong: #3a3b33;
-  --brand: #b8e832;
-  --brand-on: #11120f;
-  --positive: #b8e832;
-  --negative: #ef7479;
-  --warning: #d5a15c;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
-  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.18);
-  --shadow-3: 0 14px 34px rgba(0, 0, 0, 0.26), 0 2px 5px rgba(0, 0, 0, 0.18);
+  --md-sys-color-primary: #b4d62b;
+  --md-sys-color-on-primary: #263500;
+  --md-sys-color-primary-container: #364b00;
+  --md-sys-color-on-primary-container: #d0f35b;
+  --md-sys-color-secondary: #c5ccb3;
+  --md-sys-color-on-secondary: #2e3323;
+  --md-sys-color-secondary-container: #444a38;
+  --md-sys-color-on-secondary-container: #e1e7cf;
+  --md-sys-color-tertiary: #a4d0c6;
+  --md-sys-color-on-tertiary: #0b3731;
+  --md-sys-color-tertiary-container: #244e47;
+  --md-sys-color-on-tertiary-container: #bfece1;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-background: #12140e;
+  --md-sys-color-on-background: #e4e3dc;
+  --md-sys-color-surface: #12140e;
+  --md-sys-color-on-surface: #e4e3dc;
+  --md-sys-color-surface-variant: #46483d;
+  --md-sys-color-on-surface-variant: #c8c8ba;
+  --md-sys-color-outline: #929386;
+  --md-sys-color-outline-variant: #46483d;
+  --md-sys-color-inverse-surface: #e4e3dc;
+  --md-sys-color-inverse-on-surface: #30312b;
+  --md-sys-color-inverse-primary: #435400;
+  --md-sys-color-surface-dim: #12140e;
+  --md-sys-color-surface-bright: #383a33;
+  --md-sys-color-surface-container-lowest: #0d0f09;
+  --md-sys-color-surface-container-low: #1a1c16;
+  --md-sys-color-surface-container: #1e201a;
+  --md-sys-color-surface-container-high: #292b24;
+  --md-sys-color-surface-container-highest: #34362f;
+  --md-sys-color-positive: #b6d96a;
+  --md-sys-color-warning: #f4bd6b;
+
+  --brand: var(--md-sys-color-primary);
+  --brand-on: var(--md-sys-color-on-primary);
+  --canvas: var(--md-sys-color-background);
+  --surface: var(--md-sys-color-surface-container-low);
+  --surface-soft: var(--md-sys-color-surface-container);
+  --surface-active: var(--md-sys-color-primary-container);
+  --text-primary: var(--md-sys-color-on-surface);
+  --text-secondary: var(--md-sys-color-on-surface-variant);
+  --text-tertiary: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 64%, transparent);
+  --border: var(--md-sys-color-outline-variant);
+  --border-strong: var(--md-sys-color-outline);
+  --positive: var(--md-sys-color-positive);
+  --negative: var(--md-sys-color-error);
+  --warning: var(--md-sys-color-warning);
 }
