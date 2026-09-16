@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { M3IconButton } from "@/components/m3/primitives";
 
 type Theme = "dark" | "light";
 
@@ -28,7 +29,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
+    <M3IconButton
       type="button"
       className="theme-toggle"
       onClick={toggle}
@@ -45,6 +46,6 @@ export function ThemeToggle() {
           <path d="M20.2 15.2A8.4 8.4 0 0 1 8.8 3.8 8.4 8.4 0 1 0 20.2 15.2Z" />
         </svg>
       )}
-    </button>
+    </M3IconButton>
   );
 }
