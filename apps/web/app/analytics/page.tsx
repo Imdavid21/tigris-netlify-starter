@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
+import { FlowDiv, FlowSection } from "@/components/viewport-flow";
 import { API_URL } from "@/lib/api";
 import styles from "./AnalyticsPage.module.css";
 
@@ -57,13 +58,13 @@ export default async function AnalyticsPage() {
       <AppHeader />
 
       {degraded && (
-        <div className="system-notice analytics-notice">
+        <FlowDiv className="system-notice analytics-notice">
           <strong>Analytics degraded</strong>
           <span>Indexed data may be delayed. Market execution remains contract-native.</span>
-        </div>
+        </FlowDiv>
       )}
 
-      <section className="analytics-hero-card">
+      <FlowSection className="analytics-hero-card">
         <div className="analytics-title-row">
           <div>
             <h1>Analytics</h1>
@@ -81,9 +82,9 @@ export default async function AnalyticsPage() {
           <Metric label="Unique creators" value={String(stats?.unique_creators ?? "—")} note="Lifetime indexed" />
         </div>
         <p className="analytics-source-note">Values are derived from indexed onchain activity. Multi-asset markets are not combined into a fake USD total where conversion data is unavailable.</p>
-      </section>
+      </FlowSection>
 
-      <section className="analytics-panel">
+      <FlowSection className="analytics-panel" delay={0.03}>
         <div className="analytics-panel-head">
           <div>
             <h2>Protocol activity</h2>
@@ -101,9 +102,9 @@ export default async function AnalyticsPage() {
           <Metric label="Post-grad trades" value={String(stats?.post_graduation_trades ?? "—")} />
           <Metric label="Post-grad markets" value={String(stats?.post_graduation_markets ?? "—")} />
         </div>
-      </section>
+      </FlowSection>
 
-      <section className="analytics-panel">
+      <FlowSection className="analytics-panel" delay={0.05}>
         <div className="analytics-panel-head">
           <div>
             <h2>Trading venues</h2>
@@ -116,9 +117,9 @@ export default async function AnalyticsPage() {
           <Metric label="Uniswap v4 trades" value={String(v4Venue?.trades ?? "—")} />
           <Metric label="Uniswap v4 markets" value={String(v4Venue?.markets ?? "—")} />
         </div>
-      </section>
+      </FlowSection>
 
-      <section className="analytics-panel">
+      <FlowSection className="analytics-panel" delay={0.07}>
         <div className="analytics-panel-head">
           <div>
             <h2>Buyback and burn</h2>
@@ -143,9 +144,9 @@ export default async function AnalyticsPage() {
             ))}
           </div>
         )}
-      </section>
+      </FlowSection>
 
-      <section className="analytics-chart-grid">
+      <FlowSection className="analytics-chart-grid" delay={0.09}>
         <div className="analytics-panel chart-panel">
           <div className="analytics-panel-head">
             <div><h2>Trading activity</h2><p>Recent daily indexed trades.</p></div>
@@ -160,7 +161,7 @@ export default async function AnalyticsPage() {
           </div>
           <Bars rows={daily?.launches ?? []} keyName="launches" />
         </div>
-      </section>
+      </FlowSection>
 
       <SiteFooter />
     </main>
