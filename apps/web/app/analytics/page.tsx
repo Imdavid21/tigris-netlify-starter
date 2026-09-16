@@ -1,6 +1,7 @@
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
 import { API_URL } from "@/lib/api";
+import styles from "./AnalyticsPage.module.css";
 
 async function loadData() {
   try {
@@ -20,14 +21,6 @@ async function loadData() {
   } catch {
     return { stats: null, daily: null, buybacks: [], venues: [], degraded: true };
   }
-}
-
-function compact(value: number | null) {
-  if (value === null || !Number.isFinite(value)) return "—";
-  if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(2) + "B";
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(2) + "M";
-  if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
-  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function Bars({ rows, keyName }: { rows: any[]; keyName: string }) {
@@ -60,7 +53,7 @@ export default async function AnalyticsPage() {
   const v4Venue = venues.find((item: any) => item.venue === "UNISWAP_V4");
 
   return (
-    <main className="app-shell analytics-page">
+    <main className={`app-shell analytics-page ${styles.page}`}>
       <AppHeader />
 
       {degraded && (
@@ -73,7 +66,7 @@ export default async function AnalyticsPage() {
       <section className="analytics-hero-card">
         <div className="analytics-title-row">
           <div>
-            <h1>Protocol analytics</h1>
+            <h1>Analytics</h1>
             <p>Indexed onchain reporting for Celestial markets on Arc.</p>
           </div>
           <div className="analytics-actions">
