@@ -1,0 +1,103 @@
+name: patch-blockscout-throttle
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, 'analytics: throttle Blockscout indexing')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Blockscout indexing
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('apps/api/src/arc-analytics.ts')
+          text = path.read_text()
+          start = text.index('async function blockscout(')
+          end = text.index('async function optionalBlockscout', start)
+          replacement = '''let blockscoutQueue: Promise<void> = Promise.resolve();
+          let lastBlockscoutRequestAt = 0;
+          const BLOCKSCOUT_MIN_REQUEST_GAP_MS = 500;
+          const BLOCKSCOUT_MAX_ATTEMPTS = 4;
+
+          function retryDelayMs(response: Response, attempt: number) {
+            const retryAfter = response.headers.get("retry-after");
+            if (retryAfter) {
+              const seconds = Number(retryAfter);
+              if (Number.isFinite(seconds)) return Math.max(1_000, seconds * 1_000);
+              const date = Date.parse(retryAfter);
+              if (Number.isFinite(date)) return Math.max(1_000, date - Date.now());
+            }
+            return Math.min(8_000, 1_250 * (2 ** attempt));
+          }
+
+          async function blockscout(path: string, query: Record<string, string | number | boolean | null | undefined> = {}) {
+            if (!BLOCKSCOUT_API_KEY) throw new Error("BLOCKSCOUT_API_KEY is not configured");
+
+            const run = blockscoutQueue.then(async () => {
+              const url = new URL(`${BLOCKSCOUT_API_BASE_URL}/${ARC_ANALYTICS_CHAIN_ID}${path}`);
+              url.searchParams.set("apikey", BLOCKSCOUT_API_KEY);
+              for (const [key, value] of Object.entries(query)) {
+                if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
+              }
+
+              for (let attempt = 0; attempt < BLOCKSCOUT_MAX_ATTEMPTS; attempt += 1) {
+                const wait = Math.max(0, lastBlockscoutRequestAt + BLOCKSCOUT_MIN_REQUEST_GAP_MS - Date.now());
+                if (wait) await sleep(wait);
+                lastBlockscoutRequestAt = Date.now();
+
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 12_000);
+                try {
+                  const response = await fetch(url, { headers: { accept: "application/json" }, signal: controller.signal });
+                  if (response.status === 429 && attempt < BLOCKSCOUT_MAX_ATTEMPTS - 1) {
+                    await sleep(retryDelayMs(response, attempt));
+                    continue;
+                  }
+                  if (!response.ok) throw new Error(`Blockscout ${path} returned ${response.status}`);
+                  return await response.json() as Json;
+                } finally {
+                  clearTimeout(timeout);
+                }
+              }
+              throw new Error(`Blockscout ${path} exhausted retries`);
+            });
+
+            blockscoutQueue = run.then(() => undefined, () => undefined);
+            return run;
+          }
+
+          '''
+          text = text[:start] + replacement + text[end:]
+
+          old = '''    const [statsRaw, activityRaw, transactionStatsRaw, contractCountersRaw, hotContractsRaw] = await Promise.all([\n      blockscout("/api/v2/stats"),\n      blockscout("/api/v2/stats/charts/transactions"),\n      optionalBlockscout("/api/v2/transactions/stats"),\n      optionalBlockscout("/api/v2/smart-contracts/counters"),\n      optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" })\n    ]);'''
+          new = '''    const statsRaw = await blockscout("/api/v2/stats");\n    const activityRaw = await blockscout("/api/v2/stats/charts/transactions");\n    const transactionStatsRaw = await optionalBlockscout("/api/v2/transactions/stats");\n    const contractCountersRaw = await optionalBlockscout("/api/v2/smart-contracts/counters");\n    const hotContractsRaw = await optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" });'''
+          if old not in text:
+              raise SystemExit('top-level Blockscout Promise.all block not found')
+          text = text.replace(old, new)
+
+          old2 = '''    const [transactionsIndexed, blocksIndexed] = await Promise.all([\n      syncTransactions(client),\n      syncBlocks(client)\n    ]);'''
+          new2 = '''    const transactionsIndexed = await syncTransactions(client);\n    const blocksIndexed = await syncBlocks(client);'''
+          if old2 not in text:
+              raise SystemExit('transaction/block Promise.all block not found')
+          text = text.replace(old2, new2)
+          text = text.replace('    await sleep(220);\n', '')
+          path.write_text(text)
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/src/arc-analytics.ts
+          git commit -m "analytics: throttle Blockscout indexing"
+          git push origin HEAD:main
