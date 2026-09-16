@@ -15,7 +15,6 @@ export default function ExplorePage() {
             <span>Arc markets</span>
           </div>
           <div className={styles.actions}>
-            <a href="/stocks">Stocks</a>
             <a href="/create" className={styles.primary}>Create</a>
           </div>
         </div>
