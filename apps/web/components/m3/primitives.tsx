@@ -1,20 +1,29 @@
 "use client";
 
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { createElement, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { useMaterialWebReady } from "@/components/material-web-provider";
 import { motionSpring } from "@/lib/motion-system";
 import styles from "./M3.module.css";
 
 type ButtonVariant = "filled" | "tonal" | "outlined" | "text" | "elevated";
 
-type MotionButtonProps = Omit<ComponentPropsWithoutRef<typeof motion.button>, "children"> & {
+type NativeButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children?: ReactNode;
 };
 
-type M3ButtonProps = MotionButtonProps & {
+type M3ButtonProps = NativeButtonProps & {
   variant?: ButtonVariant;
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
+};
+
+const buttonTags: Record<ButtonVariant, string> = {
+  filled: "md-filled-button",
+  tonal: "md-filled-tonal-button",
+  outlined: "md-outlined-button",
+  text: "md-text-button",
+  elevated: "md-elevated-button"
 };
 
 export function M3Button({
@@ -26,19 +35,39 @@ export function M3Button({
   disabled,
   ...props
 }: M3ButtonProps) {
+  const ready = useMaterialWebReady();
+
   return (
-    <motion.button
-      className={`${styles.button} ${styles[variant]} ${className}`.trim()}
-      disabled={disabled}
+    <motion.span
+      className={styles.motionHost}
       whileHover={disabled ? undefined : { y: -1, scale: 1.006 }}
       whileTap={disabled ? undefined : { y: 0, scale: 0.975 }}
       transition={motionSpring.spatialFast}
-      {...props}
     >
-      {leadingIcon}
-      {children}
-      {trailingIcon}
-    </motion.button>
+      {ready
+        ? createElement(
+            buttonTags[variant],
+            {
+              ...props,
+              disabled,
+              className: `${styles.materialButton} ${className}`.trim()
+            },
+            leadingIcon,
+            children,
+            trailingIcon
+          )
+        : (
+          <button
+            className={`${styles.button} ${styles[variant]} ${className}`.trim()}
+            disabled={disabled}
+            {...props}
+          >
+            {leadingIcon}
+            {children}
+            {trailingIcon}
+          </button>
+        )}
+    </motion.span>
   );
 }
 
@@ -47,22 +76,40 @@ export function M3IconButton({
   children,
   disabled,
   ...props
-}: MotionButtonProps) {
+}: NativeButtonProps) {
+  const ready = useMaterialWebReady();
+
   return (
-    <motion.button
-      className={`${styles.iconButton} ${className}`.trim()}
-      disabled={disabled}
+    <motion.span
+      className={styles.motionHost}
       whileHover={disabled ? undefined : { scale: 1.07, rotate: 2 }}
       whileTap={disabled ? undefined : { scale: 0.9, rotate: 0 }}
       transition={motionSpring.spatialFast}
-      {...props}
     >
-      {children}
-    </motion.button>
+      {ready
+        ? createElement(
+            "md-icon-button",
+            {
+              ...props,
+              disabled,
+              className: `${styles.materialIconButton} ${className}`.trim()
+            },
+            children
+          )
+        : (
+          <button
+            className={`${styles.iconButton} ${className}`.trim()}
+            disabled={disabled}
+            {...props}
+          >
+            {children}
+          </button>
+        )}
+    </motion.span>
   );
 }
 
-type M3ChipProps = MotionButtonProps & {
+type M3ChipProps = NativeButtonProps & {
   selected?: boolean;
 };
 
@@ -73,30 +120,38 @@ export function M3Chip({
   disabled,
   ...props
 }: M3ChipProps) {
+  const ready = useMaterialWebReady();
+
   return (
-    <motion.button
+    <motion.span
       layout
-      className={`${styles.chip} ${selected ? styles.selected : ""} ${className}`.trim()}
-      aria-pressed={selected}
-      disabled={disabled}
+      className={styles.motionHost}
       whileHover={disabled ? undefined : { y: -1 }}
       whileTap={disabled ? undefined : { scale: 0.94 }}
       transition={{ layout: motionSpring.spatialFast, ...motionSpring.spatialFast }}
-      {...props}
     >
-      <AnimatePresence initial={false} mode="popLayout">
-        {selected && (
-          <motion.span
-            key="check"
-            aria-hidden="true"
-            initial={{ opacity: 0, scale: 0.4, width: 0 }}
-            animate={{ opacity: 1, scale: 1, width: "auto" }}
-            exit={{ opacity: 0, scale: 0.4, width: 0 }}
-            transition={motionSpring.spatialFast}
-          >✓</motion.span>
+      {ready
+        ? createElement(
+            "md-filter-chip",
+            {
+              ...props,
+              selected,
+              disabled,
+              className: `${styles.materialChip} ${className}`.trim()
+            },
+            children
+          )
+        : (
+          <button
+            className={`${styles.chip} ${selected ? styles.selected : ""} ${className}`.trim()}
+            aria-pressed={selected}
+            disabled={disabled}
+            {...props}
+          >
+            {selected && <span aria-hidden="true">✓</span>}
+            {children}
+          </button>
         )}
-      </AnimatePresence>
-      <motion.span layout="position">{children}</motion.span>
-    </motion.button>
+    </motion.span>
   );
 }
