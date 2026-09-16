@@ -78,7 +78,7 @@ export function MaterialTextField({
     label,
     value,
     placeholder,
-    type,
+    type: multiline ? "textarea" : type,
     inputMode,
     required,
     disabled,
@@ -86,7 +86,6 @@ export function MaterialTextField({
     supportingText: errorText || supportingText,
     error: Boolean(errorText),
     rows: multiline ? rows ?? 3 : undefined,
-    type: multiline ? "textarea" : type,
     onInput: (event: any) => onChange({ target: { value: String(event.currentTarget.value ?? "") } })
   });
 }
