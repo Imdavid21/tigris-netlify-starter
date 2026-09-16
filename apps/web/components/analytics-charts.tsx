@@ -60,22 +60,18 @@ function timeToMs(time: Time) {
 
 export function AnalyticsChart({
   title,
-  subtitle,
   points,
   kind = "area",
   format = "compact",
   rangesEnabled = false,
-  defaultRange = "30d",
-  footer
+  defaultRange = "30d"
 }: {
   title: string;
-  subtitle?: string;
   points: AnalyticsChartPoint[];
   kind?: Kind;
   format?: "compact" | "percent";
   rangesEnabled?: boolean;
   defaultRange?: Range;
-  footer?: string;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState<Range>(defaultRange);
@@ -159,8 +155,7 @@ export function AnalyticsChart({
       });
     }
 
-    const data = visible.map((point) => ({ time: point.time as UTCTimestamp, value: point.value }));
-    series.setData(data as any);
+    series.setData(visible.map((point) => ({ time: point.time as UTCTimestamp, value: point.value })) as any);
     chart.timeScale().fitContent();
 
     const onCrosshair = (param: MouseEventParams<Time>) => {
@@ -182,10 +177,12 @@ export function AnalyticsChart({
   return (
     <div className={styles.card}>
       <div className={styles.head}>
-        <div>
-          <span className={styles.eyebrow}>{displayed?.label ?? (hovered ? new Date(hovered.time).toLocaleString() : subtitle)}</span>
+        <div className={styles.titleBlock}>
           <h3>{title}</h3>
-          <strong className={styles.value}>{displayed ? formatter(displayed.value) : "—"}</strong>
+          <div className={styles.valueRow}>
+            <strong>{displayed ? formatter(displayed.value) : "—"}</strong>
+            {hovered && <span>{displayed?.label ?? new Date(hovered.time).toLocaleString()}</span>}
+          </div>
         </div>
         {rangesEnabled && (
           <div className={styles.ranges} aria-label={`${title} range`}>
@@ -198,9 +195,8 @@ export function AnalyticsChart({
         )}
       </div>
       <div className={styles.stage}>
-        {visible.length >= 2 ? <div ref={mountRef} className={styles.mount} aria-label={`Interactive ${title} chart`} /> : <div className={styles.empty}>Not enough indexed history yet.</div>}
+        {visible.length >= 2 ? <div ref={mountRef} className={styles.mount} aria-label={`Interactive ${title} chart`} /> : <div className={styles.empty}>Not enough history yet.</div>}
       </div>
-      {footer && <p className={styles.footer}>{footer}</p>}
     </div>
   );
 }
