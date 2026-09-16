@@ -1,10 +1,7 @@
 name: Sell Supershot QA Holdings
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - packages/contracts/script/SellMainnetQA.s.sol
+  workflow_dispatch:
 
 permissions:
   contents: read

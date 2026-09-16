@@ -92,6 +92,21 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+) {
+  let next = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await worker(item);
+    }
+  });
+  await Promise.all(runners);
+}
+
 async function chunkedLogs(args: {
   address: Address;
   event: any;
@@ -99,9 +114,10 @@ async function chunkedLogs(args: {
   toBlock: bigint;
 }) {
   const logs: any[] = [];
-  const configured = BigInt(process.env.LOG_CHUNK_SIZE ?? "500");
+  const configured = BigInt(process.env.LOG_CHUNK_SIZE ?? "2000");
   const minChunk = 5n;
-  let chunk = configured > 0n ? configured : 500n;
+  const maxChunk = configured > 0n ? configured : 2000n;
+  let chunk = maxChunk;
   let from = args.fromBlock;
 
   while (from <= args.toBlock) {
@@ -117,6 +133,9 @@ async function chunkedLogs(args: {
           toBlock: to
         });
         logs.push(...batch);
+        if (chunk < maxChunk) {
+          chunk = chunk * 2n > maxChunk ? maxChunk : chunk * 2n;
+        }
         break;
       } catch (error) {
         if (!isRpcLimitError(error)) throw error;
@@ -144,7 +163,7 @@ async function chunkedLogs(args: {
   return logs;
 }
 
-async function storeLaunchV1(log: any) {
+async function storeLaunchV1(log: any, attach = true) {
   const { token, curve, creator, name, symbol } = log.args;
   if (!token || !curve || !creator) return;
 
@@ -168,10 +187,10 @@ async function storeLaunchV1(log: any) {
     ]
   );
 
-  await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "V1");
+  if (attach) await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "V1");
 }
 
-async function storeLaunchV2(log: any) {
+async function storeLaunchV2(log: any, attach = true) {
   const {
     token,
     curve,
@@ -216,7 +235,7 @@ async function storeLaunchV2(log: any) {
     ]
   );
 
-  await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "CELESTIAL");
+  if (attach) await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "CELESTIAL");
 }
 
 async function storeMetadata(log: any) {
@@ -465,7 +484,11 @@ async function backfillLegacyFactory() {
     fromBlock: legacyStartBlock,
     toBlock
   });
-  for (const log of launches) await storeLaunchV1(log);
+  for (const log of launches) await storeLaunchV1(log, false);
+  await runWithConcurrency(launches, 4, async (log) => {
+    const { token, curve } = log.args;
+    if (token && curve) await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "V1");
+  });
   await applyGraduationState(legacyFactory, legacyStartBlock);
 }
 
@@ -486,8 +509,12 @@ async function backfillCelestialFactory() {
       toBlock
     })
   ]);
-  for (const log of launches) await storeLaunchV2(log);
+  for (const log of launches) await storeLaunchV2(log, false);
   for (const log of metadata) await storeMetadata(log);
+  await runWithConcurrency(launches, 4, async (log) => {
+    const { token, curve } = log.args;
+    if (token && curve) await attachMarket(getAddress(curve), getAddress(token), log.blockNumber, "CELESTIAL");
+  });
   await applyGraduationState(celestialFactory, celestialStartBlock);
 }
 
