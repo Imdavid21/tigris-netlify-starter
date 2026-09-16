@@ -6,6 +6,7 @@ on:
       - wallet-e2e-stress
     paths:
       - "packages/contracts/**"
+      - "scripts/stress-celestial-rpc.mjs"
       - ".github/workflows/stress-celestial-testnet.yml"
   workflow_dispatch:
 
@@ -27,6 +28,10 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Install Solidity dependencies
         run: |
@@ -66,21 +71,20 @@ jobs:
           forge build
           forge test -vv | tee /tmp/forge-tests.log
 
-      - name: Run 26 randomized signed launch/trade simulations
+      - name: Install RPC stress runner dependency
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund viem@2.21.54
+
+      - name: Run 26 randomized signed launch/trade simulations through Arc RPC
         run: |
           set -o pipefail
-          forge script packages/contracts/script/StressCelestialTestnet.s.sol:StressCelestialTestnet \
-            --rpc-url "$ARC_RPC_URL" \
-            --broadcast \
-            -vvvv | tee /tmp/celestial-stress.log
-
-          grep -q "STRESS_OK.*1" /tmp/celestial-stress.log
+          node scripts/stress-celestial-rpc.mjs | tee /tmp/celestial-stress.log
+          grep -Fq "STRESS_OK|1" /tmp/celestial-stress.log
 
           {
             echo ""
             echo "### Signed stress result"
             echo '```text'
-            grep -E "STRESS_(FACTORY|LAUNCHES|MARKET_ACTIONS|BUYS|SELLS|ATOMIC_LAUNCHES|CLAIMS|BUYBACKS|START_USDC|END_USDC|OK)" /tmp/celestial-stress.log || true
+            grep -E "STRESS_(FACTORY|LAUNCHES|MARKET_ACTIONS|BUYS|SELLS|ATOMIC_LAUNCHES|CLAIMS|BUYBACKS|TRANSACTIONS|START_NATIVE|START_USDC|END_NATIVE|END_USDC|OK)" /tmp/celestial-stress.log || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -91,4 +95,5 @@ jobs:
           path: |
             /tmp/forge-tests.log
             /tmp/celestial-stress.log
-            broadcast/
+            /tmp/celestial-stress-summary.json
+            /tmp/celestial-stress-transactions.json
