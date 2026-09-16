@@ -61,8 +61,14 @@ jobs:
           done
           test "$(cast call "$ARC_USDC" 'decimals()(uint8)' --rpc-url "$ARC_RPC_URL")" = "6"
           BALANCE=$(cast balance "$EXPECTED_DEPLOYER" --rpc-url "$ARC_RPC_URL")
-          test "$BALANCE" -ge 5000000000000000000
-          echo "Preflight deployer native balance: $BALANCE"
+          python3 - "$BALANCE" <<'PY'
+import sys
+balance = int(sys.argv[1])
+minimum = 5_000_000_000_000_000_000
+if balance < minimum:
+    raise SystemExit(f"deployer balance {balance} is below guarded minimum {minimum}")
+print(f"Preflight deployer native balance: {balance}")
+PY
 
       - name: Test contracts
         run: forge test -vv
