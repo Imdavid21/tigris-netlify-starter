@@ -31,6 +31,7 @@ import { API_URL } from "@/lib/api";
 import { AppHeader } from "@/components/app-header";
 import { SiteFooter } from "@/components/site-footer";
 import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { writeContractFreshNonce } from "@/lib/transactions";
 import { motionSpring } from "@/lib/motion-system";
 
 function injected(): EIP1193Provider | undefined {
@@ -379,7 +380,7 @@ export function TokenMarket({ token }: { token: Address }) {
 
     if (allowance < input) {
       setStatus(label);
-      const hash = await wallet.writeContract({ address: asset, abi: erc20Abi, functionName: "approve", args: [spender, input] });
+      const hash = await writeContractFreshNonce(wallet, client, account, { address: asset, abi: erc20Abi, functionName: "approve", args: [spender, input] });
       await client.waitForTransactionReceipt({ hash });
     }
 
@@ -406,7 +407,7 @@ export function TokenMarket({ token }: { token: Address }) {
         const { account, wallet } = await ensureAllowance(asset, celestialAddresses.dexAdapter, input, "Approve asset");
         accountForRefresh = account;
         setStatus("Confirm trade");
-        const hash = await wallet.writeContract({
+        const hash = await writeContractFreshNonce(wallet, client, account, {
           address: celestialAddresses.dexAdapter,
           abi: dexAdapterAbi,
           functionName: "swapExactInput",
@@ -419,11 +420,11 @@ export function TokenMarket({ token }: { token: Address }) {
         setStatus("Confirm trade");
         const hash = isCelestial
           ? side === "buy"
-            ? await wallet.writeContract({ address: curve, abi: celestialCurveAbi, functionName: "buy", args: [input, minOut] })
-            : await wallet.writeContract({ address: curve, abi: celestialCurveAbi, functionName: "sell", args: [input, minOut] })
+            ? await writeContractFreshNonce(wallet, client, account, { address: curve, abi: celestialCurveAbi, functionName: "buy", args: [input, minOut] })
+            : await writeContractFreshNonce(wallet, client, account, { address: curve, abi: celestialCurveAbi, functionName: "sell", args: [input, minOut] })
           : side === "buy"
-            ? await wallet.writeContract({ address: curve, abi: curveAbi, functionName: "buy", args: [input, minOut] })
-            : await wallet.writeContract({ address: curve, abi: curveAbi, functionName: "sell", args: [input, minOut] });
+            ? await writeContractFreshNonce(wallet, client, account, { address: curve, abi: curveAbi, functionName: "buy", args: [input, minOut] })
+            : await writeContractFreshNonce(wallet, client, account, { address: curve, abi: curveAbi, functionName: "sell", args: [input, minOut] });
 
         setStatus("Confirming");
         await client.waitForTransactionReceipt({ hash });
@@ -455,8 +456,8 @@ export function TokenMarket({ token }: { token: Address }) {
 
       setStatus("Place order");
       const hash = side === "buy"
-        ? await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeBuyOrder", args: [curve, input, minOutput] })
-        : await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeSellOrder", args: [curve, input, minOutput] });
+        ? await writeContractFreshNonce(wallet, client, account, { address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeBuyOrder", args: [curve, input, minOutput] })
+        : await writeContractFreshNonce(wallet, client, account, { address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "placeSellOrder", args: [curve, input, minOutput] });
 
       await client.waitForTransactionReceipt({ hash });
       setStatus("Order placed");
@@ -475,7 +476,7 @@ export function TokenMarket({ token }: { token: Address }) {
     try {
       const { account, wallet } = await accountAndWallet();
       setStatus("Cancel order");
-      const hash = await wallet.writeContract({ address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "cancel", args: [BigInt(orderId)] });
+      const hash = await writeContractFreshNonce(wallet, client, account, { address: celestialAddresses.orderBook, abi: orderBookAbi, functionName: "cancel", args: [BigInt(orderId)] });
       await client.waitForTransactionReceipt({ hash });
       setStatus("Cancelled");
       await refreshOrders(account);
@@ -490,7 +491,7 @@ export function TokenMarket({ token }: { token: Address }) {
     try {
       const { account, wallet } = await accountAndWallet();
       setStatus("Claim rewards");
-      const hash = await wallet.writeContract({ address: token, abi: celestialTokenAbi, functionName: "claimHolderRewards" });
+      const hash = await writeContractFreshNonce(wallet, client, account, { address: token, abi: celestialTokenAbi, functionName: "claimHolderRewards" });
       await client.waitForTransactionReceipt({ hash });
       setStatus("Rewards claimed");
       await refreshWalletState(account);
