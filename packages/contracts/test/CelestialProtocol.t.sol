@@ -66,12 +66,29 @@ contract CelestialProtocolTest is Test {
         p.snipeExemptions = new address[](0);
     }
 
-    function testMetadataAndConfigurablePairs() public {
+    function testMetadataEventPathAndConfigurablePairs() public {
+        vm.recordLogs();
         vm.prank(creator);
         (address token,) = factory.createToken(_params(address(eurc)));
 
-        CelestialLaunchFactory.Metadata memory metadata = factory.getMetadata(token);
-        assertEq(metadata.description, "Onchain metadata");
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 metadataSig = keccak256("MetadataSet(address,string,string,string,string,string)");
+        bool foundMetadata;
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter == address(factory) && logs[i].topics.length > 1 && logs[i].topics[0] == metadataSig) {
+                assertEq(address(uint160(uint256(logs[i].topics[1]))), token);
+                (string memory description, string memory image, string memory website, string memory twitter, string memory telegram) =
+                    abi.decode(logs[i].data, (string, string, string, string, string));
+                assertEq(description, "Onchain metadata");
+                assertEq(image, "ipfs://image");
+                assertEq(website, "https://celestial.example");
+                assertEq(twitter, "@celestial");
+                assertEq(telegram, "t.me/celestial");
+                foundMetadata = true;
+                break;
+            }
+        }
+        assertTrue(foundMetadata);
         assertEq(factory.quoteAssetOf(token), address(eurc));
     }
 
@@ -215,7 +232,6 @@ contract CelestialProtocolTest is Test {
         assertEq(usdc.allowance(address(vault), curve), 0);
     }
 
-
     function testMarketBuySellNormalFlow() public {
         vm.prank(creator);
         (address token, address curve) = factory.createToken(_params(address(usdc)));
@@ -320,5 +336,4 @@ contract CelestialProtocolTest is Test {
 
         assertEq(CelestialBondingCurve(curve).currentSnipeBps(trader), 0);
     }
-
 }
