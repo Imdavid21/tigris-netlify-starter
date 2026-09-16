@@ -69,8 +69,10 @@ function normalizeStats(raw: Json) {
     totalAddresses: asNumber(raw?.total_addresses ?? raw?.totalAddresses),
     averageBlockTimeMs: asNumber(raw?.average_block_time ?? raw?.averageBlockTime),
     gasUsedToday: asNumber(raw?.gas_used_today ?? raw?.gasUsedToday),
+    totalGasUsed: asNumber(raw?.total_gas_used ?? raw?.totalGasUsed),
     networkUtilizationPct: asNumber(raw?.network_utilization_percentage ?? raw?.networkUtilizationPercentage),
     coinPrice: asNumber(raw?.coin_price ?? raw?.coinPrice),
+    staticGasPrice: asNumber(raw?.static_gas_price ?? raw?.staticGasPrice),
     gasPrices: gasPrices && typeof gasPrices === "object" ? {
       slow: asNumber(gasPrices.slow),
       average: asNumber(gasPrices.average),
@@ -86,11 +88,11 @@ function normalizeActivity(raw: Json) {
       transactions: asNumber(item?.tx_count ?? item?.transactions ?? item?.count ?? item?.value)
     }))
     .filter((item) => item.date && item.transactions !== null)
-    .slice(-180);
+    .slice(-365);
 }
 
 function normalizeBlocks(raw: Json) {
-  return itemArray(raw).slice(0, 12).map((item) => ({
+  return itemArray(raw).slice(0, 30).map((item) => ({
     number: asNumber(item?.height ?? item?.number),
     hash: asString(item?.hash),
     timestamp: asString(item?.timestamp),
@@ -102,7 +104,7 @@ function normalizeBlocks(raw: Json) {
 }
 
 function normalizeTransactions(raw: Json) {
-  return itemArray(raw).slice(0, 14).map((item) => ({
+  return itemArray(raw).slice(0, 50).map((item) => ({
     hash: asString(item?.hash),
     block: asNumber(item?.block ?? item?.block_number),
     timestamp: asString(item?.timestamp),
@@ -110,7 +112,9 @@ function normalizeTransactions(raw: Json) {
     method: asString(item?.method ?? item?.decoded_input?.method_call),
     from: asString(item?.from?.hash ?? item?.from),
     to: asString(item?.to?.hash ?? item?.to),
-    fee: asString(item?.fee?.value ?? item?.fee)
+    fee: asString(item?.fee?.value ?? item?.fee),
+    gasUsed: asString(item?.gas_used),
+    gasLimit: asString(item?.gas_limit)
   }));
 }
 
