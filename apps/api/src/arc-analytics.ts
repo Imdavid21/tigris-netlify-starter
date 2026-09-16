@@ -40,24 +40,56 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+let blockscoutQueue: Promise<void> = Promise.resolve();
+let lastBlockscoutRequestAt = 0;
+const BLOCKSCOUT_MIN_REQUEST_GAP_MS = 500;
+const BLOCKSCOUT_MAX_ATTEMPTS = 4;
+
+function retryDelayMs(response: Response, attempt: number) {
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) return Math.max(1_000, seconds * 1_000);
+    const date = Date.parse(retryAfter);
+    if (Number.isFinite(date)) return Math.max(1_000, date - Date.now());
+  }
+  return Math.min(8_000, 1_250 * (2 ** attempt));
+}
+
 async function blockscout(path: string, query: Record<string, string | number | boolean | null | undefined> = {}) {
   if (!BLOCKSCOUT_API_KEY) throw new Error("BLOCKSCOUT_API_KEY is not configured");
 
-  const url = new URL(`${BLOCKSCOUT_API_BASE_URL}/${ARC_ANALYTICS_CHAIN_ID}${path}`);
-  url.searchParams.set("apikey", BLOCKSCOUT_API_KEY);
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
-  }
+  const run = blockscoutQueue.then(async () => {
+    const url = new URL(`${BLOCKSCOUT_API_BASE_URL}/${ARC_ANALYTICS_CHAIN_ID}${path}`);
+    url.searchParams.set("apikey", BLOCKSCOUT_API_KEY);
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== null && value !== undefined) url.searchParams.set(key, String(value));
+    }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
-  try {
-    const response = await fetch(url, { headers: { accept: "application/json" }, signal: controller.signal });
-    if (!response.ok) throw new Error(`Blockscout ${path} returned ${response.status}`);
-    return await response.json() as Json;
-  } finally {
-    clearTimeout(timeout);
-  }
+    for (let attempt = 0; attempt < BLOCKSCOUT_MAX_ATTEMPTS; attempt += 1) {
+      const wait = Math.max(0, lastBlockscoutRequestAt + BLOCKSCOUT_MIN_REQUEST_GAP_MS - Date.now());
+      if (wait) await sleep(wait);
+      lastBlockscoutRequestAt = Date.now();
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12_000);
+      try {
+        const response = await fetch(url, { headers: { accept: "application/json" }, signal: controller.signal });
+        if (response.status === 429 && attempt < BLOCKSCOUT_MAX_ATTEMPTS - 1) {
+          await sleep(retryDelayMs(response, attempt));
+          continue;
+        }
+        if (!response.ok) throw new Error(`Blockscout ${path} returned ${response.status}`);
+        return await response.json() as Json;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    throw new Error(`Blockscout ${path} exhausted retries`);
+  });
+
+  blockscoutQueue = run.then(() => undefined, () => undefined);
+  return run;
 }
 
 async function optionalBlockscout(path: string, query: Record<string, string | number> = {}) {
@@ -216,7 +248,6 @@ async function syncTransactions(db: Queryable) {
     if (!next || typeof next !== "object" || !Object.keys(next).length) break;
     query = next;
     pages += 1;
-    await sleep(220);
   }
   return indexed;
 }
@@ -246,7 +277,6 @@ async function syncBlocks(db: Queryable) {
     const next = raw?.next_page_params;
     if (!next || typeof next !== "object" || !Object.keys(next).length) break;
     query = next;
-    await sleep(220);
   }
   return indexed;
 }
@@ -270,13 +300,11 @@ export async function syncArcAnalytics(db: Pool, log?: FastifyInstance["log"]) {
     locked = Boolean(lockResult.rows[0]?.locked);
     if (!locked) return { configured: true, skipped: true };
 
-    const [statsRaw, activityRaw, transactionStatsRaw, contractCountersRaw, hotContractsRaw] = await Promise.all([
-      blockscout("/api/v2/stats"),
-      blockscout("/api/v2/stats/charts/transactions"),
-      optionalBlockscout("/api/v2/transactions/stats"),
-      optionalBlockscout("/api/v2/smart-contracts/counters"),
-      optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" })
-    ]);
+    const statsRaw = await blockscout("/api/v2/stats");
+    const activityRaw = await blockscout("/api/v2/stats/charts/transactions");
+    const transactionStatsRaw = await optionalBlockscout("/api/v2/transactions/stats");
+    const contractCountersRaw = await optionalBlockscout("/api/v2/smart-contracts/counters");
+    const hotContractsRaw = await optionalBlockscout("/api/v2/stats/hot-smart-contracts", { scale: "1h" });
 
     const stats = normalizeStats(statsRaw);
     const activity = normalizeActivity(activityRaw);
@@ -284,10 +312,8 @@ export async function syncArcAnalytics(db: Pool, log?: FastifyInstance["log"]) {
     const contractCounters = normalizeContractCounters(contractCountersRaw);
     const hotContracts = normalizeHotContracts(hotContractsRaw);
 
-    const [transactionsIndexed, blocksIndexed] = await Promise.all([
-      syncTransactions(client),
-      syncBlocks(client)
-    ]);
+    const transactionsIndexed = await syncTransactions(client);
+    const blocksIndexed = await syncBlocks(client);
     await syncDailyActivity(client, activity);
 
     await client.query(
