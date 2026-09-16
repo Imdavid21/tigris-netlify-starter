@@ -55,7 +55,7 @@ export function TokenCard({
     >
       <motion.div
         className={styles.media}
-        layoutId={`token-media-${href}`}
+        layoutId={`token-media-${href.toLowerCase()}`}
         transition={motionSpring.spatialDefault}
       >
         {image ? (
