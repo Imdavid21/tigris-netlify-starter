@@ -61,14 +61,7 @@ jobs:
           done
           test "$(cast call "$ARC_USDC" 'decimals()(uint8)' --rpc-url "$ARC_RPC_URL")" = "6"
           BALANCE=$(cast balance "$EXPECTED_DEPLOYER" --rpc-url "$ARC_RPC_URL")
-          python3 - "$BALANCE" <<'PY'
-import sys
-balance = int(sys.argv[1])
-minimum = 5_000_000_000_000_000_000
-if balance < minimum:
-    raise SystemExit(f"deployer balance {balance} is below guarded minimum {minimum}")
-print(f"Preflight deployer native balance: {balance}")
-PY
+          python3 -c 'import sys; b=int(sys.argv[1]); m=5_000_000_000_000_000_000; print(f"Preflight deployer native balance: {b}"); assert b >= m, f"deployer balance {b} is below guarded minimum {m}"' "$BALANCE"
 
       - name: Test contracts
         run: forge test -vv
@@ -112,22 +105,21 @@ PY
           test "${CONFIGURED_INITIALIZER,,}" = "${CONNECTOR,,}"
           test "$(cast call "$HOOK" 'initializerSealed()(bool)' --rpc-url "$ARC_RPC_URL")" = "true"
 
-          cat > /tmp/arc-mainnet-addresses.json <<EOF
-          {
-            "chainId": 5042,
-            "deploymentStartBlock": $START_BLOCK,
-            "deploymentEndBlock": $END_BLOCK,
-            "factory": "$FACTORY",
-            "feeEscrow": "$ESCROW",
-            "buybackVault": "$BUYBACK",
-            "liquidityLocker": "$LOCKER",
-            "orderBook": "$ORDERBOOK",
-            "v4Hook": "$HOOK",
-            "v4Connector": "$CONNECTOR",
-            "dexAdapter": "$ADAPTER",
-            "usdc": "$ARC_USDC"
-          }
-          EOF
+          printf '%s\n' \
+            '{' \
+            '  "chainId": 5042,' \
+            "  \"deploymentStartBlock\": $START_BLOCK," \
+            "  \"deploymentEndBlock\": $END_BLOCK," \
+            "  \"factory\": \"$FACTORY\"," \
+            "  \"feeEscrow\": \"$ESCROW\"," \
+            "  \"buybackVault\": \"$BUYBACK\"," \
+            "  \"liquidityLocker\": \"$LOCKER\"," \
+            "  \"orderBook\": \"$ORDERBOOK\"," \
+            "  \"v4Hook\": \"$HOOK\"," \
+            "  \"v4Connector\": \"$CONNECTOR\"," \
+            "  \"dexAdapter\": \"$ADAPTER\"," \
+            "  \"usdc\": \"$ARC_USDC\"" \
+            '}' > /tmp/arc-mainnet-addresses.json
 
           {
             echo "## Supershot / Celestial Arc Mainnet"
