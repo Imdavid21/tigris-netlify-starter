@@ -34,16 +34,8 @@ export function AppHeader() {
 
           <div className={styles.actions}>
             <nav className={styles.utilityNav} aria-label="Product actions">
-              <a href="/create" className={styles.createLink}>Create</a>
+              <a href="/create" className={styles.createLink}>Launch Token</a>
             </nav>
-            <a
-              className={styles.network}
-              href="https://testnet.arcscan.app"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span className={styles.dot} /> Arc Testnet
-            </a>
             <ThemeToggle />
             <WalletButton />
           </div>
