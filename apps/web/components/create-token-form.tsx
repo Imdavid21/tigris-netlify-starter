@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import {
   createPublicClient,
   createWalletClient,
@@ -21,8 +22,9 @@ import {
   quoteAssets
 } from "@/lib/celestial";
 import { ensureArcChain } from "@/lib/wallet";
-import { createArcPublicClient, friendlyChainError } from "@/lib/rpc";
+import { friendlyChainError } from "@/lib/rpc";
 import { useWalletSession } from "@/components/wallet-session";
+import { motionSpring } from "@/lib/motion-system";
 
 function getProvider(): EIP1193Provider | undefined {
   return (window as Window & { ethereum?: EIP1193Provider }).ethereum;
@@ -233,116 +235,196 @@ export function CreateTokenForm() {
     quoteSymbol === "cirBTC" ? "0.10 cirBTC" : "10,000 " + quoteSymbol;
 
   return (
-    <form onSubmit={submit} className="create-grid">
-      <div className="create-main">
-        <section className="form-card">
-          <div className="form-section-head">
-            <div><span className="step-index">01</span><h2>Token</h2></div>
-            <span className="live-badge">{celestialReady ? "Celestial" : "V1"}</span>
-          </div>
-
-          <div className="field-grid two">
-            <label>
-              <span>Name</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} placeholder="Arc Cat" required />
-            </label>
-            <label>
-              <span>Ticker</span>
-              <input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} maxLength={10} placeholder="ACAT" required />
-            </label>
-          </div>
-
-          <label>
-            <span>Description</span>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this market?" />
-          </label>
-
-          <div className="field-grid two">
-            <label><span>Image URL</span><input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https:// or ipfs://" /></label>
-            <label><span>Website</span><input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" /></label>
-            <label><span>X / Twitter</span><input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" /></label>
-            <label><span>Telegram</span><input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="t.me/..." /></label>
-          </div>
-        </section>
-
-        <section className="form-card">
-          <div className="form-section-head">
-            <div><span className="step-index">02</span><h2>Launch economics</h2></div>
-          </div>
-
-          <div className="field-grid two">
-            <label>
-              <span>Pair asset</span>
-              <select value={quoteSymbol} onChange={(e) => setQuoteSymbol(e.target.value as typeof quoteSymbol)}>
-                {quoteAssets.map((q) => <option key={q.symbol} value={q.symbol}>{q.symbol}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Developer buy</span>
-              <input value={developerBuy} onChange={(e) => setDeveloperBuy(e.target.value)} inputMode="decimal" placeholder={"0 " + quoteSymbol} />
-            </label>
-          </div>
-
-          <div className="economics-table">
-            <div><span>Supply</span><strong>1,000,000,000</strong></div>
-            <div><span>Pair</span><strong>{quoteSymbol}</strong></div>
-            <div><span>Base trade fee</span><strong>1.00%</strong></div>
-            <div><span>Graduation target</span><strong>{graduationText}</strong></div>
-            <div><span>Launch protection</span><strong>5-second decay</strong></div>
-            <div><span>Liquidity</span><strong>Reserved + locked</strong></div>
-          </div>
-
-          <button type="button" className="text-button" onClick={() => setAdvanced(!advanced)}>
-            {advanced ? "Hide" : "Show"} advanced controls
-          </button>
-
-          {advanced && (
-            <div className="advanced-grid">
-              <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>
-              <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-              <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-              <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
+    <LayoutGroup id="create-flow">
+      <motion.form
+        onSubmit={submit}
+        className="create-grid"
+        layout
+        transition={{ layout: motionSpring.spatialDefault }}
+      >
+        <motion.div className="create-main" layout>
+          <motion.section className="form-card" layout transition={{ layout: motionSpring.spatialDefault }}>
+            <div className="form-section-head">
+              <div><span className="step-index">01</span><h2>Token</h2></div>
+              <span className="live-badge">{celestialReady ? "Celestial" : "V1"}</span>
             </div>
-          )}
-        </section>
 
-        <section className="form-card review-card">
-          <div className="form-section-head">
-            <div><span className="step-index">03</span><h2>Review</h2></div>
-          </div>
-          <p className="review-copy">
-            Metadata and launch economics are immutable for this market once the transaction confirms.
-            {developerBuy && Number(developerBuy) > 0 ? " The developer buy executes in the same launch transaction after token approval." : ""}
-          </p>
+            <div className="field-grid two">
+              <label>
+                <span>Name</span>
+                <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} placeholder="Arc Cat" required />
+              </label>
+              <label>
+                <span>Ticker</span>
+                <input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} maxLength={10} placeholder="ACAT" required />
+              </label>
+            </div>
 
-          <button className="launch-cta" type="submit" disabled={status === "wallet" || status === "submitted"}>
-            {status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
-          </button>
+            <label>
+              <span>Description</span>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this market?" />
+            </label>
 
-          {hash && <p className="tx-hash">Tx {hash}</p>}
-          {error && <p className="form-error">{error}</p>}
-        </section>
-      </div>
+            <div className="field-grid two">
+              <label><span>Image URL</span><input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https:// or ipfs://" /></label>
+              <label><span>Website</span><input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" /></label>
+              <label><span>X / Twitter</span><input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" /></label>
+              <label><span>Telegram</span><input value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="t.me/..." /></label>
+            </div>
+          </motion.section>
 
-      <aside className="launch-preview">
-        <div className="token-avatar">{previewSymbol.slice(0, 2)}</div>
-        <h3>{name || "Untitled token"}</h3>
-        <p className="preview-symbol">{"$" + previewSymbol}</p>
-        <p className="preview-description">{description || "Add a token description."}</p>
+          <motion.section className="form-card" layout transition={{ layout: motionSpring.spatialDefault }}>
+            <div className="form-section-head">
+              <div><span className="step-index">02</span><h2>Launch economics</h2></div>
+            </div>
 
-        <div className="preview-rule" />
-        <div className="preview-stat"><span>Market</span><strong>Bonding curve</strong></div>
-        <div className="preview-stat"><span>Pair</span><strong>{quoteSymbol}</strong></div>
-        <div className="preview-stat"><span>Graduation</span><strong>{graduationText}</strong></div>
-        <div className="preview-stat"><span>Creator tax</span><strong>{Number(creatorTax || 0).toFixed(2)}%</strong></div>
-        <div className="preview-stat"><span>Holder sharing</span><strong>{Number(holderFee || 0).toFixed(2)}%</strong></div>
-        <div className="preview-stat"><span>Liquidity</span><strong>Locked</strong></div>
+            <div className="field-grid two">
+              <label>
+                <span>Pair asset</span>
+                <select value={quoteSymbol} onChange={(e) => setQuoteSymbol(e.target.value as typeof quoteSymbol)}>
+                  {quoteAssets.map((q) => <option key={q.symbol} value={q.symbol}>{q.symbol}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Developer buy</span>
+                <input value={developerBuy} onChange={(e) => setDeveloperBuy(e.target.value)} inputMode="decimal" placeholder={"0 " + quoteSymbol} />
+              </label>
+            </div>
 
-        <div className="preview-note">
-          <span className="status-dot" />
-          Trading opens after the launch transaction confirms.
-        </div>
-      </aside>
-    </form>
+            <motion.div className="economics-table" layout>
+              <div><span>Supply</span><strong>1,000,000,000</strong></div>
+              <div><span>Pair</span><strong>{quoteSymbol}</strong></div>
+              <div><span>Base trade fee</span><strong>1.00%</strong></div>
+              <div><span>Graduation target</span><strong>{graduationText}</strong></div>
+              <div><span>Launch protection</span><strong>5-second decay</strong></div>
+              <div><span>Liquidity</span><strong>Reserved + locked</strong></div>
+            </motion.div>
+
+            <motion.button
+              type="button"
+              className="text-button"
+              onClick={() => setAdvanced(!advanced)}
+              whileTap={{ scale: 0.97 }}
+              transition={motionSpring.spatialFast}
+            >
+              {advanced ? "Hide" : "Show"} advanced controls
+            </motion.button>
+
+            <AnimatePresence initial={false} mode="popLayout">
+              {advanced && (
+                <motion.div
+                  className="advanced-grid"
+                  layout
+                  initial={{ opacity: 0, height: 0, y: -8 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -6 }}
+                  transition={{
+                    ...motionSpring.spatialDefault,
+                    opacity: motionSpring.effectsFast
+                  }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>
+                  <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
+                  <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
+                  <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          <motion.section className="form-card review-card" layout transition={{ layout: motionSpring.spatialDefault }}>
+            <div className="form-section-head">
+              <div><span className="step-index">03</span><h2>Review</h2></div>
+            </div>
+            <motion.p className="review-copy" layout="position">
+              Metadata and launch economics are immutable for this market once the transaction confirms.
+              {developerBuy && Number(developerBuy) > 0 ? " The developer buy executes in the same launch transaction after token approval." : ""}
+            </motion.p>
+
+            <motion.button
+              className="launch-cta"
+              type="submit"
+              disabled={status === "wallet" || status === "submitted"}
+              layout
+              whileHover={status === "idle" ? { scale: 1.01, y: -1 } : undefined}
+              whileTap={status === "idle" ? { scale: 0.985, y: 0 } : undefined}
+              transition={motionSpring.spatialFast}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={status}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={motionSpring.effectsFast}
+                >
+                  {status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
+
+            <AnimatePresence initial={false} mode="popLayout">
+              {hash && (
+                <motion.p
+                  key="hash"
+                  className="tx-hash"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={motionSpring.effectsFast}
+                  layout
+                >Tx {hash}</motion.p>
+              )}
+              {error && (
+                <motion.p
+                  key="error"
+                  className="form-error"
+                  initial={{ opacity: 0, y: -4, scale: 0.99 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={motionSpring.spatialFast}
+                  layout
+                >{error}</motion.p>
+              )}
+            </AnimatePresence>
+          </motion.section>
+        </motion.div>
+
+        <motion.aside
+          className="launch-preview"
+          layout
+          transition={{ layout: motionSpring.spatialDefault }}
+        >
+          <motion.div
+            className="token-avatar"
+            key={previewSymbol}
+            initial={{ scale: 0.9, opacity: 0, rotate: -4 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            transition={motionSpring.spatialFast}
+          >{previewSymbol.slice(0, 2)}</motion.div>
+          <motion.h3 layout="position">{name || "Untitled token"}</motion.h3>
+          <motion.p className="preview-symbol" layout="position">{"$" + previewSymbol}</motion.p>
+          <motion.p className="preview-description" layout>{description || "Add a token description."}</motion.p>
+
+          <div className="preview-rule" />
+          <div className="preview-stat"><span>Market</span><strong>Bonding curve</strong></div>
+          <div className="preview-stat"><span>Pair</span><motion.strong layout>{quoteSymbol}</motion.strong></div>
+          <div className="preview-stat"><span>Graduation</span><motion.strong layout>{graduationText}</motion.strong></div>
+          <div className="preview-stat"><span>Creator tax</span><strong>{Number(creatorTax || 0).toFixed(2)}%</strong></div>
+          <div className="preview-stat"><span>Holder sharing</span><strong>{Number(holderFee || 0).toFixed(2)}%</strong></div>
+          <div className="preview-stat"><span>Liquidity</span><strong>Locked</strong></div>
+
+          <motion.div className="preview-note" layout="position">
+            <motion.span
+              className="status-dot"
+              animate={{ scale: [1, 1.28, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            Trading opens after the launch transaction confirms.
+          </motion.div>
+        </motion.aside>
+      </motion.form>
+    </LayoutGroup>
   );
 }
