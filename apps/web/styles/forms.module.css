@@ -1,0 +1,223 @@
+.create-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 24px;
+  max-width: 1040px;
+  margin: auto;
+}
+.create-main {
+  display: grid;
+  gap: 20px;
+}
+.form-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 20px;
+  display: grid;
+  gap: 20px;
+}
+.form-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.form-section-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.step-index {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.field-grid {
+  display: grid;
+  gap: 16px;
+}
+.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.form-card label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.form-card label > span {
+  font-size: 12px;
+  font-weight: 500;
+}
+.form-card input,
+.form-card textarea,
+.form-card select {
+  width: 100%;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--text);
+}
+.form-card input:focus,
+.form-card textarea:focus,
+.form-card select:focus {
+  outline: 0;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.form-card textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+.economics-table {
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 4px 16px;
+}
+.economics-table > div,
+.preview-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  padding: 10px 0;
+}
+.economics-table > div + div {
+  border-top: 1px solid var(--border);
+}
+.economics-table span,
+.preview-stat span {
+  color: var(--muted);
+}
+.text-button {
+  background: transparent;
+  color: var(--brand);
+  text-align: left;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.advanced-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.full {
+  grid-column: 1/-1;
+}
+.review-copy {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+.launch-cta {
+  background: var(--brand);
+  color: var(--surface);
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.launch-cta:hover {
+  background: var(--brand-hover);
+}
+.tx-hash {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+}
+.launch-preview {
+  position: sticky;
+  top: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  align-self: start;
+}
+.launch-preview h3 {
+  font-size: 20px;
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.preview-symbol {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.preview-description {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.preview-rule {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0 8px;
+}
+.preview-note {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 14px;
+  background: var(--soft);
+  border-radius: 10px;
+  margin-top: 16px;
+}
+.preview-note .status-dot {
+  margin-right: 6px;
+}
+.preview-caption {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.launch-preview .market-card {
+  pointer-events: none;
+}
+.launch-preview .market-card-image {
+  aspect-ratio: 1.2;
+}
+@media (max-width: 850px) {
+  .create-grid {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 16px;
+  }
+  .form-card {
+    padding: 20px;
+  }
+}
+@media (max-width: 700px) {
+  .create-grid {
+    grid-template-columns: 1fr;
+  }
+  .launch-preview {
+    position: static;
+    order: 2;
+  }
+  .form-card {
+    padding: 20px 16px;
+  }
+  .two,
+  .advanced-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-card input,
+  .form-card select,
+  .form-card textarea {
+    font-size: 16px;
+  }
+  .launch-preview .market-card {
+    max-width: 260px;
+    margin: auto;
+  }
+}

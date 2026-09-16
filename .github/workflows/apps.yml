@@ -14,6 +14,7 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm audit --omit=dev || true
+      - run: node --test apps/web/tests/protocol-freeze.test.cjs
       - run: npm run build
       - run: docker build -f apps/api/Dockerfile -t arc-launchpad-api .
       - run: docker build -f apps/indexer/Dockerfile -t arc-launchpad-indexer .
@@ -83,6 +84,8 @@ jobs:
           curl -fsS http://127.0.0.1:3000/create | grep 'Launch a token'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/token/0x0000000000000000000000000000000000000001)" = "200"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/explore)" = "200"
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/profile)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/profile)" = "307"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/portfolio)" = "200"
+          curl -sI http://127.0.0.1:3000/profile | grep -i 'location: /portfolio'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/analytics)" = "200"
           kill $PID

@@ -1,3 +1,6 @@
+
+import { ui } from "@/styles/ui";
+import { SiteFooter } from "@/components/site-footer";
 import { AppHeader } from "@/components/app-header";
 
 const markets = [
@@ -10,32 +13,33 @@ const markets = [
 
 export default function StocksPage() {
   return (
-    <main className="app-shell">
+    <main className={ui("app-shell")}>
       <AppHeader />
-      <section className="page-heading compact">
-        <h1>Launch against more than USDC.</h1>
-        <p>Paired-asset markets designed for Arc's approved quote-asset registry.</p>
+      <section className={ui("page-heading compact")}>
+        <h1>Stocks</h1>
+        <p>A preview of future tokenized-asset discovery.</p>
       </section>
 
-      <div className="feature-notice">
+      <div className={ui("feature-notice")}>
         <strong>Preview mode</strong>
-        <span>The current Arc factory is USDC-only. These markets preview expanded asset discovery and compliance UX.</span>
+        <span>These are illustrative assets, not live markets. Explore shows the currently indexed Arc markets.</span>
       </div>
 
-      <div className="stocks-grid">
+      <div className={ui("stocks-grid")}>
         {markets.map(([ticker,name,type]) => (
-          <div className="stock-card" key={ticker}>
-            <div className="stock-symbol">{ticker.slice(0,2)}</div>
+          <div className={ui("stock-card")} key={ticker}>
+            <div className={ui("stock-symbol")}>{ticker.slice(0,2)}</div>
             <div><strong>{name}</strong><span>{ticker} · {type}</span></div>
-            <span className="coming-chip">Preview</span>
+            <span className={ui("coming-chip")}>Preview</span>
           </div>
         ))}
       </div>
 
-      <section className="jurisdiction-card">
+      <section className={ui("jurisdiction-card")}>
         <h2>Pair-level restrictions, not hidden failures.</h2>
         <p>Tokenized-equity pairs will carry explicit jurisdiction eligibility before a user reaches the trade signature. Viewing remains separate from execution eligibility.</p>
       </section>
+      <SiteFooter />
     </main>
   );
 }

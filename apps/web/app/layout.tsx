@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
+const geist = localFont({src:"../public/fonts/geist-latin.woff2",display:"swap",variable:"--font-sans"});
 import "./globals.css";
-import "./utopia.css";
-import "./utopia-app.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 const themeScript = `
 (() => {
   try {
-    document.documentElement.dataset.theme = "dark";
+    const saved = localStorage.getItem("celestial-theme");
+    document.documentElement.dataset.theme = saved === "dark" ? "dark" : "light";
   } catch {}
 })();
 `;
@@ -25,7 +26,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body><Providers>{children}</Providers></body>
+      <body className={geist.variable}><Providers>{children}</Providers></body>
     </html>
   );
 }

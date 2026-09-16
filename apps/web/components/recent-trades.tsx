@@ -1,81 +1,121 @@
 "use client";
+import { ui } from "@/styles/ui";
 
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { API_URL, type IndexedTrade } from "@/lib/api";
-
-export function RecentTrades({ token }: { token: string }) {
+export function RecentTrades({
+  token,
+  quoteDecimals = 6,
+  quoteSymbol = "USDC",
+}: {
+  token: string;
+  quoteDecimals?: number;
+  quoteSymbol?: string;
+}) {
   const [trades, setTrades] = useState<IndexedTrade[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
   useEffect(() => {
     let active = true;
-
-    fetch(API_URL + "/tokens/" + token)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (active && data?.trades) setTrades(data.trades);
+    setLoading(true);
+    setError(false);
+    setPage(1);
+    fetch(API_URL + "/tokens/" + token, {signal: AbortSignal.timeout(12000)})
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
       })
-      .catch(() => {})
+      .then((data) => {
+        if (active) setTrades(data?.trades ?? []);
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
-
     return () => {
       active = false;
     };
   }, [token]);
-
   return (
-    <section style={{ marginTop: 28 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+    <section className={ui("data-panel")}>
+      <div className={ui("section-title")}>
         <strong>Recent trades</strong>
-        <span style={{ opacity: 0.5, fontSize: 13 }}>
-          Indexed from Arc
-        </span>
+        <span>On Arc</span>
       </div>
-
-      <div style={{ marginTop: 12, borderTop: "1px solid #29302c" }}>
-        {loading ? (
-          <p style={{ opacity: 0.55 }}>Loading trades...</p>
-        ) : !trades.length ? (
-          <p style={{ opacity: 0.55 }}>No indexed trades yet.</p>
-        ) : (
-          trades.slice(0, 20).map((trade) => (
-            <div
-              key={trade.tx_hash + String(trade.block_time)}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "70px 1fr auto",
-                gap: 12,
-                padding: "11px 0",
-                borderBottom: "1px solid #1d211f",
-                fontSize: 13
-              }}
-            >
-              <span style={{ fontWeight: 600 }}>
-                {trade.side === "BUY" ? "Buy" : "Sell"}
-              </span>
-              <a
-                href={"https://testnet.arcscan.app/address/" + trade.trader}
-                target="_blank"
-                rel="noreferrer"
-                style={{ opacity: 0.75, textDecoration: "underline", textUnderlineOffset: 3 }}
-                title={"Open " + trade.trader + " on Arcscan"}
-              >
-                {trade.trader.slice(0, 6)}...{trade.trader.slice(-4)}
-              </a>
-              <span>
-                {Number(formatUnits(BigInt(trade.quote_amount), 6)).toLocaleString(
-                  undefined,
-                  { maximumFractionDigits: 2 }
-                )}{" "}
-                USDC
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+      <table className={ui("data-table")}>
+        <thead>
+          <tr>
+            <th scope="col">Side</th>
+            <th scope="col">Wallet</th>
+            <th scope="col">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading || error || !trades.length ? (
+            <tr>
+              <td colSpan={3}>
+                {loading
+                  ? "Loading trades…"
+                  : error
+                    ? "Trade history is temporarily unavailable."
+                    : "No indexed trades yet."}
+              </td>
+            </tr>
+          ) : (
+            trades.slice((page - 1) * 10, page * 10).map((trade, index) => (
+              <tr key={trade.tx_hash + index}>
+                <td className={ui(trade.side === "BUY" ? "buy" : "sell")}>
+                  <a
+                    href={"https://testnet.arcscan.app/tx/" + trade.tx_hash}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {trade.side === "BUY" ? "Buy" : "Sell"} ↗
+                  </a>
+                </td>
+                <td>
+                  <a
+                    href={"https://testnet.arcscan.app/address/" + trade.trader}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={trade.trader}
+                  >
+                    {trade.trader.slice(0, 6)}...{trade.trader.slice(-4)}
+                  </a>
+                </td>
+                <td>
+                  {Number(
+                    formatUnits(BigInt(trade.quote_amount), quoteDecimals),
+                  ).toLocaleString(undefined, {
+                    maximumFractionDigits: 6,
+                  })}{" "}
+                  {quoteSymbol}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+      {trades.length > 10 && (
+        <nav className={ui("pagination")} aria-label="Trade pages">
+          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </button>
+          <span>
+            {page} / {Math.ceil(trades.length / 10)}
+          </span>
+          <button
+            disabled={page * 10 >= trades.length}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </section>
   );
 }

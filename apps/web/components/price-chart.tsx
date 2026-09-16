@@ -1,4 +1,6 @@
 "use client";
+import { ui } from "@/styles/ui";
+
 
 import { useEffect, useMemo, useState } from "react";
 import { API_URL, type IndexedTrade } from "@/lib/api";
@@ -13,21 +15,25 @@ const ranges: Array<[Range, string, number | null]> = [
   ["all", "ALL", null]
 ];
 
-function priceOf(trade: IndexedTrade) {
-  const quote = Number(trade.quote_amount) / 1e6;
+function priceOf(trade: IndexedTrade, decimals: number) {
+  const quote = Number(trade.quote_amount) / 10 ** decimals;
   const tokens = Number(trade.token_amount) / 1e18;
   return tokens > 0 ? quote / tokens : 0;
 }
 
-export function PriceChart({ token }: { token: string }) {
+export function PriceChart({ token, quoteDecimals = 6, quoteSymbol = "USDC" }: { token: string; quoteDecimals?: number; quoteSymbol?: string }) {
+  const [hover, setHover] = useState<number>();
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [trades, setTrades] = useState<IndexedTrade[]>([]);
   const [range, setRange] = useState<Range>("1h");
 
   useEffect(() => {
-    fetch(API_URL + "/tokens/" + token)
-      .then((r) => (r.ok ? r.json() : null))
+    setLoading(true); setFailed(false);
+    fetch(API_URL + "/tokens/" + token, {signal: AbortSignal.timeout(12000)})
+      .then((r) => {if (!r.ok) throw new Error(); return r.json();})
       .then((data) => setTrades(data?.trades ?? []))
-      .catch(() => {});
+      .catch(() => setFailed(true)).finally(() => setLoading(false));
   }, [token]);
 
   const points = useMemo(() => {
@@ -38,11 +44,11 @@ export function PriceChart({ token }: { token: string }) {
       .filter((x) => !duration || new Date(x.block_time).getTime() >= cutoff)
       .map((x) => ({
         time: new Date(x.block_time).getTime(),
-        price: priceOf(x)
+        price: priceOf(x, quoteDecimals)
       }))
       .filter((x) => Number.isFinite(x.price) && x.price > 0)
       .sort((a, b) => a.time - b.time);
-  }, [trades, range]);
+  }, [trades, range, quoteDecimals]);
 
   const geometry = useMemo(() => {
     if (points.length < 2) return null;
@@ -61,6 +67,7 @@ export function PriceChart({ token }: { token: string }) {
     return {
       min,
       max,
+      coords,
       line: coords.map(([x, y]) => x + "," + y).join(" ")
     };
   }, [points]);
@@ -68,13 +75,13 @@ export function PriceChart({ token }: { token: string }) {
   const latest = points.at(-1)?.price;
 
   return (
-    <div className="chart-card">
-      <div className="chart-head">
+    <div className={ui("chart-card")}>
+      <div className={ui("chart-head")}>
         <div>
-          <span className="muted">Price</span>
+          <span className={ui("muted")}>Price</span>
           <strong>
             {latest
-              ? "$" +
+              ? quoteSymbol + " " +
                 latest.toLocaleString(undefined, {
                   maximumSignificantDigits: 6
                 })
@@ -82,11 +89,11 @@ export function PriceChart({ token }: { token: string }) {
           </strong>
         </div>
 
-        <div className="chart-ranges">
+        <div className={ui("chart-ranges")}>
           {ranges.map(([id, label]) => (
             <button
               key={id}
-              className={range === id ? "active" : ""}
+              className={ui(range === id ? "active" : "")}
               onClick={() => setRange(id)}
             >
               {label}
@@ -95,23 +102,27 @@ export function PriceChart({ token }: { token: string }) {
         </div>
       </div>
 
-      <div className="chart-stage">
+      <div className={ui("chart-stage")} onMouseLeave={() => setHover(undefined)} onMouseMove={event => { const rect = event.currentTarget.getBoundingClientRect(); setHover(Math.max(0, Math.min(points.length - 1, Math.round((event.clientX - rect.left) / rect.width * (points.length - 1))))); }}>
         {geometry ? (
-          <svg viewBox="0 0 1000 300" preserveAspectRatio="none" role="img">
+          <svg viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label={quoteSymbol + " price history"}>
+            <polygon points={"0,300 " + geometry.line + " 1000,300"} fill="currentColor" opacity=".07" />
+            {geometry.coords.map(([x,y], i) => hover === i ? <g key={i}><line x1={x} x2={x} y1="0" y2="300" stroke="currentColor" strokeDasharray="3 4" opacity=".35"/><circle cx={x} cy={y} r="4" fill="currentColor"/></g> : null)}
             <polyline
               points={geometry.line}
               fill="none"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth="2"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
         ) : (
-          <div className="chart-empty">
-            Price history appears after at least two indexed trades.
+          <div className={ui("chart-empty")}>
+            {loading ? "Loading price history…" : failed ? "Price history is temporarily unavailable." : "No trades in this range. Try All for earlier activity."}
           </div>
         )}
+        {hover !== undefined && points[hover] && <div className={ui("chart-tooltip")}>{points[hover].price.toPrecision(5)} {quoteSymbol}<br />{new Date(points[hover].time).toLocaleString()}</div>}
       </div>
+      {points.length > 1 && <div className={ui("chart-axis")}><span>{new Date(points[0].time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</span><span>{new Date(points[points.length-1].time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</span></div>}
     </div>
   );
 }

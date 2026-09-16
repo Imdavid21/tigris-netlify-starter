@@ -1,4 +1,7 @@
 "use client";
+import { ui } from "@/styles/ui";
+
+import { MarketCard } from "./market-card";
 
 import { FormEvent, useMemo, useState } from "react";
 import {
@@ -233,15 +236,15 @@ export function CreateTokenForm() {
     quoteSymbol === "cirBTC" ? "0.10 cirBTC" : "10,000 " + quoteSymbol;
 
   return (
-    <form onSubmit={submit} className="create-grid">
-      <div className="create-main">
-        <section className="form-card">
-          <div className="form-section-head">
-            <div><span className="step-index">01</span><h2>Token</h2></div>
-            <span className="live-badge">{celestialReady ? "Celestial" : "V1"}</span>
+    <form onSubmit={submit} className={ui("create-grid")}>
+      <div className={ui("create-main")}>
+        <section className={ui("form-card")}>
+          <div className={ui("form-section-head")}>
+            <div><span className={ui("step-index")}>01</span><h2>Token</h2></div>
+            <span className={ui("live-badge")}>{celestialReady ? "Celestial" : "V1"}</span>
           </div>
 
-          <div className="field-grid two">
+          <div className={ui("field-grid two")}>
             <label>
               <span>Name</span>
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={32} placeholder="Arc Cat" required />
@@ -257,7 +260,7 @@ export function CreateTokenForm() {
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this market?" />
           </label>
 
-          <div className="field-grid two">
+          <div className={ui("field-grid two")}>
             <label><span>Image URL</span><input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https:// or ipfs://" /></label>
             <label><span>Website</span><input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" /></label>
             <label><span>X / Twitter</span><input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" /></label>
@@ -265,12 +268,12 @@ export function CreateTokenForm() {
           </div>
         </section>
 
-        <section className="form-card">
-          <div className="form-section-head">
-            <div><span className="step-index">02</span><h2>Launch economics</h2></div>
+        <section className={ui("form-card")}>
+          <div className={ui("form-section-head")}>
+            <div><span className={ui("step-index")}>02</span><h2>Launch economics</h2></div>
           </div>
 
-          <div className="field-grid two">
+          <div className={ui("field-grid two")}>
             <label>
               <span>Pair asset</span>
               <select value={quoteSymbol} onChange={(e) => setQuoteSymbol(e.target.value as typeof quoteSymbol)}>
@@ -283,7 +286,7 @@ export function CreateTokenForm() {
             </label>
           </div>
 
-          <div className="economics-table">
+          <div className={ui("economics-table")}>
             <div><span>Supply</span><strong>1,000,000,000</strong></div>
             <div><span>Pair</span><strong>{quoteSymbol}</strong></div>
             <div><span>Base trade fee</span><strong>1.00%</strong></div>
@@ -292,54 +295,53 @@ export function CreateTokenForm() {
             <div><span>Liquidity</span><strong>Reserved + locked</strong></div>
           </div>
 
-          <button type="button" className="text-button" onClick={() => setAdvanced(!advanced)}>
+          <button type="button" className={ui("text-button")} aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>
             {advanced ? "Hide" : "Show"} advanced controls
           </button>
 
           {advanced && (
-            <div className="advanced-grid">
+            <div className={ui("advanced-grid")}>
               <label><span>Creator fee wallet</span><input value={creatorFeeWallet} onChange={(e) => setCreatorFeeWallet(e.target.value)} placeholder={address ?? "0x..."} /></label>
               <label><span>Creator tax</span><input value={creatorTax} onChange={(e) => setCreatorTax(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
               <label><span>Holder fee sharing</span><input value={holderFee} onChange={(e) => setHolderFee(e.target.value)} inputMode="decimal" placeholder="0.00" /></label>
-              <label className="full"><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
+              <label className={ui("full")}><span>Snipe-tax exemptions</span><input value={snipeExemptions} onChange={(e) => setSnipeExemptions(e.target.value)} placeholder="0xabc..., 0xdef..." /></label>
             </div>
           )}
         </section>
 
-        <section className="form-card review-card">
-          <div className="form-section-head">
-            <div><span className="step-index">03</span><h2>Review</h2></div>
+        <section className={ui("form-card review-card")}>
+          <div className={ui("form-section-head")}>
+            <div><span className={ui("step-index")}>03</span><h2>Review</h2></div>
           </div>
-          <p className="review-copy">
+          <p className={ui("review-copy")}>
             Metadata and launch economics are immutable for this market once the transaction confirms.
             {developerBuy && Number(developerBuy) > 0 ? " The developer buy executes in the same launch transaction after token approval." : ""}
           </p>
 
-          <button className="launch-cta" type="submit" disabled={status === "wallet" || status === "submitted"}>
+          <button className={ui("launch-cta")} type="submit" disabled={status === "wallet" || status === "submitted"}>
             {status === "wallet" ? "Confirm in wallet" : status === "submitted" ? "Confirming launch" : status === "confirmed" ? "Launched" : "Launch token"}
           </button>
 
-          {hash && <p className="tx-hash">Tx {hash}</p>}
-          {error && <p className="form-error">{error}</p>}
+          {hash && <p className={ui("tx-hash")}>Tx {hash}</p>}
+          {error && <p className={ui("form-error")}>{error}</p>}
         </section>
       </div>
 
-      <aside className="launch-preview">
-        <div className="token-avatar">{previewSymbol.slice(0, 2)}</div>
-        <h3>{name || "Untitled token"}</h3>
-        <p className="preview-symbol">{"$" + previewSymbol}</p>
-        <p className="preview-description">{description || "Add a token description."}</p>
+      <aside className={ui("launch-preview")}>
+        <p className={ui("preview-caption")}>Live preview</p>
+        <MarketCard preview item={{address: "0x0000000000000000000000000000000000000000", curve_address: "0x0000000000000000000000000000000000000000", name: name || "Your token", symbol: previewSymbol, status: "CURVE", generation: "CELESTIAL", image, quote_asset: quoteAssets.find(q => q.symbol === quoteSymbol)?.address}} />
+        <p className={ui("preview-description")}>{description || "Add a token description."}</p>
 
-        <div className="preview-rule" />
-        <div className="preview-stat"><span>Market</span><strong>Bonding curve</strong></div>
-        <div className="preview-stat"><span>Pair</span><strong>{quoteSymbol}</strong></div>
-        <div className="preview-stat"><span>Graduation</span><strong>{graduationText}</strong></div>
-        <div className="preview-stat"><span>Creator tax</span><strong>{Number(creatorTax || 0).toFixed(2)}%</strong></div>
-        <div className="preview-stat"><span>Holder sharing</span><strong>{Number(holderFee || 0).toFixed(2)}%</strong></div>
-        <div className="preview-stat"><span>Liquidity</span><strong>Locked</strong></div>
+        <div className={ui("preview-rule")} />
+        <div className={ui("preview-stat")}><span>Market</span><strong>Bonding curve</strong></div>
+        <div className={ui("preview-stat")}><span>Pair</span><strong>{quoteSymbol}</strong></div>
+        <div className={ui("preview-stat")}><span>Graduation</span><strong>{graduationText}</strong></div>
+        <div className={ui("preview-stat")}><span>Creator tax</span><strong>{Number(creatorTax || 0).toFixed(2)}%</strong></div>
+        <div className={ui("preview-stat")}><span>Holder sharing</span><strong>{Number(holderFee || 0).toFixed(2)}%</strong></div>
+        <div className={ui("preview-stat")}><span>Liquidity</span><strong>Locked</strong></div>
 
-        <div className="preview-note">
-          <span className="status-dot" />
+        <div className={ui("preview-note")}>
+          <span className={ui("status-dot")} />
           Trading opens after the launch transaction confirms.
         </div>
       </aside>
