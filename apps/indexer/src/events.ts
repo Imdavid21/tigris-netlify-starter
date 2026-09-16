@@ -541,6 +541,7 @@ function watchToken(token: Address) {
   if (watchedTokens.has(key)) return;
   watchedTokens.add(key);
   client.watchEvent({
+    poll: true,
     address: token,
     event: transfer,
     onLogs: async (logs) => {
@@ -559,6 +560,7 @@ function watchCurve(curve: Address, token: Address, generation: "V1" | "CELESTIA
   const sellEvent = generation === "CELESTIAL" ? sellV2 : sellV1;
 
   client.watchEvent({
+    poll: true,
     address: curve,
     event: buyEvent,
     onLogs: async (logs) => {
@@ -568,6 +570,7 @@ function watchCurve(curve: Address, token: Address, generation: "V1" | "CELESTIA
   });
 
   client.watchEvent({
+    poll: true,
     address: curve,
     event: sellEvent,
     onLogs: async (logs) => {
@@ -579,6 +582,7 @@ function watchCurve(curve: Address, token: Address, generation: "V1" | "CELESTIA
 
 function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
   client.watchEvent({
+    poll: true,
     address: factory,
     event: generation === "CELESTIAL" ? tokenCreatedV2 : tokenCreatedV1,
     onLogs: async (logs) => {
@@ -592,6 +596,7 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
 
   if (generation === "CELESTIAL") {
     client.watchEvent({
+    poll: true,
       address: factory,
       event: metadataSet,
       onLogs: async (logs) => {
@@ -602,6 +607,7 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
   }
 
   client.watchEvent({
+    poll: true,
     address: factory,
     event: graduationSwept,
     onLogs: async (logs) => {
@@ -617,6 +623,7 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
 
   if (generation === "CELESTIAL") {
     client.watchEvent({
+    poll: true,
       address: factory,
       event: graduationPriceLocked,
       onLogs: async (logs) => {
@@ -633,6 +640,7 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
   }
 
   client.watchEvent({
+    poll: true,
     address: factory,
     event: tokenGraduated,
     onLogs: async (logs) => {
@@ -651,6 +659,7 @@ function watchFactory(factory: Address, generation: "V1" | "CELESTIAL") {
 function watchAuxiliary() {
   if (dexAdapter) {
     client.watchEvent({
+    poll: true,
       address: dexAdapter,
       event: dexSwap,
       onLogs: async (logs) => {
@@ -662,6 +671,7 @@ function watchAuxiliary() {
 
   if (dexConnector) {
     client.watchEvent({
+    poll: true,
       address: dexConnector,
       event: v4PoolCreated,
       onLogs: async (logs) => {
@@ -673,6 +683,7 @@ function watchAuxiliary() {
 
   if (buybackVault) {
     client.watchEvent({
+    poll: true,
       address: buybackVault,
       event: buybackExecuted,
       onLogs: async (logs) => {
@@ -684,6 +695,7 @@ function watchAuxiliary() {
 
   if (orderBook) {
     client.watchEvent({
+    poll: true,
       address: orderBook,
       event: orderPlaced,
       onLogs: async (logs) => {
@@ -692,6 +704,7 @@ function watchAuxiliary() {
       onError: console.error
     });
     client.watchEvent({
+    poll: true,
       address: orderBook,
       event: orderCancelled,
       onLogs: async (logs) => {
@@ -700,6 +713,7 @@ function watchAuxiliary() {
       onError: console.error
     });
     client.watchEvent({
+    poll: true,
       address: orderBook,
       event: orderFilled,
       onLogs: async (logs) => {

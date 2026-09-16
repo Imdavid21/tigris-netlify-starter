@@ -7,3 +7,4 @@ cache/
 broadcast/
 coverage/
 .DS_Store
+.next/
