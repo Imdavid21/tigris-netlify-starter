@@ -1,7 +1,7 @@
 import http from "node:http";
 import { client, db } from "./context.js";
 import { prepareDatabaseSchema, databaseSchema } from "./database.js";
-import { startEventIngestion } from "./events.js";
+import { startEventIngestion } from "./events-polling.js";
 import { schemaSql } from "./schema.js";
 
 let latestBlock = 0n;
@@ -43,7 +43,7 @@ async function runIngestionUntilLive() {
       await startEventIngestion();
       ingestionState = "live";
       lastIngestionError = "";
-      console.log("Arc event ingestion started");
+      console.log("Arc stateless event ingestion is live");
     } catch (error) {
       retry += 1;
       ingestionState = "degraded";
@@ -74,6 +74,15 @@ async function main() {
     lastIngestionError = error instanceof Error ? error.message : String(error);
     console.error("Arc RPC unavailable during startup; indexer will keep retrying", error);
   }
+
+  const blockTracker = setInterval(async () => {
+    try {
+      latestBlock = await client.getBlockNumber();
+    } catch {
+      // Health should continue to report the last known block.
+    }
+  }, 10_000);
+  blockTracker.unref();
 
   await runIngestionUntilLive();
 }
