@@ -19,29 +19,27 @@ const arc = defineChain({
   rpcUrls: { default: { http: rpcUrls } }
 });
 
-function pacedHttp(url: string) {
+function pacedHttp(url: string): ReturnType<typeof http> {
   const base = http(url, { retryCount: 0, timeout: 15_000 });
   let queue: Promise<void> = Promise.resolve();
   let lastRequestAt = 0;
 
-  return (config: any) => {
+  return ((config: any) => {
     const transport = base(config);
     const request = transport.request;
+    const pacedRequest = ((args: any) => {
+      const run = queue.then(async () => {
+        const waitMs = Math.max(0, lastRequestAt + rpcMinRequestGapMs - Date.now());
+        if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+        lastRequestAt = Date.now();
+        return request(args);
+      });
+      queue = run.then(() => undefined, () => undefined);
+      return run;
+    }) as typeof request;
 
-    return {
-      ...transport,
-      request: (args: any) => {
-        const run = queue.then(async () => {
-          const waitMs = Math.max(0, lastRequestAt + rpcMinRequestGapMs - Date.now());
-          if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
-          lastRequestAt = Date.now();
-          return request(args);
-        });
-        queue = run.then(() => undefined, () => undefined);
-        return run;
-      }
-    };
-  };
+    return { ...transport, request: pacedRequest };
+  }) as ReturnType<typeof http>;
 }
 
 const transports = [
