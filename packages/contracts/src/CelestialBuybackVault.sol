@@ -23,9 +23,15 @@ interface ICelestialCurveBuyback {
         external returns (uint256 tokensOut);
 }
 
+interface ICelestialFactoryOwner {
+    function owner() external view returns (address);
+}
+
 contract CelestialBuybackVault is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    /// @notice Immutable controlling contract. When deployed by CelestialLaunchFactory this is the factory,
+    /// so control follows the factory's transferable owner instead of being pinned to the deployer EOA.
     address public immutable owner;
     address public keeper;
 
@@ -42,18 +48,22 @@ contract CelestialBuybackVault is ReentrancyGuard {
         bool postGraduation
     );
 
-    constructor(address owner_) {
-        owner = owner_;
-        keeper = owner_;
+    constructor(address) {
+        owner = msg.sender;
     }
 
     modifier onlyAuthorized() {
-        if (msg.sender != owner && msg.sender != keeper) revert NotAuthorized();
+        address controller = _controller();
+        if (msg.sender != controller && msg.sender != keeper) revert NotAuthorized();
         _;
     }
 
+    function controller() external view returns (address) {
+        return _controller();
+    }
+
     function setKeeper(address next) external {
-        if (msg.sender != owner) revert NotAuthorized();
+        if (msg.sender != _controller()) revert NotAuthorized();
         keeper = next;
         emit KeeperUpdated(next);
     }
@@ -100,5 +110,14 @@ contract CelestialBuybackVault is ReentrancyGuard {
         IERC20(token).safeTransfer(CelestialToken(token).DEAD(), tokensBurned);
 
         emit BuybackExecuted(adapter, token, quoteAsset, quoteAmount, tokensBurned, true);
+    }
+
+    function _controller() internal view returns (address currentController) {
+        // Factory deployments resolve authority dynamically through factory.owner().
+        // Standalone deployments safely fall back to the deploying contract/address.
+        try ICelestialFactoryOwner(owner).owner() returns (address factoryOwner) {
+            if (factoryOwner != address(0)) return factoryOwner;
+        } catch {}
+        return owner;
     }
 }
