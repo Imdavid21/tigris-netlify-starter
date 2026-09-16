@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { API_URL, type IndexedTrade } from "@/lib/api";
+import { motionSpring } from "@/lib/motion-system";
 import styles from "./PriceChart.module.css";
 
 type Range = "5m" | "1h" | "6h" | "1d" | "all";
@@ -86,63 +88,139 @@ export function PriceChart({ token }: { token: string }) {
   }
 
   return (
-    <div className={`chart-card ${styles.card}`}>
+    <motion.div
+      className={`chart-card ${styles.card}`}
+      layout
+      transition={{ layout: motionSpring.spatialDefault }}
+    >
       <div className={styles.head}>
         <div className={styles.price}>
           <span>Price</span>
-          <strong>{latest ? priceLabel(latest) : "—"}</strong>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.strong
+              key={latest ? priceLabel(latest) : "empty"}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={motionSpring.effectsFast}
+            >
+              {latest ? priceLabel(latest) : "—"}
+            </motion.strong>
+          </AnimatePresence>
         </div>
 
         <div className={styles.ranges} aria-label="Chart range">
           {ranges.map(([id, label]) => (
-            <button
+            <motion.button
               type="button"
               key={id}
+              layout
               className={range === id ? styles.active : ""}
               onClick={() => {
                 setRange(id);
                 setHoverIndex(undefined);
               }}
+              whileTap={{ scale: 0.92 }}
+              transition={motionSpring.spatialFast}
             >
               {label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
-      <div
+      <motion.div
         className={styles.stage}
         onPointerMove={onPointerMove}
         onPointerLeave={() => setHoverIndex(undefined)}
+        layout
       >
-        {geometry ? (
-          <>
-            <svg viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label="Token price history">
-              <polygon points={geometry.area} className={styles.area} />
-              <polyline points={geometry.line} className={styles.line} />
-              {hoveredCoord && (
-                <>
-                  <line x1={hoveredCoord.x} x2={hoveredCoord.x} y1="0" y2="300" className={styles.crosshair} />
-                  <circle cx={hoveredCoord.x} cy={hoveredCoord.y} r="4" className={styles.dot} />
-                </>
-              )}
-            </svg>
-            <div className={styles.axis} aria-hidden="true">
-              <span>{priceLabel(geometry.max)}</span>
-              <span>{priceLabel((geometry.max + geometry.min) / 2)}</span>
-              <span>{priceLabel(geometry.min)}</span>
-            </div>
-            {hovered && (
-              <div className={styles.tooltip}>
-                <strong>{priceLabel(hovered.price)}</strong>
-                <span>{new Date(hovered.time).toLocaleString()}</span>
+        <AnimatePresence mode="wait" initial={false}>
+          {geometry ? (
+            <motion.div
+              key={range + "-chart"}
+              style={{ position: "absolute", inset: 0 }}
+              initial={{ opacity: 0, scaleY: 0.94, y: 4 }}
+              animate={{ opacity: 1, scaleY: 1, y: 0 }}
+              exit={{ opacity: 0, scaleY: 0.98, y: -2 }}
+              transition={{
+                ...motionSpring.spatialDefault,
+                opacity: motionSpring.effectsFast
+              }}
+            >
+              <svg viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label="Token price history">
+                <motion.polygon
+                  points={geometry.area}
+                  className={styles.area}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={motionSpring.effectsDefault}
+                />
+                <motion.polyline
+                  points={geometry.line}
+                  className={styles.line}
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ ...motionSpring.spatialSlow, opacity: motionSpring.effectsFast }}
+                />
+                <AnimatePresence>
+                  {hoveredCoord && (
+                    <motion.g
+                      key={hoverIndex}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={motionSpring.effectsFast}
+                    >
+                      <line x1={hoveredCoord.x} x2={hoveredCoord.x} y1="0" y2="300" className={styles.crosshair} />
+                      <motion.circle
+                        cx={hoveredCoord.x}
+                        cy={hoveredCoord.y}
+                        r="4"
+                        className={styles.dot}
+                        initial={{ scale: 0.4 }}
+                        animate={{ scale: 1 }}
+                        transition={motionSpring.spatialFast}
+                      />
+                    </motion.g>
+                  )}
+                </AnimatePresence>
+              </svg>
+              <div className={styles.axis} aria-hidden="true">
+                <span>{priceLabel(geometry.max)}</span>
+                <span>{priceLabel((geometry.max + geometry.min) / 2)}</span>
+                <span>{priceLabel(geometry.min)}</span>
               </div>
-            )}
-          </>
-        ) : (
-          <div className={styles.empty}>Price history appears after at least two indexed trades.</div>
-        )}
-      </div>
-    </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              className={styles.empty}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={motionSpring.effectsDefault}
+            >
+              Price history appears after at least two indexed trades.
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {hovered && (
+            <motion.div
+              className={styles.tooltip}
+              initial={{ opacity: 0, scale: 0.94, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 2 }}
+              transition={motionSpring.spatialFast}
+            >
+              <strong>{priceLabel(hovered.price)}</strong>
+              <span>{new Date(hovered.time).toLocaleString()}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
   );
 }
