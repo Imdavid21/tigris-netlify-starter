@@ -1,66 +1,68 @@
 .card {
   min-width: 0;
+  height: 100%;
   overflow: hidden;
-  border: 0;
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-corner-extra-large);
-  background: var(--md-sys-color-surface-container-low);
+  background: var(--md-sys-color-surface-container-lowest);
   color: var(--md-sys-color-on-surface);
   box-shadow: var(--md-sys-elevation-level0);
 }
 
 .head {
-  min-height: 80px;
+  min-height: 92px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px 12px;
+  padding: 18px 18px 10px;
   border-bottom: 0;
 }
 
 .price {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .price span {
   color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-sys-typescale-label-small-size);
-  line-height: var(--md-sys-typescale-label-small-line-height);
-  font-weight: var(--md-sys-typescale-label-small-weight);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .price strong {
   color: var(--md-sys-color-on-surface);
-  font-size: var(--md-sys-typescale-headline-medium-size);
-  line-height: var(--md-sys-typescale-headline-medium-line-height);
-  font-weight: var(--md-sys-typescale-headline-medium-weight);
-  letter-spacing: -.025em;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 650;
+  letter-spacing: -.04em;
   font-variant-numeric: tabular-nums;
 }
 
 .ranges {
   display: inline-flex;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-surface-container-low);
 }
 
 .ranges button {
   min-width: 40px;
   min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: var(--md-sys-shape-corner-small);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
   background: transparent;
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
-  font-size: var(--md-sys-typescale-label-medium-size);
-  line-height: var(--md-sys-typescale-label-medium-line-height);
-  font-weight: var(--md-sys-typescale-label-medium-weight);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
   transition:
     background var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
     color var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
@@ -68,7 +70,6 @@
 }
 
 .ranges button:hover {
-  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
   color: var(--md-sys-color-on-surface);
 }
 
@@ -77,27 +78,31 @@
 }
 
 .ranges button.active {
-  border-color: transparent;
-  background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
-  box-shadow: none;
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .stage {
   position: relative;
-  height: 390px;
+  height: 445px;
   overflow: hidden;
-  margin: 0 10px 10px;
+  margin: 0 12px 12px;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
   border-radius: var(--md-sys-shape-corner-large);
   background:
     repeating-linear-gradient(
       to bottom,
       transparent 0,
       transparent calc(25% - 1px),
-      color-mix(in srgb, var(--md-sys-color-outline-variant) 58%, transparent) 25%,
+      color-mix(in srgb, var(--md-sys-color-outline-variant) 42%, transparent) 25%,
       transparent calc(25% + 1px)
     ),
-    var(--md-sys-color-surface-container-lowest);
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--md-sys-color-primary) 2.5%, var(--md-sys-color-surface-container-lowest)),
+      var(--md-sys-color-surface-container-lowest)
+    );
   color: var(--md-sys-color-primary);
   cursor: crosshair;
 }
@@ -110,18 +115,18 @@
 
 .area {
   fill: currentColor;
-  opacity: .10;
+  opacity: .065;
 }
 
 .line {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.25;
+  stroke-width: 2.2;
   vector-effect: non-scaling-stroke;
 }
 
 .crosshair {
-  stroke: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 54%, transparent);
+  stroke: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 48%, transparent);
   stroke-width: 1;
   stroke-dasharray: 3 4;
   vector-effect: non-scaling-stroke;
@@ -144,9 +149,9 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-sys-typescale-label-small-size);
-  line-height: var(--md-sys-typescale-label-small-line-height);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 72%, transparent);
+  font-size: 10px;
+  line-height: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -157,29 +162,23 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 12px;
-  border: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-corner-medium);
-  background: color-mix(in srgb, var(--md-sys-color-inverse-surface) 94%, transparent);
-  color: var(--md-sys-color-inverse-on-surface);
-  font-size: var(--md-sys-typescale-label-small-size);
-  line-height: var(--md-sys-typescale-label-small-line-height);
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 94%, transparent);
+  color: var(--md-sys-color-on-surface);
+  font-size: 10px;
+  line-height: 14px;
   pointer-events: none;
   box-shadow: var(--md-sys-elevation-level2);
   backdrop-filter: blur(8px);
-  animation: tooltip-in var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial) both;
-}
-
-@keyframes tooltip-in {
-  from { opacity: 0; transform: translateY(4px) scale(.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .tooltip strong {
-  color: var(--md-sys-color-inverse-on-surface);
+  color: var(--md-sys-color-on-surface);
   font-size: var(--md-sys-typescale-label-medium-size);
   line-height: var(--md-sys-typescale-label-medium-line-height);
-  font-weight: 650;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -194,19 +193,27 @@
   text-align: center;
 }
 
+@media (max-width: 900px) {
+  .stage {
+    height: 390px;
+  }
+}
+
 @media (max-width: 700px) {
   .head {
+    min-height: 0;
     align-items: flex-start;
     flex-direction: column;
+    padding-bottom: 12px;
   }
 
   .stage {
     height: 300px;
+    margin: 0 8px 8px;
   }
 
   .ranges {
     max-width: 100%;
     overflow-x: auto;
-    padding-bottom: 2px;
   }
 }
