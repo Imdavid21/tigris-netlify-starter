@@ -1,0 +1,28 @@
+name: Debug Arc RPC 2
+on:
+  push:
+    branches: ["debug/arc-mainnet-rpc"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Probe
+        shell: bash
+        run: |
+          set -e
+          echo INDEXER
+          curl -sS --max-time 20 https://arc-launchpad-indexer.onrender.com/health || true
+          echo
+          echo STATUS
+          curl -sS --max-time 20 https://supershot.fun/api/status || true
+          echo
+          RPC=https://rpc.mainnet.arc.io
+          FACTORY=0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423
+          LATEST=$(cast block-number --rpc-url "$RPC")
+          echo latest=$LATEST
+          FROM_HEX=$(printf '0x%x' 21158188)
+          LATEST_HEX=$(printf '0x%x' "$LATEST")
+          cast rpc --rpc-url "$RPC" eth_getLogs "{\"fromBlock\":\"$FROM_HEX\",\"toBlock\":\"$LATEST_HEX\",\"address\":\"$FACTORY\"}"
