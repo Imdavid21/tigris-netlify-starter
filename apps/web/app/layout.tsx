@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./cyberpunk.css";
+import "./avenue.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
