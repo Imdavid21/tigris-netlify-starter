@@ -20,24 +20,31 @@ export function AppHeader() {
       </div>
 
       <header className={styles.header}>
-        <div className={styles.inner}>
-          <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
-            <CelestialLogo className={styles.logo} />
-            <span>Celestial</span>
-          </a>
+        <div className={styles.topRow}>
+          <div className={styles.leftCluster}>
+            <a href="/explore" className={styles.brand} aria-label="Celestial Explore">
+              <CelestialLogo className={styles.logo} />
+              <span>Celestial</span>
+            </a>
 
-          <MotionNav items={primaryItems} className={styles.nav} ariaLabel="Primary navigation" />
-
-          <div className={styles.search}>
-            <SearchPalette />
+            <MotionNav items={primaryItems} className={styles.nav} ariaLabel="Primary navigation" />
           </div>
 
           <div className={styles.actions}>
-            <nav className={styles.utilityNav} aria-label="Product actions">
-              <a href="/create" className={styles.createLink}>Launch Token</a>
-            </nav>
             <ThemeToggle />
             <WalletButton />
+          </div>
+        </div>
+
+        <div className={styles.searchBand}>
+          <div className={styles.searchRow}>
+            <div className={styles.search}>
+              <SearchPalette />
+            </div>
+            <a href="/create" className={styles.createLink}>
+              <span aria-hidden="true">＋</span>
+              Launch Token
+            </a>
           </div>
         </div>
       </header>
