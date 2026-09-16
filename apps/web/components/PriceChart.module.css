@@ -46,6 +46,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metricToggle,
 .ranges {
   display: inline-flex;
   flex: 0 0 auto;
@@ -55,8 +64,8 @@
   background: var(--md-sys-color-surface-container-low);
 }
 
+.metricToggle button,
 .ranges button {
-  min-width: 40px;
   min-height: 32px;
   padding: 0 10px;
   border: 0;
@@ -67,24 +76,41 @@
   font-size: 10px;
   line-height: 14px;
   font-weight: 700;
+  white-space: nowrap;
   transition:
     background var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
     color var(--md-sys-motion-effects-fast-duration) var(--md-sys-motion-spring-fast-effects),
     transform var(--md-sys-motion-spatial-fast-duration) var(--md-sys-motion-spring-fast-spatial);
 }
 
+.metricToggle button {
+  min-width: 58px;
+}
+
+.ranges button {
+  min-width: 40px;
+}
+
+.metricToggle button:hover:not(:disabled),
 .ranges button:hover {
   color: var(--md-sys-color-on-surface);
 }
 
+.metricToggle button:active:not(:disabled),
 .ranges button:active {
   transform: scale(.95);
 }
 
+.metricToggle button.active,
 .ranges button.active {
   background: var(--md-sys-color-surface-container-highest);
   color: var(--md-sys-color-on-surface);
   box-shadow: var(--md-sys-elevation-level1);
+}
+
+.metricToggle button:disabled {
+  cursor: progress;
+  opacity: var(--md-sys-state-disabled-content-opacity);
 }
 
 .stage {
@@ -122,6 +148,15 @@
 }
 
 @media (max-width: 900px) {
+  .head {
+    flex-direction: column;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .stage {
     height: 390px;
   }
@@ -131,12 +166,17 @@
   .head {
     min-height: 0;
     align-items: flex-start;
-    flex-direction: column;
     padding-bottom: 12px;
   }
 
-  .price {
+  .price,
+  .controls {
     width: 100%;
+  }
+
+  .controls {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .stage {
@@ -144,12 +184,14 @@
     margin: 0 8px 8px;
   }
 
+  .metricToggle,
   .ranges {
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
 
+  .metricToggle::-webkit-scrollbar,
   .ranges::-webkit-scrollbar {
     display: none;
   }
