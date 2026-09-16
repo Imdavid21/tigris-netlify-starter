@@ -1,0 +1,54 @@
+name: One-shot Arc Indexer Polling Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/indexer-polling-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Force stateless event polling
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('apps/indexer/src/events.ts')
+          text = path.read_text()
+          needle = 'client.watchEvent({'
+          count = text.count(needle)
+          if count < 1:
+              raise SystemExit('No watchEvent calls found')
+          text = text.replace(needle, 'client.watchEvent({\n    poll: true,')
+          path.write_text(text)
+          print(f'Updated {count} event watchers')
+
+          ignore = Path('.gitignore')
+          ignored = ignore.read_text()
+          if '.next/' not in ignored.splitlines():
+              ignored = ignored.rstrip() + '\n.next/\n'
+              ignore.write_text(ignored)
+          PY
+
+      - name: Verify indexer build
+        run: |
+          npm install
+          npm --workspace @arc-launchpad/indexer run build
+
+      - name: Commit fix and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          rm .github/workflows/indexer-polling-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A apps/indexer/src/events.ts .gitignore .github/workflows/indexer-polling-fix.yml
+          git commit -m "indexer: use stateless polling on Arc mainnet"
+          git push origin HEAD:main
