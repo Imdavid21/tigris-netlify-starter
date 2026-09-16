@@ -31,8 +31,12 @@ export function ProfilePanel() {
   const client=createArcPublicClient();
 
   async function refresh(account:string){
+    const legacyClaim = addresses.feeEscrow
+      ? client.readContract({address:addresses.feeEscrow,abi:feeEscrowAbi,functionName:"claimable",args:[getAddress(account)]}).catch(()=>0n) as Promise<bigint>
+      : Promise.resolve(0n);
+
     const [amount,a,l,p,o]=await Promise.all([
-      client.readContract({address:addresses.feeEscrow,abi:feeEscrowAbi,functionName:"claimable",args:[getAddress(account)]}) as Promise<bigint>,
+      legacyClaim,
       fetch(API_URL+"/wallet/"+account+"/activity").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
       fetch(API_URL+"/wallet/"+account+"/launches").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
       fetch(API_URL+"/wallet/"+account+"/positions").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
@@ -57,12 +61,13 @@ export function ProfilePanel() {
   }
 
   async function claim(){
-    if(!address||claimable===0n)return;
+    if(!address||claimable===0n||!addresses.feeEscrow)return;
+    const feeEscrow=addresses.feeEscrow;
     const provider=(window as Window & { ethereum?: EIP1193Provider }).ethereum; if(!provider)return;
     try{
       setStatus("Confirm claim");
       const wallet=createWalletClient({account:getAddress(address),chain:arcTestnet,transport:custom(provider)});
-      const hash=await wallet.writeContract({address:addresses.feeEscrow,abi:feeEscrowAbi,functionName:"claim"});
+      const hash=await wallet.writeContract({address:feeEscrow,abi:feeEscrowAbi,functionName:"claim"});
       setStatus("Confirming");
       await client.waitForTransactionReceipt({hash});
       setStatus("Claimed");
@@ -146,14 +151,16 @@ export function ProfilePanel() {
         <motion.button onClick={()=>refresh(address)} whileTap={{scale:.95,rotate:-2}} transition={motionSpring.spatialFast}>Refresh</motion.button>
       </motion.section>
 
-      <motion.section className="fees-card" layout>
-        <div>
-          <span className="kicker">Creator fees</span>
-          <motion.h2 layout>{Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})} USDC</motion.h2>
-          <p>Legacy and Celestial creator-tax revenue remains non-custodial until claimed.</p>
-        </div>
-        <motion.button onClick={claim} disabled={claimable===0n||status==="Confirming"} whileTap={{scale:.97}} transition={motionSpring.spatialFast}>{status||"Claim legacy USDC"}</motion.button>
-      </motion.section>
+      {addresses.feeEscrow && (
+        <motion.section className="fees-card" layout>
+          <div>
+            <span className="kicker">Legacy creator fees</span>
+            <motion.h2 layout>{Number(formatUnits(claimable,6)).toLocaleString(undefined,{maximumFractionDigits:2})} USDC</motion.h2>
+            <p>Legacy creator-fee revenue remains non-custodial until claimed.</p>
+          </div>
+          <motion.button onClick={claim} disabled={claimable===0n||status==="Confirming"} whileTap={{scale:.97}} transition={motionSpring.spatialFast}>{status||"Claim legacy USDC"}</motion.button>
+        </motion.section>
+      )}
 
       {celestialAddresses.feeEscrow && (
         <motion.section className="metric-grid" layout variants={flowContainer} initial="hidden" animate="show">
