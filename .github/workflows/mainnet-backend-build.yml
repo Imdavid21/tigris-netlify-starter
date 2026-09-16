@@ -1,0 +1,98 @@
+name: Arc Mainnet Backend Isolation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/api/**
+      - apps/indexer/**
+      - .github/workflows/mainnet-backend-build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  database-isolation:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgres://postgres:test@127.0.0.1:5432/arc_launchpad"
+      ARC_CHAIN_ID: "5042"
+      DATABASE_SCHEMA: "mainnet"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm --workspace @arc-launchpad/api run build
+      - run: npm --workspace @arc-launchpad/indexer run build
+
+      - name: Start isolated PostgreSQL
+        run: |
+          docker run -d --name arc-mainnet-postgres \
+            -e POSTGRES_PASSWORD=test \
+            -e POSTGRES_DB=arc_launchpad \
+            -p 5432:5432 postgres:16
+          for i in $(seq 1 30); do
+            if docker exec arc-mainnet-postgres pg_isready -U postgres -d arc_launchpad >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Bootstrap API mainnet schema
+        run: |
+          DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=mainnet PORT=3002 \
+            npm --workspace @arc-launchpad/api run start > /tmp/api-mainnet.log 2>&1 &
+          echo $! > /tmp/api-mainnet.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3002/health > /tmp/api-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          test "$(jq -r '.ok' /tmp/api-health.json)" = "true"
+          test "$(jq -r '.databaseSchema' /tmp/api-health.json)" = "mainnet"
+          test "$(docker exec arc-mainnet-postgres psql -U postgres -d arc_launchpad -Atc \"select count(*) from information_schema.tables where table_schema='mainnet' and table_name='tokens'\")" = "1"
+
+      - name: Verify indexer mainnet search path
+        run: |
+          DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=mainnet node --input-type=module <<'NODE'
+          const m = await import('./apps/indexer/dist/database.js');
+          await m.prepareDatabaseSchema();
+          const db = m.createDatabasePool();
+          const result = await db.query('select current_schema() as schema');
+          if (result.rows[0].schema !== 'mainnet') throw new Error(`unexpected schema ${result.rows[0].schema}`);
+          await db.end();
+          NODE
+
+      - name: Reject Arc mainnet against public schema
+        run: |
+          set -euo pipefail
+          if DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=public \
+            node --input-type=module -e "import('./apps/api/dist/database.js')" > /tmp/api-public.log 2>&1; then
+            echo "API unexpectedly accepted mainnet public schema"
+            exit 1
+          fi
+          grep -q "Arc mainnet must use an isolated DATABASE_SCHEMA" /tmp/api-public.log
+
+          if DATABASE_URL="$DATABASE_URL" ARC_CHAIN_ID=5042 DATABASE_SCHEMA=public \
+            node --input-type=module -e "import('./apps/indexer/dist/database.js')" > /tmp/indexer-public.log 2>&1; then
+            echo "Indexer unexpectedly accepted mainnet public schema"
+            exit 1
+          fi
+          grep -q "Arc mainnet must use an isolated DATABASE_SCHEMA" /tmp/indexer-public.log
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arc-mainnet-backend-isolation
+          path: |
+            /tmp/api-mainnet.log
+            /tmp/api-health.json
+            /tmp/api-public.log
+            /tmp/indexer-public.log
