@@ -12,13 +12,26 @@ import {
   type Time,
   type UTCTimestamp
 } from "lightweight-charts";
+import { formatUnits, type Address } from "viem";
 import { API_URL, type IndexedTrade } from "@/lib/api";
+import { createArcPublicClient } from "@/lib/rpc";
 import { motionSpring } from "@/lib/motion-system";
 import styles from "./PriceChart.module.css";
 
 type Range = "5m" | "1h" | "6h" | "1d" | "all";
+type Metric = "price" | "marketCap";
 type PricePoint = { time: UTCTimestamp; price: number };
-type HoverPoint = { time: number; price: number };
+type HoverPoint = { time: number; value: number };
+
+const totalSupplyAbi = [
+  {
+    type: "function",
+    name: "totalSupply",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }]
+  }
+] as const;
 
 const ranges: Array<[Range, string, number | null]> = [
   ["5m", "5M", 5 * 60_000],
@@ -36,17 +49,26 @@ function priceOf(trade: IndexedTrade) {
 
 function priceLabel(value: number) {
   if (!Number.isFinite(value)) return "—";
-  if (value >= 1000) {
-    return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  }
-  if (value >= 1) {
-    return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 4 });
-  }
+  if (value >= 1000) return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (value >= 1) return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 4 });
   return "$" + value.toLocaleString(undefined, { maximumSignificantDigits: 6 });
 }
 
-function minMoveFor(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return 0.000001;
+function marketCapLabel(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  return "$" + new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: value >= 1_000_000 ? 2 : 1
+  }).format(value);
+}
+
+function minMoveFor(value: number, metric: Metric) {
+  if (!Number.isFinite(value) || value <= 0) return metric === "marketCap" ? 1 : 0.000001;
+  if (metric === "marketCap") {
+    if (value >= 1_000_000) return 100;
+    if (value >= 10_000) return 10;
+    return 1;
+  }
   if (value >= 100) return 0.01;
   if (value >= 1) return 0.0001;
   if (value >= 0.01) return 0.000001;
@@ -74,8 +96,11 @@ function timeToMs(time: Time) {
 
 export function PriceChart({ token }: { token: string }) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const client = useMemo(() => createArcPublicClient(), []);
   const [trades, setTrades] = useState<IndexedTrade[]>([]);
   const [range, setRange] = useState<Range>("1h");
+  const [metric, setMetric] = useState<Metric>("price");
+  const [totalSupply, setTotalSupply] = useState<number>();
   const [hovered, setHovered] = useState<HoverPoint>();
   const [themeVersion, setThemeVersion] = useState(0);
 
@@ -85,6 +110,24 @@ export function PriceChart({ token }: { token: string }) {
       .then((data) => setTrades(data?.trades ?? []))
       .catch(() => {});
   }, [token]);
+
+  useEffect(() => {
+    let active = true;
+    client.readContract({
+      address: token as Address,
+      abi: totalSupplyAbi,
+      functionName: "totalSupply"
+    })
+      .then((supply) => {
+        if (active) setTotalSupply(Number(formatUnits(supply, 18)));
+      })
+      .catch(() => {
+        if (active) setTotalSupply(undefined);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, token]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => setThemeVersion((value) => value + 1));
@@ -121,12 +164,18 @@ export function PriceChart({ token }: { token: string }) {
     return collapsed;
   }, [trades, range]);
 
-  const latest = points.at(-1);
-  const displayed = hovered ?? (latest ? { time: Number(latest.time) * 1000, price: latest.price } : undefined);
+  const plottedPoints = useMemo(() => points.map((point) => ({
+    time: point.time,
+    value: metric === "marketCap" ? point.price * (totalSupply ?? 0) : point.price
+  })).filter((point) => Number.isFinite(point.value) && point.value > 0), [points, metric, totalSupply]);
+
+  const latest = plottedPoints.at(-1);
+  const displayed = hovered ?? (latest ? { time: Number(latest.time) * 1000, value: latest.value } : undefined);
+  const formatValue = metric === "marketCap" ? marketCapLabel : priceLabel;
 
   useEffect(() => {
     const container = chartRef.current;
-    if (!container || points.length < 2) return;
+    if (!container || plottedPoints.length < 2) return;
 
     const primary = cssColor("--md-sys-color-primary", "#435400");
     const surface = cssColor("--md-sys-color-surface-container-lowest", "#ffffff");
@@ -139,12 +188,12 @@ export function PriceChart({ token }: { token: string }) {
       layout: {
         background: { type: ColorType.Solid, color: surface },
         textColor: text,
-        fontFamily: '"Roboto Flex", "Roboto", system-ui, sans-serif',
+        fontFamily: '\"Roboto Flex\", \"Roboto\", system-ui, sans-serif',
         fontSize: 11,
         attributionLogo: true
       },
       localization: {
-        priceFormatter: priceLabel
+        priceFormatter: formatValue
       },
       grid: {
         vertLines: { color: withAlpha(outline, 0.42), style: LineStyle.Dotted },
@@ -197,12 +246,12 @@ export function PriceChart({ token }: { token: string }) {
       priceLineWidth: 1,
       priceFormat: {
         type: "custom",
-        formatter: priceLabel,
-        minMove: minMoveFor(latest?.price ?? 0)
+        formatter: formatValue,
+        minMove: minMoveFor(latest?.value ?? 0, metric)
       }
     });
 
-    series.setData(points.map((point) => ({ time: point.time, value: point.price })));
+    series.setData(plottedPoints);
     chart.timeScale().fitContent();
 
     const crosshairHandler = (param: MouseEventParams<Time>) => {
@@ -215,7 +264,7 @@ export function PriceChart({ token }: { token: string }) {
         setHovered(undefined);
         return;
       }
-      setHovered({ time: timeToMs(param.time), price: datum.value });
+      setHovered({ time: timeToMs(param.time), value: datum.value });
     };
 
     chart.subscribeCrosshairMove(crosshairHandler);
@@ -224,7 +273,7 @@ export function PriceChart({ token }: { token: string }) {
       chart.unsubscribeCrosshairMove(crosshairHandler);
       chart.remove();
     };
-  }, [points, range, themeVersion, latest?.price]);
+  }, [plottedPoints, range, metric, themeVersion, latest?.value, formatValue]);
 
   return (
     <motion.div
@@ -234,45 +283,70 @@ export function PriceChart({ token }: { token: string }) {
     >
       <div className={styles.head}>
         <div className={styles.price}>
-          <span>{hovered ? new Date(hovered.time).toLocaleString() : "Price"}</span>
+          <span>{hovered ? new Date(hovered.time).toLocaleString() : metric === "marketCap" ? "Market cap" : "Price"}</span>
           <AnimatePresence mode="wait" initial={false}>
             <motion.strong
-              key={displayed ? priceLabel(displayed.price) : "empty"}
+              key={`${metric}-${displayed ? formatValue(displayed.value) : "empty"}`}
               initial={{ opacity: 0, y: 3 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -3 }}
               transition={motionSpring.effectsFast}
             >
-              {displayed ? priceLabel(displayed.price) : "—"}
+              {displayed ? formatValue(displayed.value) : "—"}
             </motion.strong>
           </AnimatePresence>
         </div>
 
-        <div className={styles.ranges} aria-label="Chart range">
-          {ranges.map(([id, label]) => (
+        <div className={styles.controls}>
+          <div className={styles.metricToggle} aria-label="Chart metric">
             <motion.button
               type="button"
-              key={id}
-              layout
-              className={range === id ? styles.active : ""}
-              onClick={() => {
-                setRange(id);
-                setHovered(undefined);
-              }}
-              whileTap={{ scale: 0.92 }}
+              className={metric === "price" ? styles.active : ""}
+              onClick={() => { setMetric("price"); setHovered(undefined); }}
+              whileTap={{ scale: 0.94 }}
               transition={motionSpring.spatialFast}
             >
-              {label}
+              Price
             </motion.button>
-          ))}
+            <motion.button
+              type="button"
+              className={metric === "marketCap" ? styles.active : ""}
+              onClick={() => { setMetric("marketCap"); setHovered(undefined); }}
+              disabled={totalSupply === undefined}
+              title={totalSupply === undefined ? "Loading onchain total supply" : "Show market capitalization"}
+              whileTap={totalSupply === undefined ? undefined : { scale: 0.94 }}
+              transition={motionSpring.spatialFast}
+            >
+              Market cap
+            </motion.button>
+          </div>
+
+          <div className={styles.ranges} aria-label="Chart range">
+            {ranges.map(([id, label]) => (
+              <motion.button
+                type="button"
+                key={id}
+                layout
+                className={range === id ? styles.active : ""}
+                onClick={() => {
+                  setRange(id);
+                  setHovered(undefined);
+                }}
+                whileTap={{ scale: 0.92 }}
+                transition={motionSpring.spatialFast}
+              >
+                {label}
+              </motion.button>
+            ))}
+          </div>
         </div>
       </div>
 
       <motion.div className={styles.stage} layout>
-        {points.length >= 2 ? (
-          <div ref={chartRef} className={styles.chartMount} aria-label="Interactive token price chart" />
+        {plottedPoints.length >= 2 ? (
+          <div ref={chartRef} className={styles.chartMount} aria-label={`Interactive token ${metric === "marketCap" ? "market cap" : "price"} chart`} />
         ) : (
-          <div className={styles.empty}>Price history appears after at least two indexed trades.</div>
+          <div className={styles.empty}>Chart history appears after at least two indexed trades.</div>
         )}
       </motion.div>
     </motion.div>
