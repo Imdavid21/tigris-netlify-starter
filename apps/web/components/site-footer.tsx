@@ -2,10 +2,13 @@
 
 import { motion } from "motion/react";
 import { SupershotLogo } from "@/components/supershot-logo";
+import { arcExplorerUrl, isArcMainnet } from "@/lib/arc";
 import { flowContainer, flowItem, motionSpring } from "@/lib/motion-system";
 import styles from "./SiteFooter.module.css";
 
 export function SiteFooter() {
+  const networkLabel = isArcMainnet ? "Arc Mainnet" : "Arc Testnet";
+
   return (
     <motion.footer
       className={styles.footer}
@@ -45,8 +48,9 @@ export function SiteFooter() {
 
       <motion.div className={styles.column} variants={flowItem}>
         <strong>Network</strong>
-        <motion.a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer" whileHover={{ x: 3 }}>Arc Explorer</motion.a>
+        <motion.a href={arcExplorerUrl} target="_blank" rel="noreferrer" whileHover={{ x: 3 }}>Arc Explorer</motion.a>
         <motion.a href="/scanner" whileHover={{ x: 3 }}>Scanner</motion.a>
+        <motion.a href="/testnet" whileHover={{ x: 3 }}>Testnet archive</motion.a>
       </motion.div>
 
       <motion.div className={styles.risk} variants={flowItem}>
@@ -57,10 +61,10 @@ export function SiteFooter() {
       </motion.div>
 
       <motion.div className={styles.bottom} variants={flowItem} layout="position">
-        <span>© supershot.fun · Arc Testnet</span>
+        <span>© supershot.fun · {networkLabel}</span>
         <div className={styles.bottomLinks}>
           <motion.a href="/analytics" whileHover={{ y: -1 }}>Protocol data</motion.a>
-          <motion.a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer" whileHover={{ y: -1 }}>Arc</motion.a>
+          <motion.a href={arcExplorerUrl} target="_blank" rel="noreferrer" whileHover={{ y: -1 }}>Arc</motion.a>
         </div>
       </motion.div>
     </motion.footer>
