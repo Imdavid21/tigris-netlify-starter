@@ -2,7 +2,7 @@
  * Shared application compatibility layer.
  *
  * Page and component visuals now live in CSS Modules and use Material 3
- * semantic tokens from styles/tokens.css. Keep this file intentionally small.
+ * semantic tokens from styles/tokens.css. Keep color meaning centralized here.
  */
 
 .app-shell {
@@ -55,8 +55,8 @@
   padding: 10px 16px;
   border: 0;
   border-radius: var(--md-sys-shape-corner-large);
-  background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background: var(--md-sys-color-info-container);
+  color: var(--md-sys-color-on-info-container);
   font-size: var(--md-sys-typescale-body-small-size);
   line-height: var(--md-sys-typescale-body-small-line-height);
 }
@@ -77,6 +77,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* One color meaning everywhere: brand/action, info, success/buy, warning, error/sell. */
+.phase-badge.done {
+  background: var(--md-sys-color-positive-container) !important;
+  color: var(--md-sys-color-on-positive-container) !important;
+}
+
+.v2-about {
+  background: var(--md-sys-color-info-container) !important;
+  color: var(--md-sys-color-on-info-container) !important;
+}
+
+.side-toggle button.active.buy {
+  background: var(--md-sys-color-buy-container) !important;
+  color: var(--md-sys-color-on-buy-container) !important;
+}
+
+.side-toggle button.active.sell {
+  background: var(--md-sys-color-sell-container) !important;
+  color: var(--md-sys-color-on-sell-container) !important;
+}
+
+input,
+textarea,
+select {
+  accent-color: var(--md-sys-color-primary);
+}
+
 .material-field,
 md-filled-text-field.material-field,
 md-outlined-text-field.material-field,
@@ -84,6 +111,15 @@ md-filled-select.material-field,
 md-outlined-select.material-field {
   width: 100%;
   min-width: 0;
+}
+
+md-linear-progress {
+  --md-linear-progress-active-indicator-color: var(--md-sys-color-primary);
+  --md-linear-progress-track-color: var(--md-sys-color-surface-container-highest);
+}
+
+md-circular-progress {
+  --md-circular-progress-active-indicator-color: var(--md-sys-color-primary);
 }
 
 .route-loading-progress {
