@@ -1,0 +1,132 @@
+name: Optimize Arc Indexer RPC
+
+on:
+  push:
+    branches:
+      - fix/indexer-rpc-pressure
+    paths:
+      - .github/workflows/optimize-indexer-rpc.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/indexer-rpc-pressure
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Batch indexer log reads
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('apps/indexer/src/events-polling.ts')
+          text = path.read_text()
+
+          text = text.replace('address: Address;\n  event: any;', 'address: Address | Address[];\n  event: any;', 1)
+
+          old = '''async function applyMarketsRange(fromBlock: bigint, toBlock: bigint) {
+  const result = await db.query(`select address,curve_address,generation from tokens where created_block <= $1 order by created_block asc`, [toBlock.toString()]);
+  for (const row of result.rows) {
+    const token = bufferToAddress(row.address);
+    const curve = bufferToAddress(row.curve_address);
+    const celestial = row.generation === "CELESTIAL";
+    const buys = await rangeLogs({ address: curve, event: celestial ? buyV2 : buyV1, fromBlock, toBlock });
+    for (const log of buys) await storeTrade(token, "BUY", log);
+    const sells = await rangeLogs({ address: curve, event: celestial ? sellV2 : sellV1, fromBlock, toBlock });
+    for (const log of sells) await storeTrade(token, "SELL", log);
+    const transfers = await rangeLogs({ address: token, event: transfer, fromBlock, toBlock });
+    for (const log of transfers) await storeTransfer(token, log);
+  }
+}
+'''
+          new = '''async function applyMarketsRange(fromBlock: bigint, toBlock: bigint) {
+  const result = await db.query(
+    `select address,curve_address,generation from tokens where created_block <= $1 order by created_block asc`,
+    [toBlock.toString()]
+  );
+  if (!result.rowCount) return;
+
+  const marketByCurve = new Map<string, { token: Address; generation: string }>();
+  const tokenByAddress = new Map<string, Address>();
+  const v1Curves: Address[] = [];
+  const celestialCurves: Address[] = [];
+  const tokens: Address[] = [];
+
+  for (const row of result.rows) {
+    const token = bufferToAddress(row.address);
+    const curve = bufferToAddress(row.curve_address);
+    marketByCurve.set(curve.toLowerCase(), { token, generation: row.generation });
+    tokenByAddress.set(token.toLowerCase(), token);
+    tokens.push(token);
+    if (row.generation === "CELESTIAL") celestialCurves.push(curve);
+    else v1Curves.push(curve);
+  }
+
+  const groups = <T,>(items: T[], size = 40) =>
+    Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
+
+  const applyTrades = async (curves: Address[], buyEvent: any, sellEvent: any) => {
+    for (const addresses of groups(curves)) {
+      if (!addresses.length) continue;
+      const buys = await rangeLogs({ address: addresses, event: buyEvent, fromBlock, toBlock });
+      for (const log of buys) {
+        const market = marketByCurve.get(String(log.address).toLowerCase());
+        if (market) await storeTrade(market.token, "BUY", log);
+      }
+      await sleep(150);
+      const sells = await rangeLogs({ address: addresses, event: sellEvent, fromBlock, toBlock });
+      for (const log of sells) {
+        const market = marketByCurve.get(String(log.address).toLowerCase());
+        if (market) await storeTrade(market.token, "SELL", log);
+      }
+      await sleep(150);
+    }
+  };
+
+  await applyTrades(v1Curves, buyV1, sellV1);
+  await applyTrades(celestialCurves, buyV2, sellV2);
+
+  for (const addresses of groups(tokens)) {
+    if (!addresses.length) continue;
+    const logs = await rangeLogs({ address: addresses, event: transfer, fromBlock, toBlock });
+    for (const log of logs) {
+      const token = tokenByAddress.get(String(log.address).toLowerCase());
+      if (token) await storeTransfer(token, log);
+    }
+    await sleep(150);
+  }
+}
+'''
+          if old not in text:
+              raise SystemExit('applyMarketsRange source did not match expected version')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+
+          context = Path('apps/indexer/src/context.ts')
+          ctx = context.read_text()
+          old_http = 'http(url, { retryCount: 2, retryDelay: 750, timeout: 15_000 })'
+          new_http = 'http(url, { retryCount: 0, timeout: 15_000 })'
+          if old_http not in ctx:
+              raise SystemExit('indexer http transport source did not match expected version')
+          context.write_text(ctx.replace(old_http, new_http, 1))
+          PY
+      - name: Build indexer
+        run: |
+          npm install
+          npm --workspace @arc-launchpad/indexer run build
+      - name: Commit optimization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/indexer/src/events-polling.ts apps/indexer/src/context.ts
+          git diff --cached --exit-code && exit 0
+          git commit -m "fix: batch Arc indexer RPC reads"
+          git push origin HEAD:fix/indexer-rpc-pressure
