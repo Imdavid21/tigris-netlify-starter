@@ -1,0 +1,411 @@
+.page {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+.page :global(.page-heading.compact),
+.page :global(.profile-layout),
+.page :global(.profile-connect) {
+  width: min(calc(100% - 48px), var(--content-max));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page :global(.page-heading.compact) {
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  padding: 18px 0 12px;
+}
+
+.page :global(.page-heading.compact h1) {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.page :global(.page-heading.compact p) {
+  display: none;
+}
+
+.page :global(.profile-layout) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.page :global(.profile-summary),
+.page :global(.fees-card),
+.page :global(.metric-grid),
+.page :global(.profile-tabs),
+.page :global(.profile-table) {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.page :global(.profile-summary) {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(110px, .5fr)) auto;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.page :global(.profile-summary > div) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 12px 16px;
+  border-right: 1px solid var(--border);
+}
+
+.page :global(.profile-summary .kicker),
+.page :global(.profile-summary-stat span),
+.page :global(.fees-card .kicker),
+.page :global(.metric-card > span) {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.page :global(.profile-summary strong) {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.profile-summary > button) {
+  align-self: center;
+  min-height: 32px;
+  margin: 0 12px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.page :global(.profile-summary > button:hover) {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+}
+
+.page :global(.fees-card) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.page :global(.fees-card h2) {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.fees-card p) {
+  margin: 5px 0 0;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.page :global(.fees-card button),
+.page :global(.metric-card button),
+.page :global(.profile-row button) {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.page :global(.fees-card button:not(:disabled)) {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.page :global(.fees-card button:disabled),
+.page :global(.metric-card button:disabled) {
+  cursor: default;
+  opacity: .42;
+}
+
+.page :global(.metric-grid) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.page :global(.metric-card) {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+}
+
+.page :global(.metric-card:last-child) {
+  border-right: 0;
+}
+
+.page :global(.metric-card > span),
+.page :global(.metric-card > strong) {
+  grid-column: 1;
+}
+
+.page :global(.metric-card strong) {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :global(.metric-card button) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.page :global(.profile-tabs) {
+  width: fit-content;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+}
+
+.page :global(.profile-tabs button) {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.page :global(.profile-tabs button.active) {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-1);
+}
+
+.page :global(.profile-table) {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.page :global(.profile-row) {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, .5fr) minmax(100px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.page :global(.profile-row:last-child) {
+  border-bottom: 0;
+}
+
+.page :global(a.profile-row:hover) {
+  background: var(--surface-soft);
+}
+
+.page :global(.profile-row > div) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page :global(.profile-row strong) {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.profile-row > div span) {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.profile-row > span:last-child) {
+  text-align: right;
+}
+
+.page :global(.profile-empty) {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  text-align: center;
+}
+
+.page :global(.profile-layout > .form-error) {
+  margin: 0;
+  color: var(--negative);
+  font-size: 10px;
+}
+
+.page :global(.profile-connect) {
+  min-height: 340px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  text-align: center;
+}
+
+.page :global(.profile-connect-mark) {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--surface-active);
+  color: var(--brand);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.page :global(.profile-connect h2) {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.page :global(.profile-connect p) {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.page :global(.profile-connect button) {
+  min-height: 38px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .page :global(.page-heading.compact),
+  .page :global(.profile-layout),
+  .page :global(.profile-connect) {
+    width: min(calc(100% - 28px), var(--content-max));
+  }
+
+  .page :global(.page-heading.compact h1) {
+    font-size: 22px;
+  }
+
+  .page :global(.profile-summary) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page :global(.profile-summary > div:first-child) {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page :global(.profile-summary > div:nth-child(3)) {
+    border-right: 0;
+  }
+
+  .page :global(.profile-summary > button) {
+    grid-column: 1 / -1;
+    margin: 10px 12px;
+  }
+
+  .page :global(.metric-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  .page :global(.metric-card) {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page :global(.metric-card:last-child) {
+    border-bottom: 0;
+  }
+
+  .page :global(.profile-tabs) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .page :global(.profile-tabs button) {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .page :global(.fees-card) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page :global(.profile-row) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .page :global(.profile-row > span:nth-child(2)) {
+    display: none;
+  }
+}
