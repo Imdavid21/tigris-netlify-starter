@@ -10,6 +10,10 @@
   padding: 32px 0 0;
 }
 
+.canvas :global(a[href="/create"]) {
+  display: none !important;
+}
+
 .pageHead {
   min-height: 64px;
   display: flex;
