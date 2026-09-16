@@ -1,29 +1,46 @@
+import styles from "./SiteFooter.module.css";
+
 export function SiteFooter() {
   return (
-    <footer className="site-footer">
-      <div className="footer-brand">
-        <a href="/" className="brand footer-logo"><span className="brand-mark">✦</span><span>Celestial</span></a>
-        <p>Launch and trade onchain markets on Arc. Your wallet submits every transaction. Celestial does not custody assets.</p>
+    <footer className={styles.footer}>
+      <div className={styles.brandBlock}>
+        <a href="/explore" className={styles.brand}>
+          <span className={styles.brandMark}>✦</span>
+          <span>Celestial</span>
+        </a>
+        <p>
+          Non-custodial token launches and onchain markets on Arc. Your wallet signs every transaction.
+        </p>
       </div>
-      <div className="footer-column">
+
+      <div className={styles.column}>
         <strong>Product</strong>
         <a href="/explore">Explore</a>
         <a href="/analytics">Analytics</a>
         <a href="/create">Create</a>
-        <a href="/profile">Profile</a>
+        <a href="/portfolio">Portfolio</a>
       </div>
-      <div className="footer-column">
+
+      <div className={styles.column}>
         <strong>Network</strong>
         <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc Explorer</a>
-        <a href="/analytics">Protocol data</a>
+        <a href="/scanner">Scanner</a>
+        <a href="/stocks">Stocks</a>
       </div>
-      <div className="footer-risk">
-        <strong>Risk notice</strong>
-        <p>Transactions are irreversible. Tokens and markets can be volatile or lose all value. Celestial does not provide custody, warranties, or financial advice.</p>
+
+      <div className={styles.risk}>
+        <strong>Risk</strong>
+        <p>
+          Transactions are irreversible. Token markets can be volatile and may lose all value.
+        </p>
       </div>
-      <div className="footer-bottom">
-        <span>Celestial</span>
-        <span>Arc Testnet</span>
+
+      <div className={styles.bottom}>
+        <span>© Celestial · Arc Testnet</span>
+        <div className={styles.bottomLinks}>
+          <a href="/analytics">Protocol data</a>
+          <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Arc</a>
+        </div>
       </div>
     </footer>
   );
