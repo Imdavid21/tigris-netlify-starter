@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ProtocolStatus } from "@/components/protocol-status";
 import { CelestialLogo } from "@/components/celestial-logo";
 import { MotionNav } from "@/components/motion-nav";
-import styles from "./AppHeader.module.css";
+import styles from "./AppHeaderV2.module.css";
 
 const primaryItems = [
   { href: "/explore", label: "Explore" },
