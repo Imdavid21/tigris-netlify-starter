@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
 import { createDatabasePool, prepareDatabaseSchema, databaseSchema } from "./database.js";
 import { schemaSql } from "./schema.js";
-import { registerArcAnalyticsRoutes } from "./arc-analytics.js";
+import { registerArcAnalyticsRoutes, startArcAnalyticsIndexer } from "./arc-analytics.js";
 
 await prepareDatabaseSchema();
 const db = createDatabasePool();
@@ -16,6 +16,7 @@ await app.register(cors, {
 });
 
 registerArcAnalyticsRoutes(app, db);
+startArcAnalyticsIndexer(app, db);
 
 app.get("/", async () => ({ service: "arc-launchpad-api", ok: true, databaseSchema }));
 
