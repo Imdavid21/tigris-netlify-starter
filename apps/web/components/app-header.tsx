@@ -3,7 +3,14 @@ import { SearchPalette } from "@/components/search-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProtocolStatus } from "@/components/protocol-status";
 import { CelestialLogo } from "@/components/celestial-logo";
+import { MotionNav } from "@/components/motion-nav";
 import styles from "./AppHeader.module.css";
+
+const primaryItems = [
+  { href: "/explore", label: "Explore" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/portfolio", label: "Portfolio" }
+];
 
 export function AppHeader() {
   return (
@@ -19,11 +26,7 @@ export function AppHeader() {
             <span>Celestial</span>
           </a>
 
-          <nav className={styles.nav} aria-label="Primary navigation">
-            <a href="/explore">Explore</a>
-            <a href="/analytics">Analytics</a>
-            <a href="/portfolio">Portfolio</a>
-          </nav>
+          <MotionNav items={primaryItems} className={styles.nav} ariaLabel="Primary navigation" />
 
           <div className={styles.search}>
             <SearchPalette />
