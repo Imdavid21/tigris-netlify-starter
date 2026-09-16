@@ -1,21 +1,32 @@
 "use client";
 
 import { useWalletSession } from "@/components/wallet-session";
+import { M3Button } from "@/components/m3/primitives";
 
 export function WalletButton() {
   const { address, connecting, connect } = useWalletSession();
 
   if (address) {
     return (
-      <button type="button" className="connected-wallet" aria-label={"Connected wallet " + address}>
+      <M3Button
+        type="button"
+        variant="tonal"
+        className="connected-wallet"
+        aria-label={"Connected wallet " + address}
+      >
         {address.slice(0, 6)}...{address.slice(-4)}
-      </button>
+      </M3Button>
     );
   }
 
   return (
-    <button type="button" disabled={connecting} onClick={() => void connect()}>
+    <M3Button
+      type="button"
+      variant="tonal"
+      disabled={connecting}
+      onClick={() => void connect()}
+    >
       {connecting ? "Connecting..." : "Connect wallet"}
-    </button>
+    </M3Button>
   );
 }
