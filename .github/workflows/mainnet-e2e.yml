@@ -67,7 +67,7 @@ jobs:
           done
 
           BALANCE=$(cast balance "$WALLET" --rpc-url "$ARC_RPC_URL")
-          test "$BALANCE" -ge 5000000
+          test "$BALANCE" -ge 5000000000000000000
           echo "START_BALANCE=$BALANCE" >> "$GITHUB_ENV"
           echo "Wallet balance before run: $BALANCE micro-USDC" >> "$GITHUB_STEP_SUMMARY"
 
@@ -96,11 +96,11 @@ jobs:
             else
               LOSS=0
             fi
-            test "$LOSS" -le 5000000
+            test "$LOSS" -le 5000000000000000000
             {
               echo "Wallet balance after run: $END_BALANCE micro-USDC"
               echo "Net wallet loss: $LOSS micro-USDC"
-              echo "Configured cap: 5000000 micro-USDC"
+              echo "Configured cap: 5 USDC-equivalent native units"
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
