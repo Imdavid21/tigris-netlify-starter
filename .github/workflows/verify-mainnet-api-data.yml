@@ -1,0 +1,23 @@
+name: Verify Mainnet API Data
+
+on:
+  push:
+    branches:
+      - verify/mainnet-api-data
+    paths:
+      - .github/workflows/verify-mainnet-api-data.yml
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query production API
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://arc-launchpad-api.onrender.com'
+          for path in '/tokens?limit=100' '/stats' '/analytics/daily' '/analytics/venues' '/tokens/0x2C6052879c1E99f59Ea113068563864377A0912A' '/tokens/0xC2FC82a30bEA5E63aA6EA2B92f7F655Db17EeC35'; do
+            echo "===== $path ====="
+            body="$(curl --fail --silent --show-error --max-time 30 "$BASE$path")"
+            printf '%s\n' "$body" | python -m json.tool
+          done
