@@ -16,22 +16,25 @@
   justify-content: space-between;
   gap: 16px;
   padding: 18px 18px 10px;
-  border-bottom: 0;
 }
 
 .price {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
 .price span {
+  min-height: 14px;
+  overflow: hidden;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 10px;
   line-height: 14px;
   font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  letter-spacing: .025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .price strong {
@@ -45,6 +48,7 @@
 
 .ranges {
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 4px;
   padding: 4px;
   border-radius: var(--md-sys-shape-corner-full);
@@ -86,100 +90,24 @@
 .stage {
   position: relative;
   height: 445px;
+  min-height: 300px;
   overflow: hidden;
   margin: 0 12px 12px;
   border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
   border-radius: var(--md-sys-shape-corner-large);
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent calc(25% - 1px),
-      color-mix(in srgb, var(--md-sys-color-outline-variant) 42%, transparent) 25%,
-      transparent calc(25% + 1px)
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--md-sys-color-primary) 2.5%, var(--md-sys-color-surface-container-lowest)),
-      var(--md-sys-color-surface-container-lowest)
-    );
-  color: var(--md-sys-color-primary);
-  cursor: crosshair;
+  background: var(--md-sys-color-surface-container-lowest);
 }
 
-.stage svg {
+.chartMount {
   width: 100%;
   height: 100%;
-  display: block;
+  min-height: inherit;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
-.area {
-  fill: currentColor;
-  opacity: .065;
-}
-
-.line {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  vector-effect: non-scaling-stroke;
-}
-
-.crosshair {
-  stroke: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 48%, transparent);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-  vector-effect: non-scaling-stroke;
-}
-
-.dot {
-  fill: var(--md-sys-color-surface-container-lowest);
-  stroke: currentColor;
-  stroke-width: 2.25;
-  vector-effect: non-scaling-stroke;
-}
-
-.axis {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
-  color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 72%, transparent);
-  font-size: 10px;
-  line-height: 14px;
-  font-variant-numeric: tabular-nums;
-}
-
-.tooltip {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 9px 11px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-sys-shape-corner-medium);
-  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 94%, transparent);
-  color: var(--md-sys-color-on-surface);
-  font-size: 10px;
-  line-height: 14px;
-  pointer-events: none;
-  box-shadow: var(--md-sys-elevation-level2);
-  backdrop-filter: blur(8px);
-}
-
-.tooltip strong {
-  color: var(--md-sys-color-on-surface);
-  font-size: var(--md-sys-typescale-label-medium-size);
-  line-height: var(--md-sys-typescale-label-medium-line-height);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.chartMount :global(canvas) {
+  outline: 0;
 }
 
 .empty {
@@ -207,13 +135,22 @@
     padding-bottom: 12px;
   }
 
+  .price {
+    width: 100%;
+  }
+
   .stage {
-    height: 300px;
+    height: 320px;
     margin: 0 8px 8px;
   }
 
   .ranges {
     max-width: 100%;
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .ranges::-webkit-scrollbar {
+    display: none;
   }
 }
