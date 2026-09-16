@@ -1,21 +1,44 @@
 import type { Address } from "viem";
 
+const isArcMainnet = Number(process.env.NEXT_PUBLIC_ARC_CHAIN_ID ?? "5042002") === 5042;
+const usdcAddress =
+  (process.env.NEXT_PUBLIC_USDC_ADDRESS as Address | undefined) ??
+  ("0x3600000000000000000000000000000000000000" as Address);
+
 export const celestialAddresses = {
   factory: process.env.NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS as Address | undefined,
   orderBook: process.env.NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS as Address | undefined,
   dexAdapter: process.env.NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS as Address | undefined,
   feeEscrow: process.env.NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS as Address | undefined,
   buybackVault: process.env.NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS as Address | undefined,
-  usdc: "0x3600000000000000000000000000000000000000" as Address,
+  usdc: usdcAddress,
   eurc: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as Address,
   cirbtc: "0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF" as Address
 };
 
-export const quoteAssets = [
-  { symbol: "USDC", address: celestialAddresses.usdc, decimals: 6 },
-  { symbol: "EURC", address: celestialAddresses.eurc, decimals: 6 },
-  { symbol: "cirBTC", address: celestialAddresses.cirbtc, decimals: 8 }
-] as const;
+if (isArcMainnet) {
+  const requiredMainnetAddresses = [
+    ["NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS", celestialAddresses.factory],
+    ["NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS", celestialAddresses.orderBook],
+    ["NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS", celestialAddresses.dexAdapter],
+    ["NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS", celestialAddresses.feeEscrow],
+    ["NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS", celestialAddresses.buybackVault]
+  ] as const;
+
+  for (const [name, value] of requiredMainnetAddresses) {
+    if (!value) throw new Error(`${name} must be configured for Arc mainnet`);
+  }
+}
+
+export const quoteAssets = isArcMainnet
+  ? [
+      { symbol: "USDC", address: celestialAddresses.usdc, decimals: 6 }
+    ] as const
+  : [
+      { symbol: "USDC", address: celestialAddresses.usdc, decimals: 6 },
+      { symbol: "EURC", address: celestialAddresses.eurc, decimals: 6 },
+      { symbol: "cirBTC", address: celestialAddresses.cirbtc, decimals: 8 }
+    ] as const;
 
 export const celestialFactoryAbi = [
   {
@@ -233,7 +256,6 @@ export const dexAdapterAbi = [
     outputs: [{ name: "amountOut", type: "uint256" }]
   }
 ] as const;
-
 
 export const celestialCurveAbi = [
   {
