@@ -9,13 +9,6 @@ export default function ExplorePage() {
       <AppHeader />
 
       <div className={styles.canvas}>
-        <div className={styles.pageHead}>
-          <div className={styles.titleBlock}>
-            <h1>Explore</h1>
-            <span>Arc markets</span>
-          </div>
-        </div>
-
         <Launches />
       </div>
 
