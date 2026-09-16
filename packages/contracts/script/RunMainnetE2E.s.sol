@@ -211,3 +211,5 @@ contract RunMainnetE2E is Script {
         }
     }
 }
+
+// Uses Circle Arc Foundry for precompile-compatible simulation and broadcast.
