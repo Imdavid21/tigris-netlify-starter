@@ -90,13 +90,13 @@
 }
 
 .buy {
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-buy-container);
+  color: var(--md-sys-color-on-buy-container);
 }
 
 .sell {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
+  background: var(--md-sys-color-sell-container);
+  color: var(--md-sys-color-on-sell-container);
 }
 
 .address {
