@@ -6,6 +6,7 @@ on:
       rpc_url:
         description: Arc Mainnet RPC URL
         required: true
+        default: "https://rpc.mainnet.arc.io"
         type: string
       protocol_treasury:
         description: Protocol treasury address
@@ -29,6 +30,11 @@ jobs:
       EXPECTED_DEPLOYER: "0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01"
       RAW_PRIVATE_KEY: ${{ secrets.ARC_DEPLOYER_PRIVATE_KEY }}
       ARC_USDC: "0x3600000000000000000000000000000000000000"
+      V4_POOL_MANAGER: "0x8366a39CC670B4001A1121B8F6A443A643e40951"
+      V4_POSITION_MANAGER: "0x6049c9a0e26405C0985f9E3685C87d0aE917f82B"
+      V4_QUOTER: "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94"
+      V4_UNIVERSAL_ROUTER: "0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1"
+      PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3"
 
     steps:
       - name: Require explicit confirmation
@@ -55,19 +61,24 @@ jobs:
           DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY")
           test "${DEPLOYER,,}" = "${EXPECTED_DEPLOYER,,}"
 
-      - name: Verify Arc Mainnet and USDC
+      - name: Verify Arc Mainnet, USDC, and Uniswap v4
         run: |
           test "$(cast chain-id --rpc-url "$ARC_RPC_URL")" = "5042"
-          CODE=$(cast code "$ARC_USDC" --rpc-url "$ARC_RPC_URL")
-          test "$CODE" != "0x"
+
+          for TARGET in "$ARC_USDC" "$V4_POOL_MANAGER" "$V4_POSITION_MANAGER" "$V4_QUOTER" "$V4_UNIVERSAL_ROUTER" "$PERMIT2"; do
+            CODE=$(cast code "$TARGET" --rpc-url "$ARC_RPC_URL")
+            test "$CODE" != "0x"
+          done
+
           test "$(cast call "$ARC_USDC" 'decimals()(uint8)' --rpc-url "$ARC_RPC_URL")" = "6"
+
           BALANCE=$(cast balance "$EXPECTED_DEPLOYER" --rpc-url "$ARC_RPC_URL")
           test "$BALANCE" != "0"
 
       - name: Test contracts
         run: forge test -vv
 
-      - name: Deploy Celestial base protocol
+      - name: Deploy Celestial protocol and Uniswap v4 integration
         id: deploy
         run: |
           set -o pipefail
@@ -81,6 +92,21 @@ jobs:
           BUYBACK=$(grep "CELESTIAL_BUYBACK_VAULT" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
           LOCKER=$(grep "CELESTIAL_LIQUIDITY_LOCKER" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
           ORDERBOOK=$(grep "CELESTIAL_LIMIT_ORDER_BOOK" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          HOOK=$(grep "CELESTIAL_V4_HOOK" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          CONNECTOR=$(grep "CELESTIAL_V4_CONNECTOR" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+          ADAPTER=$(grep "CELESTIAL_DEX_ADAPTER" /tmp/celestial-mainnet-deployment.log | tail -1 | awk '{print $NF}')
+
+          for VALUE in "$FACTORY" "$ESCROW" "$BUYBACK" "$LOCKER" "$ORDERBOOK" "$HOOK" "$CONNECTOR" "$ADAPTER"; do
+            test -n "$VALUE"
+            test "$(cast code "$VALUE" --rpc-url "$ARC_RPC_URL")" != "0x"
+          done
+
+          CONFIGURED_ADAPTER=$(cast call "$FACTORY" 'graduationAdapter()(address)' --rpc-url "$ARC_RPC_URL")
+          test "${CONFIGURED_ADAPTER,,}" = "${ADAPTER,,}"
+
+          CONFIGURED_INITIALIZER=$(cast call "$HOOK" 'initializer()(address)' --rpc-url "$ARC_RPC_URL")
+          test "${CONFIGURED_INITIALIZER,,}" = "${CONNECTOR,,}"
+          test "$(cast call "$HOOK" 'initializerSealed()(bool)' --rpc-url "$ARC_RPC_URL")" = "true"
 
           {
             echo "## Celestial Arc Mainnet"
@@ -90,9 +116,17 @@ jobs:
             echo "- Buyback vault: `$BUYBACK`"
             echo "- Liquidity locker: `$LOCKER`"
             echo "- Limit order book: `$ORDERBOOK`"
+            echo "- v4 pool guard hook: `$HOOK`"
+            echo "- v4 connector: `$CONNECTOR`"
+            echo "- DEX/graduation adapter: `$ADAPTER`"
             echo "- USDC: `$ARC_USDC`"
             echo ""
-            echo "Graduation adapter is intentionally not configured by this workflow."
+            echo "### Official Arc Uniswap v4 dependencies"
+            echo "- PoolManager: `$V4_POOL_MANAGER`"
+            echo "- PositionManager: `$V4_POSITION_MANAGER`"
+            echo "- Quoter: `$V4_QUOTER`"
+            echo "- Universal Router: `$V4_UNIVERSAL_ROUTER`"
+            echo "- Permit2: `$PERMIT2`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
