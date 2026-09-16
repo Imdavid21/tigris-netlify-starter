@@ -1,4 +1,6 @@
 import { AppHeader } from "@/components/app-header";
+import { SiteFooter } from "@/components/site-footer";
+import styles from "./StocksPage.module.css";
 
 const markets = [
   ["AAPL", "Apple", "Tokenized equity"],
@@ -10,32 +12,43 @@ const markets = [
 
 export default function StocksPage() {
   return (
-    <main className="app-shell">
+    <main className={styles.page}>
       <AppHeader />
-      <section className="page-heading compact">
-        <h1>Launch against more than USDC.</h1>
-        <p>Paired-asset markets designed for Arc's approved quote-asset registry.</p>
-      </section>
 
-      <div className="feature-notice">
-        <strong>Preview mode</strong>
-        <span>The current Arc factory is USDC-only. These markets preview expanded asset discovery and compliance UX.</span>
+      <div className={styles.canvas}>
+        <div className={styles.head}>
+          <h1>Stocks</h1>
+          <span className={styles.previewPill}>Preview</span>
+        </div>
+
+        <div className={styles.notice}>
+          <strong>Not live markets.</strong>
+          <span>The current Arc factory is USDC-only. These cards preview discovery for future approved quote assets.</span>
+        </div>
+
+        <div className={styles.grid}>
+          {markets.map(([ticker, name, type]) => (
+            <article className={styles.card} key={ticker}>
+              <div className={styles.art}>{ticker.slice(0, 2)}</div>
+              <div className={styles.body}>
+                <strong>{name}</strong>
+                <span>{ticker} · {type}</span>
+              </div>
+              <div className={styles.cardFoot}>
+                <span>Approved-asset UX</span>
+                <span className={styles.chip}>Preview</span>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <section className={styles.info}>
+          <h2>Pair-level eligibility</h2>
+          <p>Tokenized-equity pairs will show jurisdiction and execution eligibility before signature. Viewing a market and being eligible to trade it remain separate states.</p>
+        </section>
       </div>
 
-      <div className="stocks-grid">
-        {markets.map(([ticker,name,type]) => (
-          <div className="stock-card" key={ticker}>
-            <div className="stock-symbol">{ticker.slice(0,2)}</div>
-            <div><strong>{name}</strong><span>{ticker} · {type}</span></div>
-            <span className="coming-chip">Preview</span>
-          </div>
-        ))}
-      </div>
-
-      <section className="jurisdiction-card">
-        <h2>Pair-level restrictions, not hidden failures.</h2>
-        <p>Tokenized-equity pairs will carry explicit jurisdiction eligibility before a user reaches the trade signature. Viewing remains separate from execution eligibility.</p>
-      </section>
+      <SiteFooter />
     </main>
   );
 }
