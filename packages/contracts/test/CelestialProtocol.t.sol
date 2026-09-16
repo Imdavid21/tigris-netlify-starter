@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 import {CelestialLaunchFactory} from "../src/CelestialLaunchFactory.sol";
 import {CelestialBondingCurve} from "../src/CelestialBondingCurve.sol";
