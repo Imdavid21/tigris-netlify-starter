@@ -1,0 +1,38 @@
+.page {
+  min-height: 100vh;
+  padding: 0 24px 64px;
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+}
+
+.header {
+  width: min(100%, 1180px);
+  min-height: 72px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.brand { color: var(--md-sys-color-on-surface); font-weight: 700; letter-spacing: -.02em; }
+.back, .panelHead a { color: var(--md-sys-color-primary); font-size: 14px; }
+.hero, .panel, .note { width: min(100%, 980px); margin-left: auto; margin-right: auto; }
+.hero { padding: 72px 0 36px; }
+.badge { display: inline-flex; padding: 7px 11px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 999px; color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
+.hero h1 { margin: 18px 0 10px; font-size: clamp(38px, 7vw, 72px); line-height: .98; letter-spacing: -.055em; }
+.hero p { max-width: 680px; margin: 0; color: var(--md-sys-color-on-surface-variant); line-height: 1.6; }
+.panel { overflow: hidden; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 24px; background: var(--md-sys-color-surface-container-low); }
+.panelHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.panelHead h2, .panelHead p { margin: 0; }
+.panelHead h2 { font-size: 20px; }
+.panelHead p { margin-top: 5px; color: var(--md-sys-color-on-surface-variant); font-size: 13px; }
+.rows { display: grid; }
+.row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 20px; padding: 17px 24px; color: inherit; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--md-sys-color-surface-container); }
+.row span { color: var(--md-sys-color-on-surface-variant); }
+.row code { overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.note { display: flex; gap: 10px; margin-top: 18px; padding: 16px 18px; border-radius: 16px; background: var(--md-sys-color-surface-container); font-size: 13px; }
+.note span { color: var(--md-sys-color-on-surface-variant); }
+@media (max-width: 680px) { .page { padding: 0 14px 48px; } .hero { padding-top: 48px; } .panelHead { display: grid; } .row { grid-template-columns: 1fr; gap: 6px; } .row code { text-align: left; font-size: 11px; } .note { display: grid; } }

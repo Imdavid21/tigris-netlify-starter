@@ -133,7 +133,7 @@ export function CreateTokenForm() {
         chain: arcTestnet,
         transport: http(
           process.env.NEXT_PUBLIC_ARC_RPC_URL ??
-            "https://rpc.testnet.arc.network"
+            "https://rpc.mainnet.arc.io"
         )
       });
 

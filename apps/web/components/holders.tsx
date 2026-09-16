@@ -53,7 +53,7 @@ export function Holders({ token }: { token: string }) {
               <motion.a
                 layout
                 key={item.holder}
-                href={`https://testnet.arcscan.app/address/${item.holder}`}
+                href={`https://arc-scan.org/address/${item.holder}`}
                 target="_blank"
                 rel="noreferrer"
                 title={`Open ${item.holder} on Arcscan`}

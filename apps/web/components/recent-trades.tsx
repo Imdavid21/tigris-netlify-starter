@@ -55,7 +55,7 @@ function displayTime(value: string | number) {
 }
 
 function arcscanAddress(value: string) {
-  return `https://testnet.arcscan.app/address/${value}`;
+  return `https://arc-scan.org/address/${value}`;
 }
 
 export function RecentTrades({ token }: { token: string }) {
@@ -155,7 +155,7 @@ export function RecentTrades({ token }: { token: string }) {
                 <motion.a
                   layout
                   key={trade.tx_hash + String(trade.block_time)}
-                  href={`https://testnet.arcscan.app/tx/${trade.tx_hash}`}
+                  href={`https://arc-scan.org/tx/${trade.tx_hash}`}
                   target="_blank"
                   rel="noreferrer"
                   className={`${styles.row} ${styles.tradeColumns}`}

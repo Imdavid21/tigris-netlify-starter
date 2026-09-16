@@ -104,7 +104,7 @@ export default async function ScannerPage({ params }: Props) {
           </div>
 
           <div className={styles.actions}>
-            <a href={`https://testnet.arcscan.app/address/${tokenAddress}`} target="_blank" rel="noreferrer">Arc Explorer</a>
+            <a href={`https://arc-scan.org/address/${tokenAddress}`} target="_blank" rel="noreferrer">Arc Explorer</a>
             {token && <a href={`/token/${tokenAddress}`} className={styles.primary}>Open market</a>}
           </div>
         </FlowDiv>
@@ -128,19 +128,19 @@ export default async function ScannerPage({ params }: Props) {
             <div className={styles.contractGrid}>
               <div className={styles.contractCell}>
                 <span className={styles.cellLabel}>Token</span>
-                <a href={`https://testnet.arcscan.app/address/${tokenAddress}`} target="_blank" rel="noreferrer">{tokenAddress}</a>
+                <a href={`https://arc-scan.org/address/${tokenAddress}`} target="_blank" rel="noreferrer">{tokenAddress}</a>
               </div>
               <div className={styles.contractCell}>
                 <span className={styles.cellLabel}>Curve</span>
-                {token?.curve_address ? <a href={`https://testnet.arcscan.app/address/${token.curve_address}`} target="_blank" rel="noreferrer">{token.curve_address}</a> : <strong>—</strong>}
+                {token?.curve_address ? <a href={`https://arc-scan.org/address/${token.curve_address}`} target="_blank" rel="noreferrer">{token.curve_address}</a> : <strong>—</strong>}
               </div>
               <div className={styles.contractCell}>
                 <span className={styles.cellLabel}>Creator</span>
-                {token?.creator ? <a href={`https://testnet.arcscan.app/address/${token.creator}`} target="_blank" rel="noreferrer">{token.creator}</a> : <strong>—</strong>}
+                {token?.creator ? <a href={`https://arc-scan.org/address/${token.creator}`} target="_blank" rel="noreferrer">{token.creator}</a> : <strong>—</strong>}
               </div>
               <div className={styles.contractCell}>
                 <span className={styles.cellLabel}>DEX pool</span>
-                {token?.pool_address ? <a href={`https://testnet.arcscan.app/address/${token.pool_address}`} target="_blank" rel="noreferrer">{token.pool_address}</a> : <strong>—</strong>}
+                {token?.pool_address ? <a href={`https://arc-scan.org/address/${token.pool_address}`} target="_blank" rel="noreferrer">{token.pool_address}</a> : <strong>—</strong>}
               </div>
             </div>
           </FlowSection>
@@ -155,7 +155,7 @@ export default async function ScannerPage({ params }: Props) {
             ) : holders.slice(0, 20).map((holder, index) => (
               <a
                 key={holder.holder}
-                href={`https://testnet.arcscan.app/address/${holder.holder}`}
+                href={`https://arc-scan.org/address/${holder.holder}`}
                 target="_blank"
                 rel="noreferrer"
                 className={styles.row}
@@ -177,7 +177,7 @@ export default async function ScannerPage({ params }: Props) {
             ) : trades.slice(0, 24).map((trade) => (
               <a
                 key={`${trade.tx_hash}-${trade.block_time}`}
-                href={`https://testnet.arcscan.app/tx/${trade.tx_hash}`}
+                href={`https://arc-scan.org/tx/${trade.tx_hash}`}
                 target="_blank"
                 rel="noreferrer"
                 className={`${styles.row} ${styles.activityRow}`}

@@ -729,3 +729,8 @@ Do not use real funds until:
 - indexer reorg strategy is production hardened
 - monitoring/alerts exist
 - complete end-to-end staging run succeeds
+
+
+## Arc Mainnet production · 2026-09-16
+
+Production chain is Arc Mainnet, chain ID `5042`, RPC `https://rpc.mainnet.arc.io`. Supershot production deploy spans blocks `21158188` to `21158206`. Factory `0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423`, fee escrow `0x6D1597932B93b9939f21E9A8D8C2908457F7925d`, buyback vault `0xf58489A0B285F3b0046FF53a055b80E69a6e15eB`, liquidity locker `0xE7fFCe43E0eCA4C27e3bB1985C231DBB97145896`, order book `0xED7b5904e272d3DF891179D916D2E3A939ed1471`, v4 hook `0x3aC85a7cB39981c95c005E5d72a5Df24d0bb2000`, v4 connector `0x0A30D71fB42b7cD92596e9a200d7a101E34DA956`, and DEX adapter `0x4c40f0C8DfC518f436A9a5244179a0Dac145eE43`. Mainnet backend/indexer uses PostgreSQL schema `mainnet`; historical testnet rows remain in `public`. Production frontend must never fall back to testnet addresses, RPCs, or explorer links. Testnet references belong under `/testnet`.

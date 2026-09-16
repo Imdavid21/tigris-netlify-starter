@@ -536,7 +536,7 @@ export function TokenMarket({ token }: { token: Address }) {
                 </motion.span>
               </motion.div>
               <div className="token-links">
-                <a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 8)}...{token.slice(-6)}</a>
+                <a href={"https://arc-scan.org/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 8)}...{token.slice(-6)}</a>
                 {indexed.creator && <span>Creator {indexed.creator.slice(0, 7)}...{indexed.creator.slice(-5)}</span>}
                 {indexed.website && <a href={indexed.website} target="_blank" rel="noreferrer">Website</a>}
                 {indexed.twitter && <a href={indexed.twitter.startsWith("http") ? indexed.twitter : "https://x.com/" + indexed.twitter.replace("@", "")} target="_blank" rel="noreferrer">X</a>}
@@ -581,8 +581,8 @@ export function TokenMarket({ token }: { token: Address }) {
                 {indexed.description && <motion.p className="review-copy" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>{indexed.description}</motion.p>}
               </AnimatePresence>
               <div className="about-grid">
-                <div><span>Contract</span><a href={"https://testnet.arcscan.app/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
-                <div><span>Curve</span><a href={curve ? "https://testnet.arcscan.app/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
+                <div><span>Contract</span><a href={"https://arc-scan.org/address/" + token} target="_blank" rel="noreferrer">{token.slice(0, 10)}...{token.slice(-8)}</a></div>
+                <div><span>Curve</span><a href={curve ? "https://arc-scan.org/address/" + curve : "#"} target="_blank" rel="noreferrer">{curve ? curve.slice(0, 10) + "..." + curve.slice(-8) : "—"}</a></div>
                 <div><span>Creator</span><strong>{indexed.creator ? indexed.creator.slice(0, 10) + "..." + indexed.creator.slice(-8) : "—"}</strong></div>
                 <div><span>Creator fee wallet</span><strong>{indexed.creator_fee_recipient ? indexed.creator_fee_recipient.slice(0, 10) + "..." + indexed.creator_fee_recipient.slice(-8) : "—"}</strong></div>
                 <div><span>Pair asset</span><strong>{quoteAsset.symbol}</strong></div>

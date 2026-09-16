@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/analytics/page": "/analytics",
+  "/api/status/route": "/api/status",
+  "/create/page": "/create",
+  "/explore/page": "/explore",
+  "/page": "/",
+  "/portfolio/page": "/portfolio",
+  "/profile/page": "/profile",
+  "/scanner/[address]/page": "/scanner/[address]",
+  "/testnet/page": "/testnet",
+  "/token/[address]/page": "/token/[address]",
+  "/trade/page": "/trade"
+}

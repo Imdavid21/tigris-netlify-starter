@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/api/status/route": "app/api/status/route.js",
+  "/create/page": "app/create/page.js",
+  "/explore/page": "app/explore/page.js",
+  "/page": "app/page.js",
+  "/portfolio/page": "app/portfolio/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/scanner/[address]/page": "app/scanner/[address]/page.js",
+  "/testnet/page": "app/testnet/page.js",
+  "/token/[address]/page": "app/token/[address]/page.js",
+  "/trade/page": "app/trade/page.js"
+}

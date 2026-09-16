@@ -141,6 +141,26 @@ function LoadingGrid() {
   );
 }
 
+async function fetchMarketsWithRetry() {
+  let lastStatus = 0;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(API_URL + "/tokens?limit=100", { cache: "no-store" });
+      lastStatus = response.status;
+      if (response.ok) return response.json();
+    } catch {
+      // Render can briefly refuse connections while a new release becomes healthy.
+    }
+
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+    }
+  }
+
+  throw new Error(lastStatus ? "Market data is temporarily unavailable." : "Market data is reconnecting.");
+}
+
 export function Launches() {
   const [items, setItems] = useState<Launch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,9 +175,7 @@ export function Launches() {
 
     (async () => {
       try {
-        const response = await fetch(API_URL + "/tokens?limit=100");
-        if (!response.ok) throw new Error("Market index is temporarily unavailable.");
-        const payload = await response.json();
+        const payload = await fetchMarketsWithRetry();
         const indexed = (payload.items ?? []) as IndexedLaunch[];
 
         const enriched = await Promise.all(

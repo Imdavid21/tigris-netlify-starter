@@ -206,3 +206,20 @@ Before unrestricted public traffic:
 - prefer a managed/private Arc RPC over the public endpoint
 - transfer factory ownership to the intended production controller/multisig when available
 - complete independent external contract review before unrestricted real-fund use
+
+
+## Production deployment · 2026-09-16
+
+- Chain ID: `5042`
+- Deployment blocks: `21158188` to `21158206`
+- Factory: `0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423`
+- Fee escrow: `0x6D1597932B93b9939f21E9A8D8C2908457F7925d`
+- Buyback vault: `0xf58489A0B285F3b0046FF53a055b80E69a6e15eB`
+- Liquidity locker: `0xE7fFCe43E0eCA4C27e3bB1985C231DBB97145896`
+- Limit order book: `0xED7b5904e272d3DF891179D916D2E3A939ed1471`
+- Uniswap v4 hook: `0x3aC85a7cB39981c95c005E5d72a5Df24d0bb2000`
+- Uniswap v4 connector: `0x0A30D71fB42b7cD92596e9a200d7a101E34DA956`
+- DEX/graduation adapter: `0x4c40f0C8DfC518f436A9a5244179a0Dac145eE43`
+- USDC: `0x3600000000000000000000000000000000000000`
+- Production database schema: `mainnet`
+- Testnet data remains isolated in the `public` schema and is not used by production routes.
