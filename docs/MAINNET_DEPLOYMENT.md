@@ -1,67 +1,128 @@
 # Arc Mainnet Deployment
 
-Verified on 2026-09-16.
+Last verified: 2026-09-17
 
-## Current status
+This document is the canonical production deployment record for supershot.fun on Arc Mainnet.
 
-supershot.fun's mainnet code path is ready through the pre-deployment gates.
+Arc Testnet was used during development, fork validation, staging, and QA. The production contract stack is now deployed on **Arc Mainnet** and the old pre-deployment notes have been retired from this document to avoid ambiguity about the current state of the project.
 
-Completed:
+## 1. Current production status
 
-- Arc Mainnet chain and USDC checks
-- official Arc Uniswap v4 dependency checks
-- complete Uniswap v4 connector/graduation implementation
-- Arc-native fork lifecycle using Circle's Arc Foundry
-- launch, curve buy/sell, graduation, v4 pool creation, LP locking, quoting, and post-graduation swaps
-- factory runtime-size remediation below EIP-170
-- buyback-vault ownership hardening
-- automatic invalidation of an old buyback keeper when factory ownership changes
-- mainnet/testnet PostgreSQL schema isolation support
-- mainnet-safe frontend chain and address configuration
+supershot.fun has an Arc Mainnet contract deployment and a live application stack.
 
-Not yet completed because it requires an onchain deployment:
+Production status:
 
-- Arc Mainnet broadcast
-- final supershot.fun contract addresses and deployment start block
-- Render mainnet environment cutover
-- mainnet indexer backfill
-- controlled real-money mainnet smoke lifecycle
+- Arc Mainnet contracts: **deployed**
+- Arc chain ID: **5042**
+- Mainnet quote asset: **USDC**
+- Mainnet database schema: **mainnet**
+- Web application: **live on Render**
+- API: **live on Render**
+- Indexer: **live on Render**
+- Repository: **public**
+- Arc-native Uniswap v4 graduation path: **implemented in the production deployment**
 
-Latest live readiness probe at 2026-09-16T10:19:28Z found the expected deployer native Arc USDC balance at `0x0`. No mainnet deployment has been broadcast.
+Live services:
 
-Expected deployer:
-`0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01`
+- Web: `https://arc-launchpad-web.onrender.com`
+- API: `https://arc-launchpad-api.onrender.com`
+- Indexer: `https://arc-launchpad-indexer.onrender.com`
+- Repository: `https://github.com/Imdavid21/tigris-netlify-starter`
 
-## Network
+The application services deploy from the repository's `main` branch.
+
+## 2. Arc Mainnet network configuration
+
+Production network values:
 
 - Chain ID: `5042`
 - Public RPC: `https://rpc.mainnet.arc.io`
-- Native gas asset: USDC, 18-decimal native units
-- USDC ERC-20 interface: `0x3600000000000000000000000000000000000000`, 6 decimals
+- Explorer: `https://arc-scan.org`
+- Arc explorer alternative used by engineering tooling: `https://explorer.arc.io`
+- Native gas asset: USDC
+- USDC ERC-20 interface: `0x3600000000000000000000000000000000000000`
+- USDC ERC-20 decimals: 6
 
-Do not reuse Arc Testnet EURC or cirBTC addresses on mainnet. USDC is the only enabled quote asset in the mainnet deployment script until additional mainnet asset addresses are independently verified.
+Arc's native USDC gas semantics and the ERC-20 USDC interface are not treated as interchangeable units. Production deployment and lifecycle tests account for the difference explicitly.
 
-## Arc Foundry
+The mainnet deployment does not reuse Arc Testnet EURC or cirBTC addresses. USDC is the enabled quote asset for the production deployment unless additional mainnet assets are independently verified and deliberately enabled later.
 
-Arc uses execution semantics that are not fully reproduced by upstream Foundry. Circle publishes Arc Foundry as a superset of Foundry.
+## 3. Production contract deployment
 
-Current verified release used in CI:
+The production contract stack was deployed on **2026-09-16**.
+
+Deployment block range recorded by the deployment run:
+
+- `21158188` to `21158206`
+
+Production addresses:
+
+| Component | Arc Mainnet address | Role |
+| --- | --- | --- |
+| `CelestialLaunchFactory` | `0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423` | Token creation, launch configuration, market lifecycle, graduation control |
+| `CelestialFeeEscrow` | `0x6D1597932B93b9939f21E9A8D8C2908457F7925d` | Creator and protocol fee accounting |
+| `CelestialBuybackVault` | `0xf58489A0B285F3b0046FF53a055b80E69a6e15eB` | Buyback funding and execution |
+| `ArcLiquidityLocker` | `0xE7fFCe43E0eCA4C27e3bB1985C231DBB97145896` | Permanent custody of graduation liquidity positions |
+| `CelestialLimitOrderBook` | `0xED7b5904e272d3DF891179D916D2E3A939ed1471` | Onchain limit-order placement, execution, cancellation, and escrow |
+| `CelestialPoolGuardHook` | `0x3aC85a7cB39981c95c005E5d72a5Df24d0bb2000` | Guarded Uniswap v4 pool integration |
+| `CelestialUniswapV4Connector` | `0x0A30D71fB42b7cD92596e9a200d7a101E34DA956` | Arc Uniswap v4 pool creation and swap integration |
+| `CelestialDexAdapter` | `0x4c40f0C8DfC518f436A9a5244179a0Dac145eE43` | Graduation and post-graduation execution boundary |
+| USDC | `0x3600000000000000000000000000000000000000` | Production quote asset and Arc gas asset |
+
+Expected deployment controller / deployer used by the production workflow:
+
+`0x8c377ed06931c379e7C1f31a1753Fe5e03ffBe01`
+
+Independent chain inspection confirms that the production factory address exists as a contract on Arc Mainnet. Its creation transaction is recorded onchain and the factory was created in block `21158204`.
+
+The fee escrow address also exists as a deployed Arc Mainnet contract and was created through the production factory deployment transaction.
+
+## 4. Deployment script
+
+Canonical production deployment script:
+
+`packages/contracts/script/DeployCelestialMainnet.s.sol`
+
+The deployment script creates and wires the production stack:
+
+1. deploy `CelestialLaunchFactory`
+2. create the factory-linked `CelestialFeeEscrow`
+3. create the factory-linked `CelestialBuybackVault`
+4. create the factory-linked `ArcLiquidityLocker`
+5. deploy `CelestialLimitOrderBook`
+6. deploy `CelestialPoolGuardHook` at the CREATE2 address required by the selected Uniswap v4 hook permission bits
+7. deploy `CelestialUniswapV4Connector`
+8. deploy `CelestialDexAdapter`
+9. enable mainnet USDC as the approved production quote asset
+10. seal the hook initializer to the intended connector
+11. configure the DEX adapter as the factory's graduation adapter
+
+The deployment script verifies the external Arc Uniswap v4 dependencies before relying on them.
+
+## 5. Arc Foundry and Arc-specific execution
+
+The project uses Circle's Arc Foundry distribution for Arc-specific fork and lifecycle testing.
+
+Verified release used by the repository's Arc workflow:
+
 `circlefin/arc-foundry v0.8.0-1`
 
-The repository includes an explicit Arc profile:
+Repository Arc profile:
 
 ```toml
 [profile.arc]
 network = "arc"
 ```
 
-The mainnet lifecycle workflow installs the release archive, verifies its published SHA-256 checksum, and runs the fork lifecycle with `arc-forge`.
+This is intentional. Arc execution includes behavior that is not completely reproduced by a generic upstream Anvil environment, especially around USDC and Arc-specific system behavior.
 
-Do not treat an upstream-Anvil Arc fork as sufficient validation for Arc USDC behavior. Arc USDC invokes Arc-specific system/precompile behavior that requires Arc execution semantics.
+The Arc lifecycle workflow therefore uses the Arc-specific execution environment rather than treating a generic EVM fork as sufficient evidence that the production path works correctly.
 
-## Uniswap v4
+## 6. Official Arc Uniswap v4 dependencies
 
-Official Arc Mainnet deployment addresses:
+The production graduation path is built against the Arc Mainnet Uniswap v4 deployment recorded during deployment verification.
+
+External addresses:
 
 - PoolManager: `0x8366a39CC670B4001A1121B8F6A443A643e40951`
 - PositionManager: `0x6049c9a0e26405C0985f9E3685C87d0aE917f82B`
@@ -69,157 +130,282 @@ Official Arc Mainnet deployment addresses:
 - Universal Router: `0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1`
 - Permit2: `0x000000000022D473030F116dDEE9F6B43aC78BA3`
 
-`DeployCelestialMainnet.s.sol` verifies bytecode at all of these addresses before deployment.
+`DeployCelestialMainnet.s.sol` checks that the expected dependencies contain bytecode before proceeding with the production wiring.
 
-The Arc Mainnet fork lifecycle now verifies the full production path against these live deployments:
+The repository does not intentionally fall back to guessed DEX addresses.
+
+## 7. Full market lifecycle
+
+The production architecture is designed around one continuous token lifecycle rather than separate launch and DEX products.
+
+### Phase 1: launch
+
+A creator configures a token and launch through `CelestialLaunchFactory`.
+
+The launch may include:
+
+- metadata and social links
+- creator fee recipient
+- creator tax within protocol bounds
+- holder fee sharing
+- anti-snipe / launch-protection configuration
+- optional atomic developer buy
+- approved quote asset
+
+### Phase 2: bonding-curve market
+
+The token trades against the supershot.fun bonding curve.
+
+The curve is responsible for:
+
+- buy quotes
+- sell quotes
+- execution
+- creator tax accounting
+- holder fee accounting
+- protocol fee accounting
+- buyback funding
+- graduation reserve accounting
+
+### Phase 3: graduation
+
+When the market reaches its configured graduation condition, the production path can:
+
+1. stop normal curve execution at the terminal state
+2. settle or sweep the required graduation accounting
+3. release the graduation inventory
+4. initialize the Arc Uniswap v4 pool
+5. create the graduation liquidity position
+6. lock the LP position through the production liquidity locker
+7. expose the graduated venue to the same market page
+
+### Phase 4: post-graduation trading
+
+The token keeps the same supershot.fun market identity and route.
+
+Execution changes underneath the product from the bonding curve to the production DEX adapter and Uniswap v4 connector.
+
+This avoids forcing users into a second application or a disconnected token page after graduation.
+
+## 8. Mainnet lifecycle validation
+
+The Arc Mainnet fork lifecycle tests the production path against the live external Arc dependencies.
+
+The lifecycle covers:
 
 1. create a supershot.fun token
-2. buy and sell on the bonding curve
-3. reach graduation
-4. sweep graduation assets
-5. initialize the real Uniswap v4 pool
-6. mint and lock the LP position
-7. quote through the v4 quoter
-8. execute USDC to token through the production router path
-9. execute token to USDC through the production router path
+2. execute a curve buy
+3. execute a curve sell
+4. reach the graduation condition
+5. sweep graduation assets
+6. initialize the real Arc Uniswap v4 pool path
+7. mint and lock the LP position
+8. quote through the v4 quoter
+9. execute USDC to token through the production router path
+10. execute token to USDC through the production router path
 
-The lifecycle also validates the 18-decimal supershot.fun token against Arc USDC's 6-decimal ERC-20 interface.
+The lifecycle also covers the decimal boundary between supershot.fun's 18-decimal launch tokens and Arc USDC's 6-decimal ERC-20 interface.
 
-## Mainnet deployment stack
+## 9. Application production configuration
 
-Deployment script:
-`packages/contracts/script/DeployCelestialMainnet.s.sol`
+The frontend, API, and indexer have explicit Arc Mainnet configuration paths.
 
-The script deploys and wires:
-
-- `CelestialLaunchFactory`
-- `CelestialFeeEscrow` through the factory
-- `CelestialBuybackVault` through the factory
-- `ArcLiquidityLocker` through the factory
-- `CelestialLimitOrderBook`
-- `CelestialPoolGuardHook` at a CREATE2 address with the required Uniswap v4 hook permission bits
-- `CelestialUniswapV4Connector`
-- `CelestialDexAdapter`
-
-It then:
-
-- enables USDC as the only mainnet quote asset
-- seals the hook initializer to the connector
-- sets the DEX adapter as the factory graduation adapter
-
-## Ownership model
-
-The buyback vault is no longer pinned to the deployment EOA.
-
-For factory-created vaults:
-
-- immutable vault `owner` is the factory contract
-- `controller()` resolves the current `factory.owner()` dynamically
-- only the current controller can set the operational keeper
-- a keeper is bound to the controller that appointed it
-- transferring factory ownership automatically invalidates a keeper appointed by the previous owner
-
-This behavior is covered by `CelestialOwnership.t.sol` and the complete Arc Mainnet fork lifecycle.
-
-A production multisig can therefore take control by receiving factory ownership without redeploying the buyback vault.
-
-## Database isolation
-
-The API and indexer support `DATABASE_SCHEMA`.
-
-Current testnet services are explicitly pinned to:
+Representative production values:
 
 ```text
-DATABASE_SCHEMA=public
+ARC_CHAIN_ID=5042
+ARC_RPC_URL=https://rpc.mainnet.arc.io
+ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
+ARC_ANALYTICS_CHAIN_ID=5042
+DATABASE_SCHEMA=mainnet
+
+NEXT_PUBLIC_ARC_CHAIN_ID=5042
+NEXT_PUBLIC_ARC_RPC_URL=https://rpc.mainnet.arc.io
+NEXT_PUBLIC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 ```
 
-Arc Mainnet must use:
+The production application must use the deployed addresses listed in this document for the factory, fee escrow, buyback vault, liquidity locker, order book, DEX adapter, and connector.
+
+The frontend does not intentionally fall back to Arc Testnet contract addresses when running with chain ID `5042`.
+
+## 10. Database isolation
+
+The backend supports explicit PostgreSQL schema selection through `DATABASE_SCHEMA`.
+
+Production Arc Mainnet data uses:
 
 ```text
 DATABASE_SCHEMA=mainnet
 ```
 
-A hard guard prevents chain ID `5042` from starting against the `public` schema. This prevents testnet and mainnet rows from being mixed in the current database.
+Historical testnet data uses a separate schema and is not intended to be mixed into production routes.
 
-Current Render Postgres is a free instance and is scheduled to expire on 2026-10-14. It is acceptable for controlled cutover testing, but unrestricted production should use a durable database plan.
+A runtime guard prevents an Arc Mainnet process from starting against the testnet/default `public` schema. This protects production indexing from accidentally mixing testnet and mainnet rows.
 
-## Application cutover
+## 11. Indexer model
 
-Do not switch Render to Arc Mainnet until the actual deployment has succeeded and final addresses are available.
+The Arc indexer is a performance and discovery layer, not the authority for execution.
 
-After deployment, configure API/indexer with:
+Indexed data includes the event families required for:
 
-- `ARC_CHAIN_ID=5042`
-- `ARC_RPC_URL=https://rpc.mainnet.arc.io` or a managed production Arc RPC
-- `DATABASE_SCHEMA=mainnet`
-- `CELESTIAL_FACTORY_ADDRESS`
-- `CELESTIAL_FACTORY_START_BLOCK`
-- `ORDERBOOK_ADDRESS`
-- `BUYBACK_VAULT_ADDRESS`
-- `CELESTIAL_DEX_ADAPTER_ADDRESS`
-- `CELESTIAL_DEX_CONNECTOR_ADDRESS`
+- token discovery
+- trades
+- transfers
+- holders
+- graduation
+- buybacks
+- limit orders
+- post-graduation activity
+- wallet activity
+- analytics
 
-Then configure the frontend with:
+The production design uses a persisted block cursor and paced public-RPC ingestion so the indexer can recover from temporary Arc RPC throttling without losing its place.
 
-- `NEXT_PUBLIC_ARC_CHAIN_ID=5042`
-- `NEXT_PUBLIC_ARC_RPC_URL`
-- `NEXT_PUBLIC_ARC_EXPLORER_URL`
-- `NEXT_PUBLIC_USDC_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_FACTORY_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_FEE_ESCROW_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_BUYBACK_VAULT_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_LIQUIDITY_LOCKER_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_ORDERBOOK_ADDRESS`
-- `NEXT_PUBLIC_CELESTIAL_DEX_ADAPTER_ADDRESS`
+If the indexer is degraded, contract-native state remains the execution source of truth.
 
-The frontend does not silently fall back to testnet contract addresses when configured for chain `5042`.
+## 12. Ownership and control model
 
-## Final live checks
+The buyback vault is designed so operational control can follow factory ownership rather than remaining permanently tied to the deployment EOA.
 
-After broadcast and cutover, use small controlled amounts to verify:
+For factory-created vaults:
 
-1. token creation
-2. USDC approval and curve buy
-3. curve sell
-4. graduation
-5. Uniswap v4 pool and locked LP position
-6. post-graduation buy
-7. post-graduation sell
-8. indexer ingestion and API visibility
-9. scanner and holder links
-10. portfolio and activity
-11. limit orders
-12. analytics
+- the vault owner is the factory contract
+- the active controller resolves through current factory ownership
+- only the active controller can appoint the operational keeper
+- a keeper is associated with the controller that appointed it
+- transferring factory ownership invalidates a keeper appointed by the previous controller
 
-Do not open unrestricted real-fund usage until these live checks pass.
+This allows the production factory to move to a multisig or other intended controller without requiring the buyback vault to be redeployed solely for that ownership transition.
 
-## Production gates
+Production governance hardening should still move privileged ownership to the intended long-term controller where applicable.
 
-Before unrestricted public traffic:
+## 13. Internal testing status
 
-- fund the deployer with enough native Arc USDC for deployment gas
-- broadcast and verify the complete contract stack
-- capture final addresses and deployment start block
-- cut API/indexer/web to Arc Mainnet
-- complete the small controlled live lifecycle
-- use a durable production database
-- prefer a managed/private Arc RPC over the public endpoint
-- transfer factory ownership to the intended production controller/multisig when available
-- complete independent external contract review before unrestricted real-fund use
+The repository includes internal engineering validation across the contract and application stack.
 
+Coverage includes:
 
-## Production deployment · 2026-09-16
+- contract builds and tests
+- fuzz testing
+- stateful invariants
+- launch metadata and quote-asset handling
+- atomic launch plus developer buy
+- curve buy and sell
+- slippage handling
+- fixed token supply
+- creator-fee lifecycle
+- holder-reward lifecycle
+- launch-protection decay and exemptions
+- limit buy
+- limit sell
+- order cancellation and refunds
+- buyback funding and burn
+- graduation reserve safety
+- adapter and reentrancy regression coverage
+- Next.js production build
+- API and indexer TypeScript builds
+- PostgreSQL runtime/schema checks
+- frontend route smoke coverage
+- Arc-specific fork lifecycle
 
-- Chain ID: `5042`
-- Deployment blocks: `21158188` to `21158206`
-- Factory: `0x8F146d29EAf59fC1E93924F8D1BBd1Eae8C29423`
-- Fee escrow: `0x6D1597932B93b9939f21E9A8D8C2908457F7925d`
-- Buyback vault: `0xf58489A0B285F3b0046FF53a055b80E69a6e15eB`
-- Liquidity locker: `0xE7fFCe43E0eCA4C27e3bB1985C231DBB97145896`
-- Limit order book: `0xED7b5904e272d3DF891179D916D2E3A939ed1471`
-- Uniswap v4 hook: `0x3aC85a7cB39981c95c005E5d72a5Df24d0bb2000`
-- Uniswap v4 connector: `0x0A30D71fB42b7cD92596e9a200d7a101E34DA956`
-- DEX/graduation adapter: `0x4c40f0C8DfC518f436A9a5244179a0Dac145eE43`
-- USDC: `0x3600000000000000000000000000000000000000`
-- Production database schema: `mainnet`
-- Testnet data remains isolated in the `public` schema and is not used by production routes.
+Core economic and accounting invariants include:
+
+- fixed supply remains fixed
+- the curve does not sell inventory reserved for graduation
+- tracked quote does not exceed its intended threshold
+- physical quote accounting covers tracked reserves and pending fees under the tested model
+
+This is **internal engineering validation**, not an independent third-party smart-contract audit.
+
+## 14. Production hardening still recommended
+
+Mainnet deployment does not mean the project should be described as fully hardened for unlimited real-money usage.
+
+Remaining or continuing production-hardening work includes:
+
+### RPC infrastructure
+
+The public Arc RPC has produced rate-limit failures during development and indexing.
+
+For sustained production traffic:
+
+- use a managed/private Arc RPC
+- retain fallback RPC support
+- retain paced indexer ingestion
+- keep user-facing degraded-service handling
+
+### Database durability
+
+Use a durable production database plan for long-running production workloads rather than relying indefinitely on temporary/free infrastructure.
+
+### Governance
+
+Move privileged ownership to the intended production multisig or controller where appropriate.
+
+### Independent review
+
+Complete an external smart-contract security review before treating the system as appropriate for unrestricted real-fund usage.
+
+These items are deliberately documented as hardening work. They should not be confused with the old pre-mainnet deployment state.
+
+## 15. Historical testnet status
+
+Arc Testnet was used before the September 16, 2026 production deployment for:
+
+- protocol iteration
+- contract deployment testing
+- UI integration
+- wallet flows
+- indexer development
+- Arc RPC failure handling
+- early graduation-adapter work
+- QA
+
+Those testnet deployments remain useful historical engineering artifacts.
+
+They are **not** the current deployment referenced by grant applications, production documentation, or user-facing mainnet status.
+
+For current addresses, use the production address table in this document.
+
+## 16. Arc Microgrants reviewer checklist
+
+For programs that require an already-working Arc Mainnet project, the repository exposes the following evidence:
+
+- public source repository: yes
+- Arc Mainnet contract deployment: yes
+- Arc chain ID `5042`: yes
+- live web deployment: yes
+- live API deployment: yes
+- live indexer deployment: yes
+- Arc component is core to the product: yes
+- USDC is used as the production Arc quote/gas asset: yes
+- token creation is onchain: yes
+- bonding-curve trading is onchain: yes
+- limit-order system is onchain: yes
+- graduation architecture is Arc-native: yes
+- Arc Uniswap v4 production integration is deployed: yes
+- public builder repository: yes
+
+Grant reviewers should use the live application, this repository, and the production addresses above rather than historical testnet documentation when evaluating current eligibility.
+
+## 17. Canonical references
+
+Current deployment and product references:
+
+- `README.md`
+- `docs/PROJECT_SOURCE_OF_TRUTH.md`
+- `docs/AUDIT.md`
+- `docs/QA_REPORT.md`
+- `docs/UNISWAP_V4_INTEGRATION.md`
+- `docs/V4_AUDIT_BRIEF.md`
+- `AGENTS.md`
+
+Deployment script:
+
+- `packages/contracts/script/DeployCelestialMainnet.s.sol`
+
+Mainnet configuration template:
+
+- `.env.example`
+
+When another document conflicts with this file on whether supershot.fun has been deployed to Arc Mainnet, **this file and the current onchain deployment take precedence**.
