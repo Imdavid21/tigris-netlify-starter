@@ -10,13 +10,13 @@
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button{font:inherit}
 #app{position:relative;width:100%;height:100%;background:#F5FEFD}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#cam{display:none}
+#cam{display:none;position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-width:100vw!important;min-height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;z-index:0!important}
 .panel{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px;background:rgba(245,254,253,.94);backdrop-filter:blur(18px)}
 .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;margin:0 0 12px}
 h1{font-size:clamp(54px,13vw,84px);line-height:.92;letter-spacing:-.055em;margin:0}
 p{max-width:380px;line-height:1.45;color:rgba(7,19,17,.62)}
 button{border:0;border-radius:999px;min-height:50px;padding:0 22px;font-weight:750}
-.primary{background:#071311;color:white;min-width:180px}.primary:disabled{opacity:.4}
+.primary{background:#071311;color:white;min-width:180px}.primary:disabled{opacity:.4}.primary:active,.secondary:active,#place:active{transform:scale(.96);filter:brightness(.96)}button{transition:transform .14s ease,filter .14s ease,opacity .14s ease;touch-action:manipulation}
 #hud{position:absolute;inset:0;z-index:4;pointer-events:none;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
 #top{display:flex;justify-content:space-between;color:#fff;font-size:12px;font-weight:800;letter-spacing:.14em;text-shadow:0 1px 10px #0008}
 #status{position:absolute;top:76px;left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:999px;background:#07131199;color:#fff;backdrop-filter:blur(10px);white-space:nowrap;font-size:13px}
@@ -25,7 +25,7 @@ button{border:0;border-radius:999px;min-height:50px;padding:0 22px;font-weight:7
 #controls{position:absolute;left:16px;right:16px;bottom:max(20px,env(safe-area-inset-bottom));display:grid;gap:10px;pointer-events:auto}
 #place{background:#97FCE4;color:#071311;min-height:56px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.secondary{background:#07131199;color:white;backdrop-filter:blur(10px)}
 .hidden{display:none!important}.note{font-size:12px}
-#desktop{position:absolute;left:18px;right:18px;bottom:18px;z-index:6;padding:16px 18px;border-radius:20px;background:#F5FEFDEB;border:1px solid #0713111F;backdrop-filter:blur(14px)}
+#toast{position:fixed;left:50%;bottom:118px;z-index:20;transform:translateX(-50%) translateY(10px);opacity:0;padding:10px 14px;border-radius:999px;background:#071311c7;color:#fff;font-size:12px;backdrop-filter:blur(14px);transition:.18s ease;pointer-events:none;white-space:nowrap}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#desktop{position:absolute;left:18px;right:18px;bottom:18px;z-index:6;padding:16px 18px;border-radius:20px;background:#F5FEFDEB;border:1px solid #0713111F;backdrop-filter:blur(14px)}
 #desktop h2{margin:0;font-size:22px;letter-spacing:-.03em}#desktop p{margin:7px 0 0;font-size:13px}
 </style>
 </head>
@@ -41,21 +41,21 @@ button{border:0;border-radius:999px;min-height:50px;padding:0 22px;font-weight:7
 <p id="device" class="note">Safari on iPhone or Chrome on Android.</p>
 </section>
 <section id="hud" class="hidden">
-<div id="top"><span>HYPURR</span><span>AR PREVIEW</span></div>
+<div id="top"><span>HYPURR AR</span><span>HYPERLIQUID INDIA</span></div>
 <div id="status">Move your phone forward and back</div>
 <div id="reticle"></div>
 <div id="controls">
-<button id="place" disabled>Release Hypurr</button>
+<button id="place" disabled>Release</button>
 <div class="row"><button id="call" class="secondary" disabled>Call</button><button id="reset" class="secondary" disabled>Reset</button></div>
 </div>
 </section>
-<section id="desktop" class="hidden"><h2>Desktop preview</h2><p>Open this URL on your phone to test the AR camera flow.</p></section>
+<div id="toast">Done</div><section id="desktop" class="hidden"><h2>Desktop preview</h2><p>Open this URL on your phone to test the AR camera flow.</p></section>
 </main>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.min.js";
 window.THREE=THREE;
 const E=id=>document.getElementById(id);
-const ui={landing:E("landing"),start:E("start"),device:E("device"),hud:E("hud"),status:E("status"),reticle:E("reticle"),place:E("place"),call:E("call"),reset:E("reset"),cam:E("cam"),preview:E("preview"),desktop:E("desktop")};
+const ui={landing:E("landing"),start:E("start"),device:E("device"),hud:E("hud"),status:E("status"),reticle:E("reticle"),place:E("place"),call:E("call"),reset:E("reset"),cam:E("cam"),preview:E("preview"),desktop:E("desktop"),toast:E("toast")};
 const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const s={xr:false,placed:false,scene:null,camera:null,renderer:null,cat:null,clock:new THREE.Clock(),ray:new THREE.Raycaster(),pointer:new THREE.Vector2(),ground:new THREE.Plane(new THREE.Vector3(0,1,0),0),normalAt:0};
 const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
@@ -120,7 +120,7 @@ function start(){
    ui.device.textContent="AR could not start. Close other camera apps/tabs and retry.";
  }
 }
-ui.start.addEventListener("click",start);ui.place.addEventListener("click",()=>release());ui.call.addEventListener("click",call);ui.reset.addEventListener("click",reset);preview();
+ui.start.addEventListener("click",start);ui.place.addEventListener("click",e=>{feedback(e.currentTarget,s.placed?"Moved Hypurr":"Released Hypurr");release()});ui.call.addEventListener("click",e=>{feedback(e.currentTarget,"Calling Hypurr");call()});ui.reset.addEventListener("click",e=>{feedback(e.currentTarget,"Reset");reset()});preview();
 if(!mobile){
   ui.start.textContent="Open on phone";
   ui.device.textContent="Desktop is preview-only.";
