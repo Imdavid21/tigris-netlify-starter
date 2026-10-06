@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#F5FEFD">
+<title>Hypurr AR Preview</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#071311;background:#F5FEFD}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button{font:inherit}
+#app{position:relative;width:100%;height:100%;background:#F5FEFD}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cam{display:none}
+.panel{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px;background:rgba(245,254,253,.94);backdrop-filter:blur(18px)}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;margin:0 0 12px}
+h1{font-size:clamp(54px,13vw,84px);line-height:.92;letter-spacing:-.055em;margin:0}
+p{max-width:380px;line-height:1.45;color:rgba(7,19,17,.62)}
+button{border:0;border-radius:999px;min-height:50px;padding:0 22px;font-weight:750}
+.primary{background:#071311;color:white;min-width:180px}.primary:disabled{opacity:.4}
+#hud{position:absolute;inset:0;z-index:4;pointer-events:none;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
+#top{display:flex;justify-content:space-between;color:#fff;font-size:12px;font-weight:800;letter-spacing:.14em;text-shadow:0 1px 10px #0008}
+#status{position:absolute;top:76px;left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:999px;background:#07131199;color:#fff;backdrop-filter:blur(10px);white-space:nowrap;font-size:13px}
+#reticle{position:absolute;left:50%;top:50%;width:54px;height:54px;transform:translate(-50%,-50%);border:1px solid #fff9;border-radius:50%}
+#reticle:before,#reticle:after{content:"";position:absolute;background:#fff}#reticle:before{width:14px;height:1px;left:20px;top:26px}#reticle:after{height:14px;width:1px;top:20px;left:26px}
+#controls{position:absolute;left:16px;right:16px;bottom:max(20px,env(safe-area-inset-bottom));display:grid;gap:10px;pointer-events:auto}
+#place{background:#97FCE4;color:#071311;min-height:56px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.secondary{background:#07131199;color:white;backdrop-filter:blur(10px)}
+.hidden{display:none!important}.note{font-size:12px}
+#desktop{position:absolute;left:18px;right:18px;bottom:18px;z-index:6;padding:16px 18px;border-radius:20px;background:#F5FEFDEB;border:1px solid #0713111F;backdrop-filter:blur(14px)}
+#desktop h2{margin:0;font-size:22px;letter-spacing:-.03em}#desktop p{margin:7px 0 0;font-size:13px}
+</style>
+</head>
+<body>
+<main id="app">
+<canvas id="cam"></canvas>
+<canvas id="preview"></canvas>
+<section id="landing" class="panel">
+<p class="eyebrow">HYPERLIQUID INDIA</p>
+<h1>Find Hypurr.</h1>
+<p>Release a life-size Hypurr into the room. No app.</p>
+<button id="start" class="primary" disabled>Loading AR</button>
+<p id="device" class="note">Safari on iPhone or Chrome on Android.</p>
+</section>
+<section id="hud" class="hidden">
+<div id="top"><span>HYPURR</span><span>AR PREVIEW</span></div>
+<div id="status">Move your phone forward and back</div>
+<div id="reticle"></div>
+<div id="controls">
+<button id="place" disabled>Release Hypurr</button>
+<div class="row"><button id="call" class="secondary" disabled>Call</button><button id="reset" class="secondary" disabled>Reset</button></div>
+</div>
+</section>
+<section id="desktop" class="hidden"><h2>Desktop preview</h2><p>Open this URL on your phone to test the AR camera flow.</p></section>
+</main>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.min.js";
+window.THREE=THREE;
+const E=id=>document.getElementById(id);
+const ui={landing:E("landing"),start:E("start"),device:E("device"),hud:E("hud"),status:E("status"),reticle:E("reticle"),place:E("place"),call:E("call"),reset:E("reset"),cam:E("cam"),preview:E("preview"),desktop:E("desktop")};
+const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const s={xr:false,placed:false,scene:null,camera:null,renderer:null,cat:null,clock:new THREE.Clock(),ray:new THREE.Raycaster(),pointer:new THREE.Vector2(),ground:new THREE.Plane(new THREE.Vector3(0,1,0),0),normalAt:0};
+const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
+function sph(r,m,sc=[1,1,1],p=[0,0,0]){const x=new THREE.Mesh(new THREE.SphereGeometry(r,18,12),m);x.scale.set(...sc);x.position.set(...p);x.castShadow=x.receiveShadow=true;return x}
+function cone(r,h,m,p,rz=0){const x=new THREE.Mesh(new THREE.ConeGeometry(r,h,3),m);x.position.set(...p);x.rotation.z=rz;x.castShadow=true;return x}
+function cat(){
+ const g=new THREE.Group(),v=new THREE.Group();g.add(v);
+ const fur=M(0xf4fbfa),stripe=M(0x62777d),pink=M(0xf4a8c4),ink=M(0x071311),hood=M(0x0b2d29),mint=M(0x97fce4);
+ v.add(sph(.145,hood,[1.08,.95,1.45],[0,.21,0]),sph(.122,fur,[1.08,.96,.98],[0,.405,.02]));
+ v.add(cone(.061,.145,fur,[-.075,.515,.012],-.13),cone(.061,.145,fur,[.075,.515,.012],.13),cone(.036,.098,pink,[-.075,.522,.022],-.13),cone(.036,.098,pink,[.075,.522,.022],.13));
+ const e1=sph(.015,ink,[1,1.45,.62],[-.047,.415,.125]),e2=e1.clone();e2.position.x=.047;v.add(e1,e2);
+ [-.048,0,.048].forEach(x=>{const q=new THREE.Mesh(new THREE.BoxGeometry(.016,.055,.008),stripe);q.position.set(x,.493-Math.abs(x)*.3,.122);v.add(q)});
+ const legs=[];[[-.085,.092,.09],[.085,.092,.09],[-.085,.092,-.105],[.085,.092,-.105]].forEach(([x,y,z])=>{const p=new THREE.Group();p.position.set(x,y,z);p.add(sph(.042,fur,[.86,1.45,.95],[0,-.034,0]),sph(.047,fur,[1.15,.56,1.25],[0,-.09,.018]));legs.push(p);v.add(p)});
+ const tail=new THREE.Group();tail.position.set(.13,.245,-.1);[stripe,fur,stripe,fur,stripe,fur].forEach((m,i)=>tail.add(sph(.04-i*.003,m,[1,1.15,1],[Math.sin(i*.45)*.03,i*.055,-i*.012])));tail.rotation.z=-.42;v.add(tail);
+ v.add(sph(.024,mint,[1.5,.75,.3],[0,.245,.145]));
+ g.userData={v,legs,tail,mode:"idle",timer:1,target:new THREE.Vector3(),speed:.32,phase:0,home:new THREE.Vector3()};
+ return g;
+}
+function light(scene){scene.add(new THREE.HemisphereLight(0xffffff,0x48625d,1.35));const d=new THREE.DirectionalLight(0xffffff,1.4);d.position.set(2,5,3);d.castShadow=true;scene.add(d)}
+function target(c,run=false){const a=Math.random()*Math.PI*2,r=.6+Math.random();c.userData.target.set(c.userData.home.x+Math.cos(a)*r,0,c.userData.home.z+Math.sin(a)*r);c.userData.mode=run?"run":"walk";c.userData.speed=run?1.05:.35;c.userData.timer=5}
+function animate(c,dt,t){if(!c||s.xr&&!s.placed)return;const d=c.userData;d.timer-=dt;if(d.mode==="idle"){d.v.position.y=Math.sin(t*2.2)*.002;d.tail.rotation.y=Math.sin(t*2)*.3;if(d.timer<=0)target(c,Math.random()<.2);return}
+ const to=d.target.clone().sub(c.position);to.y=0;if(to.length()<.06||d.timer<=0){d.mode="idle";d.timer=.8+Math.random()*1.8;return}
+ const dir=to.normalize(),ang=Math.atan2(dir.x,dir.z);let del=Math.atan2(Math.sin(ang-c.rotation.y),Math.cos(ang-c.rotation.y));c.rotation.y+=del*Math.min(1,dt*8);c.position.addScaledVector(dir,d.speed*dt);d.phase+=dt*(d.mode==="run"?12:7);d.v.position.y=Math.abs(Math.sin(d.phase*2))*(d.mode==="run"?.013:.006);d.legs.forEach((l,i)=>l.rotation.x=Math.sin(d.phase+((i===0||i===3)?0:Math.PI))*(d.mode==="run"?.62:.4));d.tail.rotation.y=Math.sin(t*4)*.3}
+function preview(){
+ const r=new THREE.WebGLRenderer({canvas:ui.preview,antialias:true,alpha:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.shadowMap.enabled=true;const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(45,1,.01,20);cam.position.set(0,.68,1.3);cam.lookAt(0,.25,0);light(sc);const floor=new THREE.Mesh(new THREE.CircleGeometry(1.7,64),M(0xe4fbf7));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;sc.add(floor);const c=cat();sc.add(c);c.userData.home.set(0,0,0);
+ const rs=()=>{r.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()};addEventListener("resize",rs);rs();let last=performance.now();(function loop(n){const dt=Math.min((n-last)/1000,.05);last=n;animate(c,dt,n/1000);r.render(sc,cam);requestAnimationFrame(loop)})(last)}
+function floorPoint(x,y){const rect=s.renderer.domElement.getBoundingClientRect();s.pointer.x=((x-rect.left)/rect.width)*2-1;s.pointer.y=-((y-rect.top)/rect.height)*2+1;s.ray.setFromCamera(s.pointer,s.camera);const p=new THREE.Vector3();return s.ray.ray.intersectPlane(s.ground,p)?p:null}
+function forwardPoint(){const f=new THREE.Vector3(0,0,-1).applyQuaternion(s.camera.quaternion);f.y=0;if(f.lengthSq()<.001)f.set(0,0,-1);f.normalize();const p=s.camera.position.clone().addScaledVector(f,1.2);p.y=0;return p}
+function release(p=forwardPoint()){if(!s.cat)return;s.cat.position.copy(p);s.cat.visible=true;s.cat.userData.home.copy(p);s.cat.userData.mode="idle";s.cat.userData.timer=.4;s.placed=true;ui.place.textContent="Move Hypurr";ui.call.disabled=false;ui.reset.disabled=false;ui.reticle.classList.add("hidden");ui.status.textContent="Hypurr is loose"}
+function call(){if(!s.placed)return;s.cat.userData.target.copy(forwardPoint());s.cat.userData.mode="run";s.cat.userData.speed=1.05;s.cat.userData.timer=4}
+function reset(){s.placed=false;s.cat.visible=false;ui.place.textContent="Release Hypurr";ui.call.disabled=true;ui.reset.disabled=true;ui.reticle.classList.remove("hidden");ui.status.textContent="Tap the floor to release Hypurr"}
+function initXR(){
+ const {scene,camera,renderer}=XR8.Threejs.xrScene();s.scene=scene;s.camera=camera;s.renderer=renderer;renderer.shadowMap.enabled=true;light(scene);const g=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:.2}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);s.cat=cat();s.cat.visible=false;scene.add(s.cat);camera.position.set(0,1.6,2);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion})}
+function pipe(){return{name:"hypurr-preview",onStart:({canvas})=>{initXR();canvas.addEventListener("pointerdown",e=>{if(!s.placed&&!ui.place.disabled){const p=floorPoint(e.clientX,e.clientY);if(p)release(p)}},{passive:true})},onUpdate:({processCpuResult})=>{const ok=processCpuResult?.reality?.trackingStatus==="NORMAL";if(ok){if(!s.normalAt)s.normalAt=performance.now();const ready=performance.now()-s.normalAt>1400;if(!s.placed){ui.place.disabled=!ready;ui.status.textContent=ready?"Tap the floor to release Hypurr":"Keep moving forward and back"}}else if(!s.placed){s.normalAt=0;ui.place.disabled=true;ui.status.textContent="Move your phone forward and back"}animate(s.cat,Math.min(s.clock.getDelta(),.05),performance.now()/1000)}}}
+function start(){if(!window.XR8)return;s.xr=true;ui.landing.classList.add("hidden");ui.preview.style.display="none";ui.cam.style.display="block";ui.hud.classList.remove("hidden");s.clock.start();XR8.XrController.configure({disableWorldTracking:false,enableLighting:false,scale:"absolute"});XR8.addCameraPipelineModules([XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule(),pipe()]);XR8.run({canvas:ui.cam,allowedDevices:XR8.XrConfig.device().MOBILE})}
+ui.start.addEventListener("click",start);ui.place.addEventListener("click",()=>release());ui.call.addEventListener("click",call);ui.reset.addEventListener("click",reset);preview();
+if(!mobile){ui.start.textContent="Open on phone";ui.device.textContent="Desktop is preview-only.";ui.desktop.classList.remove("hidden")}else{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js";sc.async=true;sc.crossOrigin="anonymous";sc.dataset.preloadChunks="slam";sc.addEventListener("load",()=>{if(window.XR8){ui.start.disabled=false;ui.start.textContent="Enter AR"}});sc.addEventListener("error",()=>{ui.start.textContent="AR failed to load";ui.device.textContent="Reload and check your connection."});document.head.appendChild(sc)}
+</script>
+</body>
+</html>
