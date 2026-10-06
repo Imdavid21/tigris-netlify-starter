@@ -90,9 +90,73 @@ function reset(){s.placed=false;s.cat.visible=false;ui.place.textContent="Releas
 function initXR(){
  const {scene,camera,renderer}=XR8.Threejs.xrScene();s.scene=scene;s.camera=camera;s.renderer=renderer;renderer.shadowMap.enabled=true;light(scene);const g=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:.2}));g.rotation.x=-Math.PI/2;g.receiveShadow=true;scene.add(g);s.cat=cat();s.cat.visible=false;scene.add(s.cat);camera.position.set(0,1.6,2);XR8.XrController.updateCameraProjectionMatrix({origin:camera.position,facing:camera.quaternion})}
 function pipe(){return{name:"hypurr-preview",onStart:({canvas})=>{initXR();canvas.addEventListener("pointerdown",e=>{if(!s.placed&&!ui.place.disabled){const p=floorPoint(e.clientX,e.clientY);if(p)release(p)}},{passive:true})},onUpdate:({processCpuResult})=>{const ok=processCpuResult?.reality?.trackingStatus==="NORMAL";if(ok){if(!s.normalAt)s.normalAt=performance.now();const ready=performance.now()-s.normalAt>1400;if(!s.placed){ui.place.disabled=!ready;ui.status.textContent=ready?"Tap the floor to release Hypurr":"Keep moving forward and back"}}else if(!s.placed){s.normalAt=0;ui.place.disabled=true;ui.status.textContent="Move your phone forward and back"}animate(s.cat,Math.min(s.clock.getDelta(),.05),performance.now()/1000)}}}
-function start(){if(!window.XR8)return;s.xr=true;ui.landing.classList.add("hidden");ui.preview.style.display="none";ui.cam.style.display="block";ui.hud.classList.remove("hidden");s.clock.start();XR8.XrController.configure({disableWorldTracking:false,enableLighting:false,scale:"absolute"});XR8.addCameraPipelineModules([XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule(),pipe()]);XR8.run({canvas:ui.cam,allowedDevices:XR8.XrConfig.device().MOBILE})}
+function start(){
+ if(!window.XR8){
+   ui.start.disabled=true;
+   ui.start.textContent="Loading AR";
+   ui.device.textContent="Waiting for the AR engine…";
+   setTimeout(()=>location.reload(),700);
+   return;
+ }
+ s.xr=true;
+ ui.landing.classList.add("hidden");
+ ui.preview.style.display="none";
+ ui.cam.style.display="block";
+ ui.hud.classList.remove("hidden");
+ s.clock.start();
+ try{
+   XR8.XrController.configure({disableWorldTracking:false,enableLighting:false,scale:"absolute"});
+   XR8.addCameraPipelineModules([XR8.GlTextureRenderer.pipelineModule(),XR8.Threejs.pipelineModule(),XR8.XrController.pipelineModule(),pipe()]);
+   XR8.run({canvas:ui.cam,allowedDevices:XR8.XrConfig.device().MOBILE});
+ }catch(err){
+   console.error(err);
+   s.xr=false;
+   ui.hud.classList.add("hidden");
+   ui.cam.style.display="none";
+   ui.preview.style.display="block";
+   ui.landing.classList.remove("hidden");
+   ui.start.disabled=false;
+   ui.start.textContent="Retry AR";
+   ui.device.textContent="AR could not start. Close other camera apps/tabs and retry.";
+ }
+}
 ui.start.addEventListener("click",start);ui.place.addEventListener("click",()=>release());ui.call.addEventListener("click",call);ui.reset.addEventListener("click",reset);preview();
-if(!mobile){ui.start.textContent="Open on phone";ui.device.textContent="Desktop is preview-only.";ui.desktop.classList.remove("hidden")}else{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js";sc.async=true;sc.crossOrigin="anonymous";sc.dataset.preloadChunks="slam";sc.addEventListener("load",()=>{if(window.XR8){ui.start.disabled=false;ui.start.textContent="Enter AR"}});sc.addEventListener("error",()=>{ui.start.textContent="AR failed to load";ui.device.textContent="Reload and check your connection."});document.head.appendChild(sc)}
+if(!mobile){
+  ui.start.textContent="Open on phone";
+  ui.device.textContent="Desktop is preview-only.";
+  ui.desktop.classList.remove("hidden");
+}else{
+  let xrReady=false;
+  const markReady=()=>{
+    if(xrReady)return;
+    xrReady=true;
+    ui.start.disabled=false;
+    ui.start.textContent="Enter AR";
+    ui.device.textContent="AR engine ready. Tap Enter AR to allow camera access.";
+  };
+  const markFailed=(message)=>{
+    if(xrReady)return;
+    ui.start.disabled=false;
+    ui.start.textContent="Retry loading AR";
+    ui.device.textContent=message;
+  };
+  window.addEventListener("xrloaded",markReady,{once:true});
+  const sc=document.createElement("script");
+  sc.src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js";
+  sc.async=true;
+  sc.crossOrigin="anonymous";
+  sc.dataset.preloadChunks="slam";
+  sc.addEventListener("load",()=>{
+    if(window.XR8)markReady();
+    else ui.device.textContent="Finishing AR engine setup…";
+  });
+  sc.addEventListener("error",()=>markFailed("AR engine download failed. Tap retry or reload."));
+  document.head.appendChild(sc);
+  setTimeout(()=>{
+    if(window.XR8)markReady();
+    else if(!xrReady)markFailed("AR engine is taking too long. Tap retry or reload.");
+  },12000);
+}
 </script>
 </body>
 </html>
